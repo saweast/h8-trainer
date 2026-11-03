@@ -10,7 +10,9 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:seed": "node scripts/gen-exercise-seed.mjs"
+    "gen:seed": "node scripts/gen-exercise-seed.mjs",
+    "gen:types": "supabase gen types typescript --remote --schema public > src/lib/db.types.ts",
+    "db:push": "supabase db push --remote"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -49,6 +51,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^29.1.1",
     "oxlint": "^1.89.0",
+    "supabase": "^3.0.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
     "vitest": "^4.1.12"

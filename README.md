@@ -29,6 +29,8 @@ VITE_SUPABASE_ANON_KEY=sb_publishable_...
 | `npm test` | Vitest: утиліти + міграції й RLS у PGlite (Postgres у WASM, без Docker) |
 | `npm run lint` | oxlint |
 | `npm run gen:seed` | перегенерувати seed вправ із `src/data/exercise-catalog.json` |
+| `npm run db:push` | застосувати нові міграції до підключеного проєкту Supabase |
+| `npm run gen:types` | оновити `src/lib/db.types.ts` зі схеми БД |
 
 ## База даних
 
@@ -40,8 +42,9 @@ VITE_SUPABASE_ANON_KEY=sb_publishable_...
 
 ```bash
 npx supabase login
-npx supabase link --project-ref <project-ref>   # спитає пароль БД
-npx supabase db push
+npx supabase link --project-ref <project-ref>
+npm run db:push        # = supabase db push --remote (CLI v3 без --remote цілиться в локальну БД)
+npm run gen:types
 ```
 
 Каталог вправ: `src/data/exercise-catalog.json` — єдине джерело (назви uk/en у застосунку + seed у БД).

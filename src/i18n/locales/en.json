@@ -104,7 +104,8 @@
     "trainerMode": "I'm a trainer",
     "trainerModeHint": "Adds a client list, session packages and logging workouts for clients.",
     "signOut": "Sign out",
-    "demo": "Demo mode"
+    "demo": "Demo mode",
+    "saveError": "Couldn't save. Check your connection."
   },
   "trainer": {
     "clientsTitle": "Clients",

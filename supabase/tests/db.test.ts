@@ -80,6 +80,47 @@ describe('migrations', () => {
   })
 })
 
+describe('hardening', () => {
+  it('keeps RLS helpers and trigger functions out of the public API schema', async () => {
+    const exposed = await rows<{ proname: string }>(
+      db,
+      `select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' order by p.proname`,
+    )
+    expect(exposed.map((r) => r.proname)).toEqual([
+      'claim_invite',
+      'create_offline_client',
+      'exercise_records',
+      'get_invite',
+      'last_performance',
+      'trainer_clients_overview',
+    ])
+  })
+
+  it('lets only the owner edit template exercises', async () => {
+    const templateId = await asUser(anna.userId, async (tx) => {
+      const [t] = await rows<{ id: string }>(tx, `insert into public.templates (name) values ('День A') returning id`)
+      await tx.query(`insert into public.template_exercises (template_id, exercise_id, position) values ($1, $2, 0)`, [
+        t.id,
+        benchId,
+      ])
+      return t.id
+    })
+    await expect(
+      asUser(bohdan.userId, (tx) =>
+        tx.query(`insert into public.template_exercises (template_id, exercise_id, position) values ($1, $2, 1)`, [
+          templateId,
+          benchId,
+        ]),
+      ),
+    ).rejects.toThrow(/row-level security/)
+    const updated = await asUser(bohdan.userId, (tx) =>
+      tx.query(`update public.template_exercises set target_sets = 9 where template_id = $1`, [templateId]),
+    )
+    expect(updated.affectedRows).toBe(0)
+  })
+})
+
 describe('anonymous access', () => {
   it('cannot read any table', async () => {
     await expect(
