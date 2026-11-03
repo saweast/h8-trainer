@@ -1,16 +1,24 @@
-import { Link, Outlet } from 'react-router'
+import { useEffect } from 'react'
+import { Link, Outlet, useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { Logo } from '@/components/common/Logo'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useAuth } from '@/features/auth/authContext'
-import { useMode } from '@/features/mode/modeContext'
+import { useMode, type AppMode } from '@/features/mode/modeContext'
 import { BottomNav } from './BottomNav'
 import { ModeSwitch } from './ModeSwitch'
 
 export function AppShell() {
   const { t } = useTranslation()
   const { user, isDemo } = useAuth()
-  const { isTrainer, mode } = useMode()
+  const { isTrainer, mode, setMode } = useMode()
+  const { pathname } = useLocation()
+
+  // Screens that belong to one mode switch the navigation to it (links, reloads, back button).
+  const routeMode = modeForPath(pathname)
+  useEffect(() => {
+    if (isTrainer && routeMode && routeMode !== mode) setMode(routeMode)
+  }, [isTrainer, routeMode, mode, setMode])
 
   return (
     <div className="min-h-dvh">
@@ -38,4 +46,10 @@ export function AppShell() {
       <BottomNav />
     </div>
   )
+}
+
+function modeForPath(pathname: string): AppMode | null {
+  if (pathname === '/trainer' || pathname.startsWith('/trainer/')) return 'trainer'
+  if (pathname === '/' || ['/history', '/progress', '/body'].some((p) => pathname.startsWith(p))) return 'athlete'
+  return null // shared screens (exercises, templates, profile) keep the current mode
 }

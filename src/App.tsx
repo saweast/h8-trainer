@@ -17,6 +17,7 @@ import { ProfilePage } from '@/pages/ProfilePage'
 import { ProgressPage } from '@/pages/ProgressPage'
 import { TemplatesPage } from '@/pages/TemplatesPage'
 import { TrainerClientsPage } from '@/pages/TrainerClientsPage'
+import { WorkoutPage } from '@/features/workout/WorkoutPage'
 
 // "/h8-trainer/" → "/h8-trainer"
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
@@ -31,6 +32,8 @@ export default function App() {
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route element={<RequireAuth />}>
+                  {/* Full-screen: no app header or bottom navigation while training */}
+                  <Route path="workout/:workoutId" element={<WorkoutPage />} />
                   <Route element={<AppShell />}>
                     <Route index element={<HomePage />} />
                     <Route path="history" element={<HistoryPage />} />
@@ -40,7 +43,6 @@ export default function App() {
                     <Route path="templates" element={<TemplatesPage />} />
                     <Route path="trainer" element={<TrainerClientsPage />} />
                     <Route path="trainer/clients/:athleteId" element={<ComingSoonPage />} />
-                    <Route path="workout/:workoutId" element={<ComingSoonPage />} />
                     <Route path="body" element={<ComingSoonPage />} />
                     <Route path="invite/:code" element={<ComingSoonPage />} />
                     <Route path="*" element={<NotFoundPage />} />

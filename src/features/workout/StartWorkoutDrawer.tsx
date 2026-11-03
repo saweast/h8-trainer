@@ -1,6 +1,6 @@
 import { ChevronRight, ClipboardList, Play, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,13 +11,29 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
+import { isSupabaseConfigured } from '@/lib/supabase'
+import { useStartWorkout } from './api'
 
 /** «Почати тренування» bottom sheet: next in program · empty workout · templates. */
-export function StartWorkoutDrawer() {
+export function StartWorkoutDrawer({ athleteId }: { athleteId: string | undefined }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const start = useStartWorkout(athleteId)
 
-  // TODO(stage 3): create the workout in Supabase and navigate to /workout/:id.
-  const startEmpty = () => toast(t('common.needsDatabase'))
+  const startEmpty = () => {
+    if (!isSupabaseConfigured) {
+      toast(t('common.needsDatabase'))
+      return
+    }
+    if (!athleteId || start.isPending) return
+    start.mutate(
+      {},
+      {
+        onSuccess: (id) => navigate(`/workout/${id}`),
+        onError: () => toast.error(t('workout.saveError')),
+      },
+    )
+  }
 
   return (
     <Drawer>
@@ -36,6 +52,7 @@ export function StartWorkoutDrawer() {
           <button
             type="button"
             onClick={startEmpty}
+            disabled={start.isPending}
             className="flex min-h-16 items-center gap-3 rounded-2xl border bg-card px-4 py-3 text-left transition-colors hover:bg-secondary"
           >
             <span className="flex size-10 items-center justify-center rounded-xl bg-secondary">

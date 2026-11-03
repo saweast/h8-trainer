@@ -45,3 +45,11 @@ export function matchesQuery(exercise: CatalogExercise, query: string): boolean 
   if (!q) return true
   return normalize(exercise.uk).includes(q) || normalize(exercise.en).includes(q)
 }
+
+/** Search over any set of display names (e.g. uk + en), ignoring case and apostrophes. */
+export function namesMatch(names: string[], query: string): boolean {
+  const normalize = (s: string) => s.toLocaleLowerCase('uk').replace(/[’'ʼ`]/g, '')
+  const q = normalize(query.trim())
+  if (!q) return true
+  return names.some((n) => normalize(n).includes(q))
+}

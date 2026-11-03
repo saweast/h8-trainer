@@ -1,5 +1,5 @@
 import { Search, Send, UserPlus, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
 import { toast } from 'sonner'
@@ -16,13 +16,8 @@ type Filter = 'all' | 'expiring' | 'inactive'
 // TODO(stage 7): rows from `trainer_clients_overview()` + `membership_usage`.
 export function TrainerClientsPage() {
   const { t } = useTranslation()
-  const { isTrainer, ready, mode, setMode } = useMode()
+  const { isTrainer, ready } = useMode()
   const [filter, setFilter] = useState<Filter>('all')
-
-  // Opening a trainer screen directly (link, reload) switches the navigation to trainer mode.
-  useEffect(() => {
-    if (isTrainer && mode !== 'trainer') setMode('trainer')
-  }, [isTrainer, mode, setMode])
 
   if (!ready) return <Skeleton className="h-64 rounded-2xl" />
   if (!isTrainer) return <Navigate to="/" replace />
