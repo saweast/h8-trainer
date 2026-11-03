@@ -1,0 +1,13 @@
+{
+  "name": "h8 trainer",
+  "short_name": "h8",
+  "description": "Журнал тренувань для залу і тренерів",
+  "lang": "uk",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

@@ -1,0 +1,133 @@
+{
+  "common": {
+    "appName": "h8 trainer",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "all": "All",
+    "soon": "Soon",
+    "needsDatabase": "Available once the database is connected"
+  },
+  "nav": {
+    "home": "Home",
+    "history": "History",
+    "exercises": "Exercises",
+    "progress": "Progress",
+    "profile": "Profile",
+    "clients": "Clients",
+    "templates": "Templates"
+  },
+  "mode": {
+    "label": "Mode",
+    "me": "Me",
+    "trainer": "Trainer"
+  },
+  "login": {
+    "tagline": "Log workouts. See progress. Coach clients.",
+    "google": "Continue with Google",
+    "privacy": "We only keep your name and photo from Google.",
+    "demoNotice": "The database isn't connected yet, so Google sign-in is unavailable. You can explore the interface in demo mode.",
+    "demoEnter": "Open demo",
+    "error": "Couldn't sign in. Try again."
+  },
+  "home": {
+    "title": "Time to train",
+    "start": "Start workout",
+    "recent": "Recent workouts",
+    "gym": "Gym membership",
+    "trainerPackage": "Trainer",
+    "noGym": "No membership",
+    "noPackage": "No package",
+    "recentEmptyTitle": "Start your first workout",
+    "recentEmptyBody": "Your workouts show up here with duration, volume and records."
+  },
+  "start": {
+    "title": "Start workout",
+    "description": "Empty workout or from a template",
+    "nextInProgram": "Next in program",
+    "empty": "Empty workout",
+    "emptyHint": "Add exercises as you go",
+    "templates": "Templates",
+    "noTemplates": "No templates yet. Create one or save a workout as a template.",
+    "newTemplate": "New template",
+    "fromTrainer": "from trainer"
+  },
+  "history": {
+    "title": "History",
+    "emptyTitle": "Your workout history lives here",
+    "emptyBody": "A calendar of sessions, details of each one and comments from your trainer."
+  },
+  "exercises": {
+    "title": "Exercises",
+    "search": "Search: press, row…",
+    "create": "Create exercise",
+    "createNamed": "Create “{{name}}”",
+    "noResults": "Nothing found",
+    "count_one": "{{count}} exercise",
+    "count_other": "{{count}} exercises"
+  },
+  "muscle": {
+    "chest": "Chest",
+    "back": "Back",
+    "shoulders": "Shoulders",
+    "biceps": "Biceps",
+    "triceps": "Triceps",
+    "legs": "Legs",
+    "glutes": "Glutes",
+    "calves": "Calves",
+    "core": "Core",
+    "full_body": "Full body",
+    "other": "Other"
+  },
+  "equipment": {
+    "machine": "Machine",
+    "barbell": "Barbell",
+    "dumbbell": "Dumbbells",
+    "cable": "Cable",
+    "bodyweight": "Bodyweight",
+    "other": "Other"
+  },
+  "progress": {
+    "title": "Progress",
+    "emptyTitle": "Charts appear after your workouts",
+    "emptyBody": "Records, estimated 1RM and volume for every exercise.",
+    "body": "Body measurements"
+  },
+  "profile": {
+    "title": "Profile",
+    "language": "Language",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
+    "trainerMode": "I'm a trainer",
+    "trainerModeHint": "Adds a client list, session packages and logging workouts for clients.",
+    "signOut": "Sign out",
+    "demo": "Demo mode"
+  },
+  "trainer": {
+    "clientsTitle": "Clients",
+    "search": "Search clients",
+    "filterExpiring": "Ending soon",
+    "filterInactive": "Inactive",
+    "emptyTitle": "Add your first client",
+    "emptyBody": "Create a client without an account or send an invite: they sign in with Google and see their history.",
+    "addOffline": "Client without account",
+    "invite": "Invite"
+  },
+  "templates": {
+    "title": "Templates",
+    "emptyTitle": "Create your first template",
+    "emptyBody": "A template is a set of exercises with sets, reps and rest. Starting from it fills in last time's weights.",
+    "create": "New template"
+  },
+  "comingSoon": {
+    "title": "Coming soon",
+    "body": "This screen arrives in a later stage."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "home": "Go home"
+  }
+}

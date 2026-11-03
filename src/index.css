@@ -1,0 +1,197 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource/unbounded/500.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Unbounded", "Inter Variable", ui-sans-serif, sans-serif;
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  /* h8 semantic colors: solid + tinted surface + text on tint */
+  --color-lime: var(--lime);
+  --color-lime-muted: var(--lime-muted);
+  --color-lime-text: var(--lime-text);
+  --color-pr: var(--pr);
+  --color-pr-muted: var(--pr-muted);
+  --color-pr-text: var(--pr-text);
+  --color-trainer: var(--trainer);
+  --color-trainer-muted: var(--trainer-muted);
+  --color-trainer-text: var(--trainer-text);
+  --color-trainer-foreground: var(--trainer-foreground);
+  --color-warning: var(--warning);
+  --color-warning-muted: var(--warning-muted);
+  --color-warning-text: var(--warning-text);
+  --color-danger-muted: var(--danger-muted);
+  --color-danger-text: var(--danger-text);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.2);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-3xl: calc(var(--radius) * 2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Light theme */
+:root {
+  --radius: 0.75rem;
+  --background: #fafafa;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+  --primary: #c6f432;
+  --primary-foreground: #0a0a0a;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #09090b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #09090b;
+  --destructive: #dc2626;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #4d7c0f;
+  --chart-1: #65a30d;
+  --chart-2: #7c3aed;
+  --chart-3: #d97706;
+  --chart-4: #0284c7;
+  --chart-5: #db2777;
+
+  --lime: #c6f432;
+  --lime-muted: #ecfccb;
+  --lime-text: #3f6212;
+  --pr: #d97706;
+  --pr-muted: #fef3c7;
+  --pr-text: #92400e;
+  --trainer: #7c3aed;
+  --trainer-foreground: #ffffff;
+  --trainer-muted: #ede9fe;
+  --trainer-text: #5b21b6;
+  --warning: #d97706;
+  --warning-muted: #fef3c7;
+  --warning-text: #92400e;
+  --danger-muted: #fee2e2;
+  --danger-text: #991b1b;
+}
+
+/* Dark theme (default) */
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --popover: #18181b;
+  --popover-foreground: #fafafa;
+  --primary: #c6f432;
+  --primary-foreground: #0a0a0a;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #c6f432;
+  --chart-1: #c6f432;
+  --chart-2: #a78bfa;
+  --chart-3: #fbbf24;
+  --chart-4: #38bdf8;
+  --chart-5: #f472b6;
+
+  --lime: #c6f432;
+  --lime-muted: #1a2306;
+  --lime-text: #d9f99d;
+  --pr: #fbbf24;
+  --pr-muted: #3a2e05;
+  --pr-text: #fbbf24;
+  --trainer: #a78bfa;
+  --trainer-foreground: #1e1240;
+  --trainer-muted: #2e1f57;
+  --trainer-text: #c4b5fd;
+  --warning: #f59e0b;
+  --warning-muted: #3b2506;
+  --warning-text: #fcd34d;
+  --danger-muted: #3f1212;
+  --danger-text: #fca5a5;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    overscroll-behavior-y: none;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  /* 16px minimum on form fields prevents iOS zoom-on-focus */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+@layer utilities {
+  .font-heading {
+    font-family: var(--font-heading);
+    font-weight: 500;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
