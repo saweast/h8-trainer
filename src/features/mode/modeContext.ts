@@ -5,6 +5,8 @@ export type AppMode = 'athlete' | 'trainer'
 export interface ModeContextValue {
   /** Self-declared in the profile ("Я тренер"). */
   isTrainer: boolean
+  /** False while the profile is still loading — don't redirect on `isTrainer` before this. */
+  ready: boolean
   setIsTrainer: (value: boolean) => void
   /** Which bottom navigation is shown; always 'athlete' for non-trainers. */
   mode: AppMode

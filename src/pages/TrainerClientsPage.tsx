@@ -1,5 +1,5 @@
 import { Search, Send, UserPlus, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
 import { toast } from 'sonner'
@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useMode } from '@/features/mode/modeContext'
 
 type Filter = 'all' | 'expiring' | 'inactive'
@@ -15,9 +16,15 @@ type Filter = 'all' | 'expiring' | 'inactive'
 // TODO(stage 7): rows from `trainer_clients_overview()` + `membership_usage`.
 export function TrainerClientsPage() {
   const { t } = useTranslation()
-  const { isTrainer } = useMode()
+  const { isTrainer, ready, mode, setMode } = useMode()
   const [filter, setFilter] = useState<Filter>('all')
 
+  // Opening a trainer screen directly (link, reload) switches the navigation to trainer mode.
+  useEffect(() => {
+    if (isTrainer && mode !== 'trainer') setMode('trainer')
+  }, [isTrainer, mode, setMode])
+
+  if (!ready) return <Skeleton className="h-64 rounded-2xl" />
   if (!isTrainer) return <Navigate to="/" replace />
 
   const notYet = () => toast(t('common.needsDatabase'))

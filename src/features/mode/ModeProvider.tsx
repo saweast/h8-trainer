@@ -27,6 +27,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   )
 
   const isTrainer = isSupabaseConfigured ? (profile.data?.isTrainer ?? false) : demoTrainer
+  const ready = !isSupabaseConfigured || !userId || !profile.isPending
 
   const setMode = useCallback((next: AppMode) => {
     setStoredMode(next)
@@ -48,8 +49,8 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo<ModeContextValue>(
-    () => ({ isTrainer, setIsTrainer, mode: isTrainer ? storedMode : 'athlete', setMode }),
-    [isTrainer, storedMode, setIsTrainer, setMode],
+    () => ({ isTrainer, ready, setIsTrainer, mode: isTrainer ? storedMode : 'athlete', setMode }),
+    [isTrainer, ready, storedMode, setIsTrainer, setMode],
   )
 
   return <ModeContext.Provider value={value}>{children}</ModeContext.Provider>
