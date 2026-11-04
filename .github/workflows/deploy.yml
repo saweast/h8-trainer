@@ -25,19 +25,23 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
-      # Fail loudly instead of deploying a demo-mode build. Prints only names, never values.
+      # Fail loudly instead of deploying a demo-mode build. Reports only whether a name is set.
       - name: Check Supabase config
         if: github.event_name != 'pull_request'
         env:
           URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
-          SECRETS_JSON: ${{ toJSON(secrets) }}
-          VARS_JSON: ${{ toJSON(vars) }}
+          # Common wrong names, checked only to explain the failure.
+          ALT_NAMES: >-
+            SUPABASE_URL=${{ secrets.SUPABASE_URL != '' || vars.SUPABASE_URL != '' }}
+            SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY != '' || vars.SUPABASE_ANON_KEY != '' }}
+            VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY != '' || vars.VITE_SUPABASE_PUBLISHABLE_KEY != '' }}
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' || vars.NEXT_PUBLIC_SUPABASE_URL != '' }}
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY != '' || vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY != '' }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY != '' || vars.NEXT_PUBLIC_SUPABASE_ANON_KEY != '' }}
         run: |
-          secret_names=$(echo "$SECRETS_JSON" | jq -r 'keys - ["github_token"] | join(", ")')
-          var_names=$(echo "$VARS_JSON" | jq -r 'keys | join(", ")')
           if [ -z "$URL" ] || [ -z "$KEY" ]; then
-            echo "::error title=Supabase config missing::VITE_SUPABASE_URL set: $([ -n "$URL" ] && echo yes || echo no); VITE_SUPABASE_ANON_KEY set: $([ -n "$KEY" ] && echo yes || echo no). Repository secrets found: [${secret_names}]. Repository variables found: [${var_names}]. Add both under Settings > Secrets and variables > Actions > Repository secrets (not Environment secrets)."
+            echo "::error title=Supabase config missing::VITE_SUPABASE_URL set: $([ -n "$URL" ] && echo yes || echo no); VITE_SUPABASE_ANON_KEY set: $([ -n "$KEY" ] && echo yes || echo no). Other names: ${ALT_NAMES}. Add both under Settings > Secrets and variables > Actions > Repository secrets (not Environment secrets)."
             exit 1
           fi
           case "$KEY" in
