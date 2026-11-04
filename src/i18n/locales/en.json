@@ -311,5 +311,44 @@
     "next": "Next in program",
     "daysCount_one": "{{count}} day",
     "daysCount_other": "{{count}} days"
+  },
+  "body": {
+    "title": "Body measurements",
+    "add": "Add measurement",
+    "editTitle": "Measurement",
+    "newTitle": "New measurement",
+    "date": "Date",
+    "metrics": {
+      "weightKg": "Weight",
+      "bodyFatPct": "Body fat",
+      "chestCm": "Chest",
+      "waistCm": "Waist",
+      "hipsCm": "Hips",
+      "armCm": "Arm",
+      "thighCm": "Thigh"
+    },
+    "units": {
+      "kg": "kg",
+      "pct": "%",
+      "cm": "cm"
+    },
+    "notes": "Note",
+    "notesPlaceholder": "Morning, fasted; after vacation…",
+    "save": "Save",
+    "saved": "Measurement saved",
+    "saveError": "Couldn't save the measurement. Try again.",
+    "delete": "Delete measurement",
+    "deleteConfirm": "Delete this measurement?",
+    "invalid": "Check the value: {{range}}",
+    "needOne": "Fill in at least one value",
+    "emptyTitle": "Start tracking your shape",
+    "emptyBody": "Weight, body fat and girths. The chart shows the trend and your trainer sees the progress.",
+    "latest": "Latest",
+    "sincePrevious": "since previous",
+    "trend": "Trend",
+    "metricLabel": "Chart metric",
+    "history": "History",
+    "girths": "Girths, cm",
+    "chartNeedsTwo": "The chart appears after two measurements of this metric."
   }
 }
