@@ -1025,7 +1025,12 @@ export type Database = {
         Returns: string
       }
       start_workout_from_template: {
-        Args: { p_athlete: string; p_program?: string; p_template: string }
+        Args: {
+          p_athlete: string
+          p_membership?: string
+          p_program?: string
+          p_template: string
+        }
         Returns: string
       }
       trainer_clients_overview: {
