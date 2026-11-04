@@ -31,6 +31,8 @@ export interface Workout {
   startedAt: string
   finishedAt: string | null
   notes: string | null
+  templateId: string | null
+  programId: string | null
   membershipId: string | null
   createdBy: string | null
   exercises: WorkoutExercise[]
@@ -76,7 +78,7 @@ export function useWorkout(id: string | undefined) {
       const { data, error } = await supabase!
         .from('workouts')
         .select(
-          `id, athlete_id, title, started_at, finished_at, notes, membership_id, created_by,
+          `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by,
            workout_exercises (id, exercise_id, position, notes,
              sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, completed_at))`,
         )
@@ -90,6 +92,8 @@ export function useWorkout(id: string | undefined) {
         startedAt: data.started_at,
         finishedAt: data.finished_at,
         notes: data.notes,
+        templateId: data.template_id,
+        programId: data.program_id,
         membershipId: data.membership_id,
         createdBy: data.created_by,
         exercises: data.workout_exercises

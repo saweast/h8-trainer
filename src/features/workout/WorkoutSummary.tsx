@@ -1,4 +1,4 @@
-import { ArrowLeft, EllipsisVertical, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeft, ClipboardList, EllipsisVertical, RefreshCw, Trash2, Trophy } from 'lucide-react'
 import { format } from 'date-fns'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -14,10 +14,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { exerciseName } from '@/data/exercises'
 import { useExerciseMap } from '@/features/exercises/api'
+import { useIsMine, useSaveTemplate, useTemplate } from '@/features/templates/api'
 import { currentLanguage } from '@/i18n'
 import { dateLocale } from '@/lib/dates'
 import { formatKg, formatVolume } from '@/lib/format'
 import { detectPrs } from '@/lib/records'
+import { templateItemsFromWorkout, workoutMatchesTemplate } from '@/lib/templateFromWorkout'
 import { minutesBetween } from '@/lib/time'
 import { exercisesWithPr, workoutTotals } from '@/lib/workoutStats'
 import { useExerciseRecords, useWorkoutActions, type Workout } from './api'
@@ -39,6 +41,37 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
   const navigate = useNavigate()
   const actions = useWorkoutActions(workout.id)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const isMine = useIsMine()
+  const { data: template } = useTemplate(workout.templateId ?? undefined)
+  const saveTemplate = useSaveTemplate()
+  const ownTemplate = template && isMine(template.ownerId) ? template : null
+  const offerUpdate = ownTemplate !== null && !workoutMatchesTemplate(ownTemplate.items, workout.exercises)
+
+  const saveAsTemplate = () =>
+    saveTemplate.mutate(
+      { id: null, name: workout.title || t('workout.untitled'), notes: null, items: templateItemsFromWorkout(workout.exercises) },
+      {
+        onSuccess: (id) => navigate(`/templates/${id}`),
+        onError: () => toast.error(t('templates.saveError')),
+      },
+    )
+
+  // Keep the template's targets (weights, rest, notes) for exercises that stayed.
+  const updateTemplate = () => {
+    if (!ownTemplate) return
+    const items = templateItemsFromWorkout(workout.exercises).map((item) => {
+      const old = ownTemplate.items.find((i) => i.exerciseId === item.exerciseId)
+      return old ? { ...item, targetWeightKg: old.targetWeightKg, restS: old.restS, notes: old.notes } : item
+    })
+    saveTemplate.mutate(
+      { id: ownTemplate.id, name: ownTemplate.name, notes: ownTemplate.notes, items },
+      {
+        onSuccess: () => toast.success(t('templates.updated')),
+        onError: () => toast.error(t('templates.saveError')),
+      },
+    )
+  }
 
   const remove = () =>
     actions.discard.mutate(undefined, {
@@ -129,7 +162,22 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
         })}
       </div>
 
-      <Button asChild size="xl" className="mt-6 w-full">
+      {offerUpdate ? (
+        <div className="mt-4 rounded-2xl border bg-card p-3">
+          <p className="mb-2 text-xs text-muted-foreground">{t('templates.updateHint')}</p>
+          <Button variant="secondary" size="touch" className="w-full" disabled={saveTemplate.isPending} onClick={updateTemplate}>
+            <RefreshCw aria-hidden />
+            <span className="truncate">{t('templates.updateFromWorkout', { name: ownTemplate.name })}</span>
+          </Button>
+        </div>
+      ) : !workout.templateId && workout.exercises.length ? (
+        <Button variant="secondary" size="touch" className="mt-4 w-full" disabled={saveTemplate.isPending} onClick={saveAsTemplate}>
+          <ClipboardList aria-hidden />
+          {t('templates.saveFromWorkout')}
+        </Button>
+      ) : null}
+
+      <Button asChild size="xl" className="mt-3 w-full">
         <Link to="/">{t('workout.home')}</Link>
       </Button>
 

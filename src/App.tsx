@@ -24,6 +24,12 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ defa
 const ProgressPage = lazy(() => import('@/pages/ProgressPage').then((m) => ({ default: m.ProgressPage })))
 const TemplatesPage = lazy(() => import('@/pages/TemplatesPage').then((m) => ({ default: m.TemplatesPage })))
 const TrainerClientsPage = lazy(() => import('@/pages/TrainerClientsPage').then((m) => ({ default: m.TrainerClientsPage })))
+const TemplateEditorPage = lazy(() =>
+  import('@/features/templates/TemplateEditorPage').then((m) => ({ default: m.TemplateEditorPage })),
+)
+const ProgramEditorPage = lazy(() =>
+  import('@/features/templates/ProgramEditorPage').then((m) => ({ default: m.ProgramEditorPage })),
+)
 const WorkoutPage = lazy(() => import('@/features/workout/WorkoutPage').then((m) => ({ default: m.WorkoutPage })))
 
 // "/h8-trainer/" → "/h8-trainer"
@@ -42,6 +48,8 @@ export default function App() {
                 <Route element={<RequireAuth />}>
                   {/* Full-screen: no app header or bottom navigation while training */}
                   <Route path="workout/:workoutId" element={<WorkoutPage />} />
+                  <Route path="templates/:templateId" element={<TemplateEditorPage />} />
+                  <Route path="programs/:programId" element={<ProgramEditorPage />} />
                   <Route element={<AppShell />}>
                     <Route index element={<HomePage />} />
                     <Route path="history" element={<HistoryPage />} />

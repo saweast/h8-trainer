@@ -893,6 +893,30 @@ export type Database = {
           },
         ]
       }
+      template_usage: {
+        Row: {
+          athlete_id: string | null
+          last_used_at: string | null
+          template_id: string | null
+          times_used: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workouts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workouts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workout_summaries: {
         Row: {
           athlete_id: string | null
@@ -987,6 +1011,22 @@ export type Database = {
           weight_kg: number
           workout_id: string
         }[]
+      }
+      next_program_template: {
+        Args: { p_athlete: string; p_program: string }
+        Returns: string
+      }
+      save_program: {
+        Args: { p_id: string; p_name: string; p_template_ids: string[] }
+        Returns: string
+      }
+      save_template: {
+        Args: { p_id: string; p_items: Json; p_name: string; p_notes: string }
+        Returns: string
+      }
+      start_workout_from_template: {
+        Args: { p_athlete: string; p_program?: string; p_template: string }
+        Returns: string
       }
       trainer_clients_overview: {
         Args: never

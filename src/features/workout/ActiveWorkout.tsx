@@ -14,6 +14,7 @@ import {
   type Exercise,
 } from '@/features/exercises/api'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
+import { useTemplate } from '@/features/templates/api'
 import type { ExerciseRecords } from '@/lib/records'
 import { prefillSets } from '@/lib/templatePrefill'
 import { autoTitle } from '@/lib/workoutStats'
@@ -47,6 +48,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
   const { data: records } = useExerciseRecords(athleteId, workout.id)
   const actions = useWorkoutActions(workout.id, () => toast.error(t('workout.saveError')))
   const rest = useRestTimer(workout.id)
+  const { data: template } = useTemplate(workout.templateId ?? undefined)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [finishOpen, setFinishOpen] = useState(false)
   const celebrated = useRef(new Set<string>())
@@ -74,7 +76,9 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
 
   const onSetCompleted = (item: WorkoutExercise, isPr: boolean) => {
     const exercise = exercises.get(item.exerciseId)
-    const restS = settings?.get(item.exerciseId)?.restS ?? exercise?.defaultRestS ?? 90
+    // Rest: template setting → my setting for this machine → exercise default.
+    const fromTemplate = template?.items.find((i) => i.exerciseId === item.exerciseId)?.restS
+    const restS = fromTemplate ?? settings?.get(item.exerciseId)?.restS ?? exercise?.defaultRestS ?? 90
     rest.start(restS)
     if (isPr && !celebrated.current.has(item.exerciseId)) {
       celebrated.current.add(item.exerciseId)

@@ -93,6 +93,10 @@ describe('hardening', () => {
       'exercise_records',
       'get_invite',
       'last_performance',
+      'next_program_template',
+      'save_program',
+      'save_template',
+      'start_workout_from_template',
       'trainer_clients_overview',
     ])
   })
@@ -352,5 +356,139 @@ describe('trainer flow', () => {
       expect(await rows(tx, `select id from public.workouts where athlete_id = $1`, [anna.athleteId])).toEqual([])
       expect(await rows(tx, `select * from public.trainer_clients_overview()`)).toEqual([])
     })
+  })
+})
+
+describe('templates and programs', () => {
+  let squatId: string
+  let templateA: string
+  let templateB: string
+  let programId: string
+
+  beforeAll(async () => {
+    const [squat] = await rows<{ id: string }>(db, `select id from public.exercises where slug = 'back_squat'`)
+    squatId = squat.id
+  })
+
+  const items = (...list: Record<string, unknown>[]) => JSON.stringify(list)
+
+  it('saves a template atomically and replaces its exercises', async () => {
+    templateA = await asUser(anna.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.save_template(null, ' Груди A ', '', $1::jsonb) as id`, [
+        items(
+          { exercise_id: benchId, target_sets: 3, target_reps_min: 8, target_reps_max: 10, target_weight_kg: 60 },
+          { exercise_id: squatId, target_sets: 2, target_reps_max: 5, target_weight_kg: 100 },
+        ),
+      ])
+      return r.id
+    })
+    await asUser(anna.userId, async (tx) => {
+      const [tpl] = await rows(tx, `select name, notes from public.templates where id = $1`, [templateA])
+      expect(tpl).toEqual({ name: 'Груди A', notes: null })
+      const list = await rows(tx, `select exercise_id, position from public.template_exercises where template_id = $1 order by position`, [
+        templateA,
+      ])
+      expect(list).toEqual([
+        { exercise_id: benchId, position: 0 },
+        { exercise_id: squatId, position: 1 },
+      ])
+    })
+  })
+
+  it("refuses to overwrite someone else's template", async () => {
+    await expect(
+      asUser(bohdan.userId, (tx) => tx.query(`select public.save_template($1, 'x', null, '[]'::jsonb)`, [templateA])),
+    ).rejects.toThrow(/row-level security|violates/)
+  })
+
+  it('starts a workout with sets prefilled from last time, else from targets', async () => {
+    const workoutId = await asUser(anna.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.start_workout_from_template($1, $2) as id`, [
+        anna.athleteId,
+        templateA,
+      ])
+      return r.id
+    })
+    await asUser(anna.userId, async (tx) => {
+      const [w] = await rows(tx, `select title, template_id, finished_at from public.workouts where id = $1`, [workoutId])
+      expect(w).toEqual({ title: 'Груди A', template_id: templateA, finished_at: null })
+      const sets = await rows(
+        tx,
+        `select e.slug, s.position, s.weight_kg, s.reps, s.completed_at
+         from public.sets s
+         join public.workout_exercises we on we.id = s.workout_exercise_id
+         join public.exercises e on e.id = we.exercise_id
+         where we.workout_id = $1
+         order by we.position, s.position`,
+        [workoutId],
+      )
+      // bench: last time 80×8, 85×6 (90×3 was never completed) → third set repeats the last one
+      // squat: never done → template targets
+      expect(sets).toEqual([
+        { slug: 'barbell_bench_press', position: 1, weight_kg: '80.00', reps: 8, completed_at: null },
+        { slug: 'barbell_bench_press', position: 2, weight_kg: '85.00', reps: 6, completed_at: null },
+        { slug: 'barbell_bench_press', position: 3, weight_kg: '85.00', reps: 6, completed_at: null },
+        { slug: 'back_squat', position: 1, weight_kg: '100.00', reps: 5, completed_at: null },
+        { slug: 'back_squat', position: 2, weight_kg: '100.00', reps: 5, completed_at: null },
+      ])
+      await tx.query(`delete from public.workouts where id = $1`, [workoutId])
+    })
+  })
+
+  it('cycles through program days and tracks template usage', async () => {
+    templateB = await asUser(anna.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.save_template(null, 'Ноги B', null, $1::jsonb) as id`, [
+        items({ exercise_id: squatId, target_sets: 3, target_reps_max: 5 }),
+      ])
+      return r.id
+    })
+    programId = await asUser(anna.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.save_program(null, 'Сила', $1::uuid[]) as id`, [
+        [templateA, templateB],
+      ])
+      return r.id
+    })
+
+    const next = () =>
+      asUser(anna.userId, async (tx) => {
+        const [r] = await rows<{ id: string }>(tx, `select public.next_program_template($1, $2) as id`, [
+          anna.athleteId,
+          programId,
+        ])
+        return r.id
+      })
+    const doDay = (templateId: string) =>
+      asUser(anna.userId, async (tx) => {
+        const [r] = await rows<{ id: string }>(tx, `select public.start_workout_from_template($1, $2, $3) as id`, [
+          anna.athleteId,
+          templateId,
+          programId,
+        ])
+        await tx.query(`update public.workouts set finished_at = now() where id = $1`, [r.id])
+      })
+
+    expect(await next()).toBe(templateA)
+    await doDay(templateA)
+    expect(await next()).toBe(templateB)
+    await doDay(templateB)
+    expect(await next()).toBe(templateA)
+
+    await asUser(anna.userId, async (tx) => {
+      const usage = await rows(tx, `select template_id, times_used from public.template_usage where athlete_id = $1 order by times_used`, [
+        anna.athleteId,
+      ])
+      expect(usage).toEqual(
+        expect.arrayContaining([
+          { template_id: templateA, times_used: 1 },
+          { template_id: templateB, times_used: 1 },
+        ]),
+      )
+    })
+  })
+
+  it('only lets owners build programs from their own templates', async () => {
+    await expect(
+      asUser(bohdan.userId, (tx) => tx.query(`select public.save_program(null, 'x', $1::uuid[])`, [[templateA]])),
+    ).rejects.toThrow(/row-level security/)
   })
 })
