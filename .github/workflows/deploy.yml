@@ -25,12 +25,36 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      # Fail loudly instead of deploying a demo-mode build. Prints only names, never values.
+      - name: Check Supabase config
+        if: github.event_name != 'pull_request'
+        env:
+          URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+          VARS_JSON: ${{ toJSON(vars) }}
+        run: |
+          secret_names=$(echo "$SECRETS_JSON" | jq -r 'keys - ["github_token"] | join(", ")')
+          var_names=$(echo "$VARS_JSON" | jq -r 'keys | join(", ")')
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::error title=Supabase config missing::VITE_SUPABASE_URL set: $([ -n "$URL" ] && echo yes || echo no); VITE_SUPABASE_ANON_KEY set: $([ -n "$KEY" ] && echo yes || echo no). Repository secrets found: [${secret_names}]. Repository variables found: [${var_names}]. Add both under Settings > Secrets and variables > Actions > Repository secrets (not Environment secrets)."
+            exit 1
+          fi
+          case "$KEY" in
+            sb_secret_*) echo "::error title=Wrong key::VITE_SUPABASE_ANON_KEY holds a Supabase SECRET key. Use the publishable key (sb_publishable_...) and rotate the secret key."; exit 1 ;;
+          esac
+          case "$URL" in
+            https://*.supabase.co) ;;
+            *) echo "::error title=Wrong URL::VITE_SUPABASE_URL must look like https://<ref>.supabase.co"; exit 1 ;;
+          esac
+          echo "Supabase config present."
       - name: Build
         run: npm run build
         env:
-          # Without these secrets the site builds in demo mode.
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Without these the site builds in demo mode. Both values are public (they ship in the
+          # bundle), so repository variables work as well as secrets.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/upload-pages-artifact@v4
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:
