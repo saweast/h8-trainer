@@ -1,8 +1,17 @@
-import { ArrowLeft, Trophy } from 'lucide-react'
+import { ArrowLeft, EllipsisVertical, Trash2, Trophy } from 'lucide-react'
 import { format } from 'date-fns'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { exerciseName } from '@/data/exercises'
 import { useExerciseMap } from '@/features/exercises/api'
 import { currentLanguage } from '@/i18n'
@@ -11,7 +20,7 @@ import { formatKg, formatVolume } from '@/lib/format'
 import { detectPrs } from '@/lib/records'
 import { minutesBetween } from '@/lib/time'
 import { exercisesWithPr, workoutTotals } from '@/lib/workoutStats'
-import { useExerciseRecords, type Workout } from './api'
+import { useExerciseRecords, useWorkoutActions, type Workout } from './api'
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -27,6 +36,15 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
   const lang = currentLanguage()
   const { map: exercises } = useExerciseMap()
   const { data: records } = useExerciseRecords(workout.athleteId, workout.id)
+  const navigate = useNavigate()
+  const actions = useWorkoutActions(workout.id)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const remove = () =>
+    actions.discard.mutate(undefined, {
+      onSuccess: () => navigate('/history', { replace: true }),
+      onError: () => toast.error(t('workout.deleteError')),
+    })
 
   const stats = workout.exercises.map((e) => ({
     exerciseId: e.exerciseId,
@@ -42,12 +60,29 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
 
   return (
     <div className="mx-auto min-h-dvh max-w-md px-4 pt-safe pb-[calc(2rem+env(safe-area-inset-bottom))]">
-      <div className="flex h-14 items-center">
-        <Button asChild variant="ghost" size="icon-touch" aria-label={t('common.back')} className="-ml-2">
-          <Link to="/">
-            <ArrowLeft />
-          </Link>
+      <div className="flex h-14 items-center justify-between">
+        <Button
+          variant="ghost"
+          size="icon-touch"
+          aria-label={t('common.back')}
+          className="-ml-2"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+        >
+          <ArrowLeft />
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-touch" aria-label={t('workout.moreActions')} className="-mr-2">
+              <EllipsisVertical />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
+              <Trash2 />
+              {t('workout.deleteWorkout')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <p className="text-xs text-muted-foreground first-letter:uppercase">{date}</p>
@@ -97,6 +132,23 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
       <Button asChild size="xl" className="mt-6 w-full">
         <Link to="/">{t('workout.home')}</Link>
       </Button>
+
+      <Drawer open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DrawerContent className="mx-auto max-w-md">
+          <DrawerHeader className="group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left">
+            <DrawerTitle className="font-heading text-lg">{t('workout.deleteWorkout')}</DrawerTitle>
+            <DrawerDescription>{t('workout.deleteConfirm')}</DrawerDescription>
+          </DrawerHeader>
+          <div className="flex flex-col gap-2 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+            <Button variant="destructive" size="xl" disabled={actions.discard.isPending} onClick={remove}>
+              {t('workout.discardYes')}
+            </Button>
+            <Button variant="secondary" size="touch" onClick={() => setConfirmDelete(false)}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }

@@ -56,7 +56,15 @@
   "history": {
     "title": "History",
     "emptyTitle": "Your workout history lives here",
-    "emptyBody": "A calendar of sessions, details of each one and comments from your trainer."
+    "emptyBody": "A calendar of sessions, details of each one and comments from your trainer.",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "monthCount_one": "{{count}} workout",
+    "monthCount_other": "{{count}} workouts",
+    "monthEmpty": "No workouts this month yet",
+    "dayEmpty": "No workouts on this day",
+    "showMonth": "Whole month",
+    "trainedOn": "Workout logged"
   },
   "exercises": {
     "title": "Exercises",
@@ -92,7 +100,14 @@
     "title": "Progress",
     "emptyTitle": "Charts appear after your workouts",
     "emptyBody": "Records, estimated 1RM and volume for every exercise.",
-    "body": "Body measurements"
+    "body": "Body measurements",
+    "last30": "Last 30 days",
+    "workouts": "Workouts",
+    "volume": "Volume",
+    "myExercises": "Your exercises",
+    "e1rm": "1RM",
+    "best": "Best",
+    "lastDone": "last {{date}}"
   },
   "profile": {
     "title": "Profile",
@@ -184,7 +199,11 @@
     "minutes": "{{count}} min",
     "home": "Go home",
     "inProgress": "Workout in progress",
-    "resume": "Resume workout"
+    "resume": "Resume workout",
+    "moreActions": "Workout actions",
+    "deleteWorkout": "Delete workout",
+    "deleteConfirm": "The workout and all its sets will be deleted for good.",
+    "deleteError": "Couldn't delete. A workout charged to a package can only be deleted by the trainer."
   },
   "picker": {
     "title": "Add exercise",
@@ -208,5 +227,26 @@
   "recent": {
     "untitled": "Workout",
     "meta": "{{date}} · {{minutes}} min · {{volume}} kg"
+  },
+  "exerciseDetail": {
+    "records": "Records",
+    "bestWeight": "Heaviest",
+    "bestE1rm": "Estimated 1RM",
+    "topSet": "Top set",
+    "sessions": "Workouts",
+    "trend": "Trend",
+    "metricE1rm": "1RM",
+    "metricWeight": "Weight",
+    "metricVolume": "Volume",
+    "metricLabel": "Chart metric",
+    "history": "History",
+    "emptyTitle": "No data yet",
+    "emptyBody": "Do this exercise in a workout and its records and chart show up here.",
+    "chartNeedsTwo": "The chart appears after two workouts with this exercise.",
+    "showTable": "Show as table",
+    "showChart": "Show as chart",
+    "date": "Date",
+    "notFound": "Exercise not found",
+    "e1rmHint": "One-rep max estimated with the Epley formula (sets up to 12 reps)."
   }
 }

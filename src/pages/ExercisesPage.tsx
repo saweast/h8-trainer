@@ -1,6 +1,7 @@
-import { Plus, Search } from 'lucide-react'
+import { ChevronRight, Plus, Search } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { Chip } from '@/components/common/Chip'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -130,16 +131,8 @@ export function ExercisesPage() {
       ) : (
         <ul className="divide-y rounded-2xl border bg-card">
           {rows.map((e) => (
-            <li key={e.key} className="flex min-h-14 items-center gap-3 px-4 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{exerciseName(e, lang)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {t(`equipment.${e.equipment}`)} · {t(`muscle.${e.muscle}`)}
-                </p>
-              </div>
-              {e.custom ? (
-                <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">{t('picker.custom')}</span>
-              ) : null}
+            <li key={e.key}>
+              <ExerciseRow row={e} />
             </li>
           ))}
         </ul>
@@ -164,5 +157,31 @@ export function ExercisesPage() {
         </DrawerContent>
       </Drawer>
     </div>
+  )
+}
+
+function ExerciseRow({ row }: { row: Row }) {
+  const { t } = useTranslation()
+  const lang = currentLanguage()
+  const content = (
+    <>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{exerciseName(row, lang)}</p>
+        <p className="text-xs text-muted-foreground">
+          {t(`equipment.${row.equipment}`)} · {t(`muscle.${row.muscle}`)}
+        </p>
+      </div>
+      {row.custom ? (
+        <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">{t('picker.custom')}</span>
+      ) : null}
+    </>
+  )
+  // Demo rows have no database id, so there is no detail page to open.
+  if (!isSupabaseConfigured) return <div className="flex min-h-14 items-center gap-3 px-4 py-2.5">{content}</div>
+  return (
+    <Link to={`/exercises/${row.key}`} className="flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-secondary/50">
+      {content}
+      <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+    </Link>
   )
 }

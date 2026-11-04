@@ -36,6 +36,12 @@ export interface Workout {
   exercises: WorkoutExercise[]
 }
 
+export interface ExerciseRecordSummary extends ExerciseRecords {
+  bestReps: number | null
+  workoutsCount: number
+  lastPerformedAt: string
+}
+
 export interface WorkoutSummary {
   id: string
   title: string
@@ -193,13 +199,16 @@ export function useExerciseRecords(athleteId: string | undefined, excludeWorkout
         p_exclude_workout: excludeWorkoutId,
       })
       if (error) throw error
-      return new Map<string, ExerciseRecords>(
+      return new Map<string, ExerciseRecordSummary>(
         data.map((r) => [
           r.exercise_id,
           {
             bestWeightKg: r.best_weight_kg === null ? null : Number(r.best_weight_kg),
             bestE1rmKg: r.best_e1rm_kg === null ? null : Number(r.best_e1rm_kg),
             bestSetVolumeKg: r.best_set_volume_kg === null ? null : Number(r.best_set_volume_kg),
+            bestReps: r.best_reps,
+            workoutsCount: Number(r.workouts_count),
+            lastPerformedAt: r.last_performed_at,
           },
         ]),
       )
@@ -420,6 +429,8 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       void queryClient.invalidateQueries({ queryKey: recentWorkoutsKey(athleteId) })
       void queryClient.invalidateQueries({ queryKey: ['exercise-records', athleteId] })
       void queryClient.invalidateQueries({ queryKey: ['last-performance', athleteId] })
+      void queryClient.invalidateQueries({ queryKey: ['workouts-range', athleteId] })
+      void queryClient.invalidateQueries({ queryKey: ['exercise-sessions', athleteId] })
     },
   })
 
@@ -434,8 +445,9 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
     onSuccess: (athleteId) => {
       queryClient.removeQueries({ queryKey: workoutKey(workoutId) })
-      void queryClient.invalidateQueries({ queryKey: activeWorkoutKey(athleteId) })
-      void queryClient.invalidateQueries({ queryKey: recentWorkoutsKey(athleteId) })
+      for (const key of ['active-workout', 'recent-workouts', 'workouts-range', 'exercise-records', 'exercise-sessions', 'last-performance']) {
+        void queryClient.invalidateQueries({ queryKey: [key, athleteId] })
+      }
     },
   })
 

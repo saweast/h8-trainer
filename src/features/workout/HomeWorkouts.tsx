@@ -1,17 +1,13 @@
-import { ChevronRight, Dumbbell, Play } from 'lucide-react'
-import { format } from 'date-fns'
+import { Dumbbell, Play } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { currentLanguage } from '@/i18n'
-import { dateLocale } from '@/lib/dates'
-import { formatVolume } from '@/lib/format'
-import { minutesBetween } from '@/lib/time'
 import { useActiveWorkout, useRecentWorkouts } from './api'
 import { ElapsedClock } from './ElapsedClock'
 import { StartWorkoutDrawer } from './StartWorkoutDrawer'
+import { WorkoutList } from './WorkoutList'
 
 /** Start button, or a "resume" card when a workout is already in progress. */
 export function StartOrResume({ athleteId }: { athleteId: string | undefined }) {
@@ -40,7 +36,6 @@ export function StartOrResume({ athleteId }: { athleteId: string | undefined }) 
 
 export function RecentWorkouts({ athleteId }: { athleteId: string | undefined }) {
   const { t } = useTranslation()
-  const lang = currentLanguage()
   const { data, isPending } = useRecentWorkouts(athleteId)
 
   if (athleteId && isPending) {
@@ -55,30 +50,5 @@ export function RecentWorkouts({ athleteId }: { athleteId: string | undefined })
     return <EmptyState icon={Dumbbell} title={t('home.recentEmptyTitle')} body={t('home.recentEmptyBody')} />
   }
 
-  return (
-    <ul className="divide-y rounded-2xl border bg-card">
-      {data.map((w) => (
-        <li key={w.id}>
-          <Link to={`/workout/${w.id}`} className="flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/50">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{w.title || t('recent.untitled')}</p>
-              <p className="tabular text-xs text-muted-foreground">
-                {t('recent.meta', {
-                  date: format(new Date(w.startedAt), lang === 'en' ? 'EEE, MMM d' : 'EEEEEE, d MMM', { locale: dateLocale(lang) }),
-                  minutes: w.finishedAt ? minutesBetween(w.startedAt, w.finishedAt) : 0,
-                  volume: formatVolume(w.volumeKg, lang),
-                })}
-              </p>
-            </div>
-            {w.membershipId ? (
-              <span className="rounded-full bg-trainer-muted px-2 py-0.5 text-[11px] font-medium text-trainer-text">
-                {t('home.trainerPackage')}
-              </span>
-            ) : null}
-            <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
-          </Link>
-        </li>
-      ))}
-    </ul>
-  )
+  return <WorkoutList workouts={data} />
 }
