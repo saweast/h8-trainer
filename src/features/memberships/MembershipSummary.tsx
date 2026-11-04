@@ -1,34 +1,38 @@
-import { Building2, UserStar, type LucideIcon } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
+import { useState } from 'react'
+import { useAuth } from '@/features/auth/authContext'
+import { currentMembership } from '@/lib/clients'
+import { isSupabaseConfigured } from '@/lib/supabase'
+import { useMemberships, type Membership } from './api'
+import { MembershipCard } from './MembershipCard'
+import { MembershipDrawer, type MembershipDraftTarget } from './MembershipDrawer'
 
-interface SummaryCardProps {
-  icon: LucideIcon
-  label: string
-  value: string
-  hint?: string
-  empty?: boolean
-}
+/** Home tiles: my gym membership (I can add/edit it) and my trainer package (read-only). */
+export function MembershipSummary({ athleteId }: { athleteId: string | undefined }) {
+  const { user } = useAuth()
+  const { data } = useMemberships(athleteId)
+  const [today] = useState(() => new Date())
+  const [target, setTarget] = useState<MembershipDraftTarget | null>(null)
+  const mine = (data ?? []).filter((m) => m.athleteId === athleteId)
 
-function SummaryCard({ icon: Icon, label, value, hint, empty = false }: SummaryCardProps) {
+  const gym = currentMembership<Membership>(mine, 'gym', today)
+  const pkg = currentMembership<Membership>(mine, 'trainer', today)
+  const canEditGym = isSupabaseConfigured && Boolean(athleteId)
+  // A trainer who logs their own training can't sell themselves a package.
+  const ownPackage = pkg && pkg.membership.trainerId === user?.id
+
   return (
-    <div className="rounded-2xl border bg-card p-3">
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Icon className="size-3.5" aria-hidden />
-        {label}
-      </p>
-      <p className={empty ? 'mt-1.5 text-sm text-muted-foreground' : 'tabular mt-1 text-[17px] font-medium'}>{value}</p>
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
-    </div>
-  )
-}
-
-// TODO(stage 8): read `membership_usage` and show days / sessions left with expiring badges.
-export function MembershipSummary() {
-  const { t } = useTranslation()
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <SummaryCard icon={Building2} label={t('home.gym')} value={t('home.noGym')} empty />
-      <SummaryCard icon={UserStar} label={t('home.trainerPackage')} value={t('home.noPackage')} empty />
-    </div>
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <MembershipCard
+          kind="gym"
+          current={gym}
+          today={today}
+          variant="tile"
+          onClick={canEditGym ? () => setTarget(gym ? { mode: 'edit', membership: gym.membership } : { mode: 'new', kind: 'gym' }) : undefined}
+        />
+        <MembershipCard kind="trainer" current={ownPackage ? null : pkg} today={today} variant="tile" />
+      </div>
+      <MembershipDrawer athleteId={athleteId} target={target} canSellPackages={false} onClose={() => setTarget(null)} />
+    </>
   )
 }

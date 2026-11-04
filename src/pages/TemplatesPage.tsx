@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
 import { useIsMine, usePrograms, useTemplates, useTemplateUsage } from '@/features/templates/api'
+import { useAssignments } from '@/features/trainer/api'
 import { currentLanguage } from '@/i18n'
 import { dateLocale } from '@/lib/dates'
 import { isSupabaseConfigured } from '@/lib/supabase'
@@ -19,9 +20,19 @@ export function TemplatesPage() {
   const navigate = useNavigate()
   const isMine = useIsMine()
   const { data: athleteId } = useMyAthleteId()
-  const { data: templates, isPending } = useTemplates()
-  const { data: programs } = usePrograms()
+  const { data: allTemplates, isPending } = useTemplates()
+  const { data: allPrograms } = usePrograms()
   const { data: usage } = useTemplateUsage(athleteId)
+  const { data: assignments } = useAssignments(athleteId)
+
+  // Mine, plus what a trainer assigned to me (directly or as part of a program).
+  const assignedPrograms = new Set(assignments?.flatMap((a) => (a.programId ? [a.programId] : [])))
+  const programs = allPrograms?.filter((p) => isMine(p.ownerId) || assignedPrograms.has(p.id))
+  const assignedTemplates = new Set([
+    ...(assignments?.flatMap((a) => (a.templateId ? [a.templateId] : [])) ?? []),
+    ...(programs?.flatMap((p) => p.days.map((d) => d.templateId)) ?? []),
+  ])
+  const templates = allTemplates?.filter((tpl) => isMine(tpl.ownerId) || assignedTemplates.has(tpl.id))
 
   const create = (path: string) => {
     if (!isSupabaseConfigured) {

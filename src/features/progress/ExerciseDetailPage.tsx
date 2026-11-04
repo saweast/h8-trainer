@@ -2,13 +2,14 @@ import { ArrowLeft, ChartLine, SearchX, Table2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { EmptyState } from '@/components/common/EmptyState'
 import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { exerciseName } from '@/data/exercises'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
+import { useAthlete } from '@/features/trainer/api'
 import { useExerciseMap } from '@/features/exercises/api'
 import { currentLanguage } from '@/i18n'
 import { dateLocale } from '@/lib/dates'
@@ -35,7 +36,11 @@ export function ExerciseDetailPage() {
   const locale = dateLocale(lang)
   const navigate = useNavigate()
   const { exerciseId } = useParams()
-  const { data: athleteId } = useMyAthleteId()
+  const { data: myAthleteId } = useMyAthleteId()
+  // A trainer opens a client's page with ?athlete=<id>; RLS decides whether that's allowed.
+  const [params] = useSearchParams()
+  const athleteId = params.get('athlete') ?? myAthleteId
+  const { data: other } = useAthlete(params.get('athlete') ?? undefined)
   const { map: exercises, isPending: exercisesPending } = useExerciseMap()
   const { data: sessions, isPending } = useExerciseSessions(athleteId, exerciseId)
   const [metric, setMetric] = useState<Metric>('e1rm')
@@ -84,6 +89,7 @@ export function ExerciseDetailPage() {
           <ArrowLeft />
         </Button>
         <div className="min-w-0 pt-1">
+          {other ? <p className="truncate text-xs text-trainer-text">{other.displayName}</p> : null}
           <h1 className="font-heading text-xl leading-tight">{exercise ? exerciseName(exercise, lang) : '…'}</h1>
           {exercise ? (
             <p className="text-xs text-muted-foreground">

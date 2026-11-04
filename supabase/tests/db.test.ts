@@ -492,3 +492,44 @@ describe('templates and programs', () => {
     ).rejects.toThrow(/row-level security/)
   })
 })
+
+describe('charging template workouts', () => {
+  it('lets the package trainer start a charged workout from a template', async () => {
+    const { clientId, pkgId, tplId } = await asUser(trainer.userId, async (tx) => {
+      const [c] = await rows<{ id: string }>(tx, `select public.create_offline_client('Клієнт з пакетом') as id`)
+      const [m] = await rows<{ id: string }>(
+        tx,
+        `insert into public.memberships (athlete_id, kind, trainer_id, sessions_total) values ($1, 'trainer', $2, 10) returning id`,
+        [c.id, trainer.userId],
+      )
+      const [tpl] = await rows<{ id: string }>(tx, `select public.save_template(null, 'Ноги тренера', null, $1::jsonb) as id`, [
+        JSON.stringify([{ exercise_id: benchId, target_sets: 1, target_reps_max: 10, target_weight_kg: 50 }]),
+      ])
+      return { clientId: c.id, pkgId: m.id, tplId: tpl.id }
+    })
+
+    const workoutId = await asUser(trainer.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.start_workout_from_template($1, $2, null, $3) as id`, [
+        clientId,
+        tplId,
+        pkgId,
+      ])
+      await tx.query(`update public.workouts set finished_at = now() where id = $1`, [r.id])
+      return r.id
+    })
+
+    await asUser(trainer.userId, async (tx) => {
+      const [w] = await rows(tx, `select membership_id, created_by from public.workouts where id = $1`, [workoutId])
+      expect(w).toEqual({ membership_id: pkgId, created_by: trainer.userId })
+      const [u] = await rows(tx, `select sessions_used from public.membership_usage where id = $1`, [pkgId])
+      expect(u.sessions_used).toBe(1)
+    })
+
+    // someone else's package can't be charged through the template RPC either
+    await expect(
+      asUser(anna.userId, (tx) =>
+        tx.query(`select public.start_workout_from_template($1, $2, null, $3)`, [anna.athleteId, tplId, pkgId]),
+      ),
+    ).rejects.toThrow()
+  })
+})

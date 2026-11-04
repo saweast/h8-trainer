@@ -13,7 +13,6 @@ import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 
 // Everything past the first screen loads on demand (charts, workout screen, …).
-const ComingSoonPage = lazy(() => import('@/pages/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })))
 const ExercisesPage = lazy(() => import('@/pages/ExercisesPage').then((m) => ({ default: m.ExercisesPage })))
 const ExerciseDetailPage = lazy(() =>
   import('@/features/progress/ExerciseDetailPage').then((m) => ({ default: m.ExerciseDetailPage })),
@@ -31,6 +30,8 @@ const ProgramEditorPage = lazy(() =>
   import('@/features/templates/ProgramEditorPage').then((m) => ({ default: m.ProgramEditorPage })),
 )
 const BodyPage = lazy(() => import('@/features/body/BodyPage').then((m) => ({ default: m.BodyPage })))
+const ClientPage = lazy(() => import('@/features/trainer/ClientPage').then((m) => ({ default: m.ClientPage })))
+const InvitePage = lazy(() => import('@/features/trainer/InvitePage').then((m) => ({ default: m.InvitePage })))
 const WorkoutPage = lazy(() => import('@/features/workout/WorkoutPage').then((m) => ({ default: m.WorkoutPage })))
 
 // "/h8-trainer/" → "/h8-trainer"
@@ -60,16 +61,21 @@ export default function App() {
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="templates" element={<TemplatesPage />} />
                     <Route path="trainer" element={<TrainerClientsPage />} />
-                    <Route path="trainer/clients/:athleteId" element={<ComingSoonPage />} />
+                    <Route path="trainer/clients/:athleteId" element={<ClientPage />} />
                     <Route path="body" element={<BodyPage />} />
-                    <Route path="invite/:code" element={<ComingSoonPage />} />
+                    <Route path="invite/:code" element={<InvitePage />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Route>
                 </Route>
               </Routes>
               </Suspense>
             </BrowserRouter>
-            <Toaster position="top-center" />
+            {/* Below the sticky header so toasts never cover its buttons (e.g. "Finish"). */}
+            <Toaster
+              position="top-center"
+              offset={{ top: 'calc(env(safe-area-inset-top) + 64px)' }}
+              mobileOffset={{ top: 'calc(env(safe-area-inset-top) + 64px)' }}
+            />
           </ModeProvider>
         </AuthProvider>
       </QueryClientProvider>

@@ -15,7 +15,7 @@ export function HomePage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={t('home.title')} subtitle={formatLongDay(today, currentLanguage())} />
-      <MembershipSummary />
+      <MembershipSummary athleteId={athleteId} />
       <StartOrResume athleteId={athleteId} />
       <section className="mt-2">
         <h2 className="mb-2 text-[15px] font-medium">{t('home.recent')}</h2>

@@ -225,11 +225,11 @@ export function useExerciseRecords(athleteId: string | undefined, excludeWorkout
 export function useStartWorkout(athleteId: string | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (input: { title?: string } = {}) => {
+    mutationFn: async (input: { title?: string; membershipId?: string | null } = {}) => {
       const id = newId()
       const { error } = await supabase!
         .from('workouts')
-        .insert({ id, athlete_id: athleteId!, title: input.title ?? '' })
+        .insert({ id, athlete_id: athleteId!, title: input.title ?? '', membership_id: input.membershipId ?? null })
       if (error) throw error
       return id
     },

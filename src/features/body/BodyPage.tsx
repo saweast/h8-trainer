@@ -2,13 +2,14 @@ import { ArrowLeft, ChartLine, ChevronRight, Plus, Ruler, Table2 } from 'lucide-
 import { format, parseISO } from 'date-fns'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { Chip } from '@/components/common/Chip'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
+import { useAthlete } from '@/features/trainer/api'
 import { TrendChart } from '@/features/progress/TrendChart'
 import { currentLanguage } from '@/i18n'
 import { BODY_METRICS, latestWithDelta, metricByKey, metricSeries, type BodyEntry, type BodyMetricKey } from '@/lib/body'
@@ -23,7 +24,11 @@ export function BodyPage() {
   const lang = currentLanguage()
   const locale = dateLocale(lang)
   const navigate = useNavigate()
-  const { data: athleteId } = useMyAthleteId()
+  const { data: myAthleteId } = useMyAthleteId()
+  // A trainer opens a client's page with ?athlete=<id>; RLS decides whether that's allowed.
+  const [params] = useSearchParams()
+  const athleteId = params.get('athlete') ?? myAthleteId
+  const { data: other } = useAthlete(params.get('athlete') ?? undefined)
   const { data: entries, isPending } = useBodyMeasurements(athleteId)
   // undefined = drawer closed, null = new measurement
   const [editing, setEditing] = useState<BodyEntry | null | undefined>(undefined)
@@ -59,7 +64,10 @@ export function BodyPage() {
           >
             <ArrowLeft />
           </Button>
-          <h1 className="font-heading text-[22px] leading-tight">{t('body.title')}</h1>
+          <div className="min-w-0">
+            {other ? <p className="truncate text-xs text-muted-foreground">{other.displayName}</p> : null}
+            <h1 className="font-heading text-[22px] leading-tight">{t('body.title')}</h1>
+          </div>
         </div>
         {entries?.length ? (
           <Button variant="secondary" size="icon-touch" onClick={add} aria-label={t('body.add')}>

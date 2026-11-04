@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, Dumbbell, Plus } from 'lucide-react'
+import { ChevronDown, Dumbbell, Plus, UserStar } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
@@ -15,6 +15,8 @@ import {
 } from '@/features/exercises/api'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { useTemplate } from '@/features/templates/api'
+import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
+import { useAthlete } from '@/features/trainer/api'
 import type { ExerciseRecords } from '@/lib/records'
 import { prefillSets } from '@/lib/templatePrefill'
 import { autoTitle } from '@/lib/workoutStats'
@@ -49,6 +51,9 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
   const actions = useWorkoutActions(workout.id, () => toast.error(t('workout.saveError')))
   const rest = useRestTimer(workout.id)
   const { data: template } = useTemplate(workout.templateId ?? undefined)
+  const { data: myAthleteId } = useMyAthleteId()
+  const forSomeoneElse = myAthleteId !== undefined && workout.athleteId !== myAthleteId
+  const { data: client } = useAthlete(forSomeoneElse ? workout.athleteId : undefined)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [finishOpen, setFinishOpen] = useState(false)
   const celebrated = useRef(new Set<string>())
@@ -140,6 +145,18 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
           </Button>
         </div>
       </header>
+
+      {forSomeoneElse ? (
+        <div className="mx-auto max-w-md px-4 pt-3">
+          <p className="flex items-center gap-2 rounded-xl bg-trainer-muted px-3 py-2 text-xs text-trainer-text">
+            <UserStar className="size-4 shrink-0" aria-hidden />
+            <span className="truncate">
+              {t('trainer.recordingFor', { name: client?.displayName ?? '…' })}
+              {workout.membershipId ? ` · ${t('trainer.recordingCharged')}` : ''}
+            </span>
+          </p>
+        </div>
+      ) : null}
 
       <main
         className="mx-auto flex max-w-md flex-col gap-3 px-4 pt-3"

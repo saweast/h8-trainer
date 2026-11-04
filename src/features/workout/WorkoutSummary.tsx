@@ -23,6 +23,7 @@ import { templateItemsFromWorkout, workoutMatchesTemplate } from '@/lib/template
 import { minutesBetween } from '@/lib/time'
 import { exercisesWithPr, workoutTotals } from '@/lib/workoutStats'
 import { useExerciseRecords, useWorkoutActions, type Workout } from './api'
+import { WorkoutComments } from './WorkoutComments'
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -161,6 +162,8 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
           )
         })}
       </div>
+
+      <WorkoutComments workoutId={workout.id} createdBy={workout.createdBy} />
 
       {offerUpdate ? (
         <div className="mt-4 rounded-2xl border bg-card p-3">

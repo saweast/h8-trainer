@@ -243,11 +243,12 @@ export function useNextProgramDay(athleteId: string | undefined, programs: Progr
 export function useStartFromTemplate(athleteId: string | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ templateId, programId }: { templateId: string; programId?: string }) => {
+    mutationFn: async ({ templateId, programId, membershipId }: { templateId: string; programId?: string; membershipId?: string | null }) => {
       const { data, error } = await supabase!.rpc('start_workout_from_template', {
         p_athlete: athleteId!,
         p_template: templateId,
         p_program: programId,
+        p_membership: membershipId ?? undefined,
       })
       if (error) throw error
       return data as string
