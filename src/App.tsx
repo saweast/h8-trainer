@@ -32,6 +32,11 @@ const ProgramEditorPage = lazy(() =>
 const BodyPage = lazy(() => import('@/features/body/BodyPage').then((m) => ({ default: m.BodyPage })))
 const ClientPage = lazy(() => import('@/features/trainer/ClientPage').then((m) => ({ default: m.ClientPage })))
 const InvitePage = lazy(() => import('@/features/trainer/InvitePage').then((m) => ({ default: m.InvitePage })))
+const AdminUsersPage = lazy(() => import('@/features/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })))
+const AdminTrainerPage = lazy(() => import('@/features/admin/AdminTrainerPage').then((m) => ({ default: m.AdminTrainerPage })))
+const AdminAthletePage = lazy(() => import('@/features/admin/AdminAthletePage').then((m) => ({ default: m.AdminAthletePage })))
+const AdminWorkoutPage = lazy(() => import('@/features/admin/AdminWorkoutPage').then((m) => ({ default: m.AdminWorkoutPage })))
+const RequireAdmin = lazy(() => import('@/features/admin/RequireAdmin').then((m) => ({ default: m.RequireAdmin })))
 const WorkoutPage = lazy(() => import('@/features/workout/WorkoutPage').then((m) => ({ default: m.WorkoutPage })))
 
 // "/h8-trainer/" → "/h8-trainer"
@@ -64,6 +69,12 @@ export default function App() {
                     <Route path="trainer/clients/:athleteId" element={<ClientPage />} />
                     <Route path="body" element={<BodyPage />} />
                     <Route path="invite/:code" element={<InvitePage />} />
+                    <Route path="admin" element={<RequireAdmin />}>
+                      <Route path="users" element={<AdminUsersPage />} />
+                      <Route path="users/:userId" element={<AdminTrainerPage />} />
+                      <Route path="users/:userId/clients/:athleteId" element={<AdminAthletePage />} />
+                      <Route path="workouts/:workoutId" element={<AdminWorkoutPage />} />
+                    </Route>
                     <Route path="*" element={<NotFoundPage />} />
                   </Route>
                 </Route>

@@ -120,6 +120,7 @@
     "themeSystem": "System",
     "trainerMode": "I'm a trainer",
     "trainerModeHint": "Adds a client list, session packages and logging workouts for clients.",
+    "trainerLocked": "You can become a trainer with an administrator’s permission.",
     "signOut": "Sign out",
     "demo": "Demo mode",
     "saveError": "Couldn't save. Check your connection."
@@ -178,6 +179,30 @@
     "notFound": "Client not found",
     "openBody": "Open measurements",
     "noRecords": "No records yet"
+  },
+  "admin": {
+    "usersTitle": "Users",
+    "usersHint": "Who may become a trainer, trainers’ clients and their workouts.",
+    "usersCount_one": "{{count}} user",
+    "usersCount_other": "{{count}} users",
+    "search": "Search users",
+    "noResults": "No one found",
+    "loadError": "Couldn’t load data",
+    "badgeAdmin": "admin",
+    "badgeTrainer": "trainer",
+    "canBeTrainer": "Can be a trainer",
+    "canBeTrainerFor": "{{name}}: can be a trainer",
+    "canBeTrainerHint": "Lets the user switch trainer mode on. Turning it off switches trainer mode off and closes access to their clients.",
+    "clientsTitle": "Clients",
+    "clientsCount_one": "{{count}} client",
+    "clientsCount_other": "{{count}} clients",
+    "noClients": "No clients",
+    "invited": "invited",
+    "workoutsCount_one": "{{count}} workout",
+    "workoutsCount_other": "{{count}} workouts",
+    "workoutsTitle": "Workouts",
+    "trainerOf": "Trainer: {{name}}",
+    "readOnly": "Admin view: read-only"
   },
   "templates": {
     "title": "Templates",

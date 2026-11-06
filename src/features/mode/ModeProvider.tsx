@@ -11,7 +11,8 @@ const DEMO_TRAINER_KEY = 'h8.isTrainer'
 const MODE_KEY = 'h8.mode'
 
 /**
- * "Я тренер" lives in `profiles.is_trainer` (demo mode: localStorage). The chosen mode
+ * "Я тренер" lives in `profiles.is_trainer` (demo mode: localStorage) and only works with the
+ * admin's permission (`profiles.can_be_trainer`; demo mode: always allowed). The chosen mode
  * (athlete / trainer navigation) is a per-device preference.
  */
 export function ModeProvider({ children }: { children: ReactNode }) {
@@ -26,7 +27,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     safeStorage.get(MODE_KEY) === 'trainer' ? 'trainer' : 'athlete',
   )
 
-  const isTrainer = isSupabaseConfigured ? (profile.data?.isTrainer ?? false) : demoTrainer
+  const canBeTrainer = isSupabaseConfigured ? (profile.data?.canBeTrainer ?? false) : true
+  const isAdmin = isSupabaseConfigured ? (profile.data?.isAdmin ?? false) : false
+  const isTrainer = canBeTrainer && (isSupabaseConfigured ? (profile.data?.isTrainer ?? false) : demoTrainer)
   const ready = !isSupabaseConfigured || !userId || !profile.isPending
 
   const setMode = useCallback((next: AppMode) => {
@@ -49,8 +52,16 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo<ModeContextValue>(
-    () => ({ isTrainer, ready, setIsTrainer, mode: isTrainer ? storedMode : 'athlete', setMode }),
-    [isTrainer, ready, storedMode, setIsTrainer, setMode],
+    () => ({
+      isTrainer,
+      canBeTrainer,
+      isAdmin,
+      ready,
+      setIsTrainer,
+      mode: isTrainer ? storedMode : 'athlete',
+      setMode,
+    }),
+    [isTrainer, canBeTrainer, isAdmin, ready, storedMode, setIsTrainer, setMode],
   )
 
   return <ModeContext.Provider value={value}>{children}</ModeContext.Provider>

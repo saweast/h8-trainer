@@ -9,14 +9,21 @@ import { minutesBetween } from '@/lib/time'
 import type { WorkoutSummary } from './api'
 
 /** Bordered rows: title, "date · minutes · volume", trainer-package chip. */
-export function WorkoutList({ workouts }: { workouts: WorkoutSummary[] }) {
+export function WorkoutList({
+  workouts,
+  hrefFor = (id) => `/workout/${id}`,
+}: {
+  workouts: WorkoutSummary[]
+  /** Where a row leads; the admin's read-only view uses its own workout page. */
+  hrefFor?: (workoutId: string) => string
+}) {
   const { t } = useTranslation()
   const lang = currentLanguage()
   return (
     <ul className="divide-y rounded-2xl border bg-card">
       {workouts.map((w) => (
         <li key={w.id}>
-          <Link to={`/workout/${w.id}`} className="flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/50">
+          <Link to={hrefFor(w.id)} className="flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/50">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{w.title || t('recent.untitled')}</p>
               <p className="tabular text-xs text-muted-foreground">

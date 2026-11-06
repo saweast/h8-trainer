@@ -386,27 +386,33 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          can_be_trainer: boolean
           created_at: string
           display_name: string
           id: string
+          is_admin: boolean
           is_trainer: boolean
           locale: string
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          can_be_trainer?: boolean
           created_at?: string
           display_name?: string
           id: string
+          is_admin?: boolean
           is_trainer?: boolean
           locale?: string
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          can_be_trainer?: boolean
           created_at?: string
           display_name?: string
           id?: string
+          is_admin?: boolean
           is_trainer?: boolean
           locale?: string
           updated_at?: string
@@ -977,6 +983,49 @@ export type Database = {
       }
     }
     Functions: {
+      admin_athlete_workouts: {
+        Args: { p_athlete: string; p_limit?: number }
+        Returns: {
+          exercise_count: number
+          finished_at: string
+          id: string
+          membership_id: string
+          set_count: number
+          started_at: string
+          title: string
+          volume_kg: number
+        }[]
+      }
+      admin_set_can_be_trainer: {
+        Args: { p_allowed: boolean; p_user: string }
+        Returns: undefined
+      }
+      admin_trainer_clients: {
+        Args: { p_trainer: string }
+        Returns: {
+          athlete_id: string
+          avatar_url: string
+          display_name: string
+          has_account: boolean
+          last_workout_at: string
+          linked_at: string
+          workouts_count: number
+        }[]
+      }
+      admin_users: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          can_be_trainer: boolean
+          clients_count: number
+          created_at: string
+          display_name: string
+          id: string
+          is_admin: boolean
+          is_trainer: boolean
+        }[]
+      }
+      admin_workout: { Args: { p_workout: string }; Returns: Json }
       claim_invite: { Args: { p_code: string }; Returns: string }
       create_offline_client: {
         Args: { p_display_name: string }

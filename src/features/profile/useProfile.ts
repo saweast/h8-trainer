@@ -7,12 +7,18 @@ export interface Profile {
   displayName: string
   avatarUrl: string | null
   isTrainer: boolean
+  /** Granted by an admin; without it "I'm a trainer" can't be switched on. */
+  canBeTrainer: boolean
+  isAdmin: boolean
   locale: 'uk' | 'en'
 }
 
-type ProfileRow = Pick<Tables<'profiles'>, 'id' | 'display_name' | 'avatar_url' | 'is_trainer' | 'locale'>
+type ProfileRow = Pick<
+  Tables<'profiles'>,
+  'id' | 'display_name' | 'avatar_url' | 'is_trainer' | 'can_be_trainer' | 'is_admin' | 'locale'
+>
 
-const COLUMNS = 'id, display_name, avatar_url, is_trainer, locale'
+const COLUMNS = 'id, display_name, avatar_url, is_trainer, can_be_trainer, is_admin, locale'
 
 function fromRow(row: ProfileRow): Profile {
   return {
@@ -20,6 +26,8 @@ function fromRow(row: ProfileRow): Profile {
     displayName: row.display_name,
     avatarUrl: row.avatar_url,
     isTrainer: row.is_trainer,
+    canBeTrainer: row.can_be_trainer,
+    isAdmin: row.is_admin,
     locale: row.locale === 'en' ? 'en' : 'uk',
   }
 }
@@ -45,7 +53,7 @@ export function useUpdateProfile(userId: string | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (patch: ProfilePatch) => {
-      const row: Partial<ProfileRow> = {}
+      const row: Partial<Pick<ProfileRow, 'display_name' | 'is_trainer' | 'locale'>> = {}
       if (patch.displayName !== undefined) row.display_name = patch.displayName
       if (patch.isTrainer !== undefined) row.is_trainer = patch.isTrainer
       if (patch.locale !== undefined) row.locale = patch.locale

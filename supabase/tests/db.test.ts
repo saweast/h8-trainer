@@ -88,6 +88,11 @@ describe('hardening', () => {
        where n.nspname = 'public' order by p.proname`,
     )
     expect(exposed.map((r) => r.proname)).toEqual([
+      'admin_athlete_workouts',
+      'admin_set_can_be_trainer',
+      'admin_trainer_clients',
+      'admin_users',
+      'admin_workout',
       'claim_invite',
       'create_offline_client',
       'exercise_records',
@@ -214,6 +219,8 @@ describe('trainer flow', () => {
     await expect(asUser(anna.userId, (tx) => tx.query(`select public.create_offline_client('X')`))).rejects.toThrow(
       /only trainers/,
     )
+    // Becoming a trainer needs the admin's permission (granted here as the service role).
+    await db.query(`update public.profiles set can_be_trainer = true where id = $1`, [trainer.userId])
     offlineId = await asUser(trainer.userId, async (tx) => {
       await tx.query(`update public.profiles set is_trainer = true where id = $1`, [trainer.userId])
       const [r] = await rows<{ id: string }>(tx, `select public.create_offline_client('Анна (офлайн)') as id`)
@@ -579,5 +586,129 @@ describe('custom exercise guides', () => {
       ),
     ).rejects.toThrow()
     await expect(db.query(`update public.exercises set description = 'x' where slug = 'deadlift'`)).rejects.toThrow()
+  })
+})
+
+describe('admin', () => {
+  let admin: { userId: string; athleteId: string }
+  let coach: { userId: string; athleteId: string }
+  let coachClientId: string
+  let coachWorkoutId: string
+
+  beforeAll(async () => {
+    admin = await createUser('Admin')
+    coach = await createUser('Coach')
+    await db.query(`update public.profiles set is_admin = true where id = $1`, [admin.userId])
+  })
+
+  it('does not let users make themselves trainers or admins', async () => {
+    await expect(
+      asUser(coach.userId, (tx) => tx.query(`update public.profiles set is_trainer = true where id = $1`, [coach.userId])),
+    ).rejects.toThrow(/profiles_trainer_allowed/)
+    await expect(
+      asUser(coach.userId, (tx) =>
+        tx.query(`update public.profiles set can_be_trainer = true where id = $1`, [coach.userId]),
+      ),
+    ).rejects.toThrow(/permission denied/)
+    await expect(
+      asUser(coach.userId, (tx) => tx.query(`update public.profiles set is_admin = true where id = $1`, [coach.userId])),
+    ).rejects.toThrow(/permission denied/)
+  })
+
+  it('keeps admin RPCs for admins only', async () => {
+    for (const sql of [
+      `select * from public.admin_users()`,
+      `select public.admin_set_can_be_trainer('${coach.userId}', true)`,
+      `select * from public.admin_trainer_clients('${coach.userId}')`,
+      `select * from public.admin_athlete_workouts('${coach.athleteId}')`,
+      `select public.admin_workout(gen_random_uuid())`,
+    ]) {
+      await expect(asUser(coach.userId, (tx) => tx.query(sql))).rejects.toThrow(/admins only/)
+    }
+  })
+
+  it('lets the admin allow a user to become a trainer', async () => {
+    await asUser(admin.userId, (tx) => tx.query(`select public.admin_set_can_be_trainer($1, true)`, [coach.userId]))
+    coachClientId = await asUser(coach.userId, async (tx) => {
+      await tx.query(`update public.profiles set is_trainer = true where id = $1`, [coach.userId])
+      const [r] = await rows<{ id: string }>(tx, `select public.create_offline_client('Клієнт Коуча') as id`)
+      const [w] = await rows<{ id: string }>(
+        tx,
+        `insert into public.workouts (athlete_id, title, finished_at) values ($1, 'Ноги', now()) returning id`,
+        [r.id],
+      )
+      const [we] = await rows<{ id: string }>(
+        tx,
+        `insert into public.workout_exercises (workout_id, exercise_id, position) values ($1, $2, 0) returning id`,
+        [w.id, benchId],
+      )
+      await tx.query(
+        `insert into public.sets (workout_exercise_id, position, weight_kg, reps, completed_at) values ($1, 0, 60, 10, now())`,
+        [we.id],
+      )
+      coachWorkoutId = w.id
+      return r.id
+    })
+    expect(coachClientId).toBeTruthy()
+  })
+
+  it("shows the admin every user, a trainer's clients and their workouts", async () => {
+    await asUser(admin.userId, async (tx) => {
+      const users = await rows<{ id: string; can_be_trainer: boolean; is_trainer: boolean; clients_count: number }>(
+        tx,
+        `select id, can_be_trainer, is_trainer, clients_count from public.admin_users()`,
+      )
+      expect(users.map((u) => u.id)).toEqual(expect.arrayContaining([anna.userId, bohdan.userId, trainer.userId, coach.userId]))
+      expect(users.find((u) => u.id === coach.userId)).toEqual({
+        id: coach.userId,
+        can_be_trainer: true,
+        is_trainer: true,
+        clients_count: 1,
+      })
+
+      const clients = await rows(
+        tx,
+        `select athlete_id, display_name, has_account, workouts_count from public.admin_trainer_clients($1)`,
+        [coach.userId],
+      )
+      expect(clients).toEqual([
+        { athlete_id: coachClientId, display_name: 'Клієнт Коуча', has_account: false, workouts_count: 1 },
+      ])
+
+      const workouts = await rows(tx, `select id, title, set_count from public.admin_athlete_workouts($1)`, [coachClientId])
+      expect(workouts).toEqual([{ id: coachWorkoutId, title: 'Ноги', set_count: 1 }])
+
+      const [{ w }] = await rows<{ w: { title: string; athlete_name: string; exercises: { slug: string; sets: unknown[] }[] } }>(
+        tx,
+        `select public.admin_workout($1) as w`,
+        [coachWorkoutId],
+      )
+      expect(w.title).toBe('Ноги')
+      expect(w.athlete_name).toBe('Клієнт Коуча')
+      expect(w.exercises).toHaveLength(1)
+      expect(w.exercises[0].slug).toBe('barbell_bench_press')
+      expect(w.exercises[0].sets).toHaveLength(1)
+
+      // Read-only: the admin gets no direct access to other people's data.
+      expect(await rows(tx, `select id from public.workouts where id = $1`, [coachWorkoutId])).toEqual([])
+    })
+  })
+
+  it('revoking the permission turns trainer mode off and cuts client access until granted again', async () => {
+    await asUser(admin.userId, (tx) => tx.query(`select public.admin_set_can_be_trainer($1, false)`, [coach.userId]))
+    const [profile] = await rows(db, `select can_be_trainer, is_trainer from public.profiles where id = $1`, [coach.userId])
+    expect(profile).toEqual({ can_be_trainer: false, is_trainer: false })
+
+    await asUser(coach.userId, async (tx) => {
+      expect(await rows(tx, `select id from public.workouts where athlete_id = $1`, [coachClientId])).toEqual([])
+    })
+    await expect(
+      asUser(coach.userId, (tx) => tx.query(`select public.create_offline_client('Ще один')`)),
+    ).rejects.toThrow(/only trainers/)
+
+    await asUser(admin.userId, (tx) => tx.query(`select public.admin_set_can_be_trainer($1, true)`, [coach.userId]))
+    await asUser(coach.userId, async (tx) => {
+      expect(await rows(tx, `select id from public.workouts where athlete_id = $1`, [coachClientId])).toHaveLength(1)
+    })
   })
 })

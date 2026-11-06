@@ -1,7 +1,7 @@
-import { LogOut } from 'lucide-react'
+import { ChevronRight, Lock, LogOut, Users } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -16,7 +16,7 @@ type ThemeChoice = 'dark' | 'light' | 'system'
 export function ProfilePage() {
   const { t, i18n } = useTranslation()
   const { user, isDemo, signOut } = useAuth()
-  const { isTrainer, setIsTrainer, setMode } = useMode()
+  const { isTrainer, canBeTrainer, isAdmin, setIsTrainer, setMode } = useMode()
   const { theme = 'dark', setTheme } = useTheme()
   const navigate = useNavigate()
 
@@ -67,13 +67,37 @@ export function ProfilePage() {
         />
       </section>
 
-      <label className="flex items-start gap-3 rounded-2xl border bg-card p-4">
-        <div className="flex-1">
-          <p className="text-sm font-medium">{t('profile.trainerMode')}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{t('profile.trainerModeHint')}</p>
+      {canBeTrainer ? (
+        <label className="flex items-start gap-3 rounded-2xl border bg-card p-4">
+          <div className="flex-1">
+            <p className="text-sm font-medium">{t('profile.trainerMode')}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('profile.trainerModeHint')}</p>
+          </div>
+          <Switch checked={isTrainer} onCheckedChange={toggleTrainer} aria-label={t('profile.trainerMode')} />
+        </label>
+      ) : (
+        <div className="flex items-start gap-3 rounded-2xl border bg-card p-4">
+          <Lock className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="flex-1">
+            <p className="text-sm font-medium">{t('profile.trainerMode')}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('profile.trainerLocked')}</p>
+          </div>
         </div>
-        <Switch checked={isTrainer} onCheckedChange={toggleTrainer} aria-label={t('profile.trainerMode')} />
-      </label>
+      )}
+
+      {isAdmin ? (
+        <Link
+          to="/admin/users"
+          className="flex items-center gap-3 rounded-2xl border bg-card p-4 transition-colors hover:bg-secondary/50"
+        >
+          <Users className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">{t('admin.usersTitle')}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('admin.usersHint')}</p>
+          </div>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+      ) : null}
 
       <Button variant="secondary" size="touch" onClick={() => void signOut()}>
         <LogOut aria-hidden />

@@ -3,8 +3,12 @@ import { createContext, useContext } from 'react'
 export type AppMode = 'athlete' | 'trainer'
 
 export interface ModeContextValue {
-  /** Self-declared in the profile ("Я тренер"). */
+  /** Self-declared in the profile ("Я тренер"); always false without the admin's permission. */
   isTrainer: boolean
+  /** An admin allowed this user to become a trainer. */
+  canBeTrainer: boolean
+  /** Sees the "Users" admin pages. */
+  isAdmin: boolean
   /** False while the profile is still loading — don't redirect on `isTrainer` before this. */
   ready: boolean
   setIsTrainer: (value: boolean) => void
