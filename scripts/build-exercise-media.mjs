@@ -1,8 +1,8 @@
 // Downloads the start/end photos of every catalog exercise from free-exercise-db (Unlicense,
 // public domain) and writes small webp files the app serves statically:
-//   public/exercises/<slug>/start.webp  480 px wide, start position
-//   public/exercises/<slug>/end.webp    480 px wide, end position
-//   public/exercises/<slug>/thumb.webp  96×96 crop of the start photo, for lists
+//   public/exercise-photos/<slug>/start.webp  480 px wide, start position
+//   public/exercise-photos/<slug>/end.webp    480 px wide, end position
+//   public/exercise-photos/<slug>/thumb.webp  96×96 crop of the start photo, for lists
 // Which source exercise belongs to which slug lives in src/data/exercise-media.json.
 // An entry with "thumb": "end" crops the thumbnail from the end photo instead.
 // Usage: node scripts/build-exercise-media.mjs [--force] [--only=<slug>]
@@ -35,7 +35,7 @@ async function download(url) {
 let written = 0
 for (const [slug, entry] of Object.entries(media)) {
   if (!entry.images || (only && slug !== only)) continue
-  const dir = new URL(`public/exercises/${slug}/`, root)
+  const dir = new URL(`public/exercise-photos/${slug}/`, root)
   if (!force && (await exists(new URL('thumb.webp', dir)))) continue
   await mkdir(dir, { recursive: true })
 

@@ -46,14 +46,15 @@ export function mediaFor(slug: string | null | undefined): ExerciseMedia | null 
   return (slug && MEDIA[slug]) || null
 }
 
+// Not public/exercises/: that folder would shadow the /exercises route on GitHub Pages.
 const base = import.meta.env.BASE_URL
 
 export function thumbUrl(slug: string): string {
-  return `${base}exercises/${slug}/thumb.webp`
+  return `${base}exercise-photos/${slug}/thumb.webp`
 }
 
 export function photoUrls(slug: string): { start: string; end: string } {
-  return { start: `${base}exercises/${slug}/start.webp`, end: `${base}exercises/${slug}/end.webp` }
+  return { start: `${base}exercise-photos/${slug}/start.webp`, end: `${base}exercise-photos/${slug}/end.webp` }
 }
 
 /** Step-by-step texts live in their own chunks and load the first time a guide opens. */

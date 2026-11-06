@@ -11,11 +11,11 @@ import enLocale from '../src/i18n/locales/en.json'
 import ukLocale from '../src/i18n/locales/uk.json'
 
 // Checks the data behind the exercise guides: texts, muscles, videos and the photo files that
-// scripts/build-exercise-media.mjs writes to public/exercises/.
+// scripts/build-exercise-media.mjs writes to public/exercise-photos/.
 
 const MEDIA = media as Record<string, ExerciseMedia>
 const GUIDES: Record<string, Record<string, ExerciseGuide>> = { uk, en }
-const publicDir = join(import.meta.dirname, '..', 'public', 'exercises')
+const publicDir = join(import.meta.dirname, '..', 'public', 'exercise-photos')
 const slugs = EXERCISE_CATALOG.map((e) => e.slug)
 
 describe('exercise guides', () => {
