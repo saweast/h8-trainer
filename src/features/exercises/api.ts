@@ -12,6 +12,9 @@ export interface Exercise {
   weightStepKg: number
   defaultRestS: number
   ownerId: string | null
+  /** Custom exercises only: the owner's own guide. Catalog guides ship with the app. */
+  description: string | null
+  videoUrl: string | null
 }
 
 export const exercisesKey = ['exercises'] as const
@@ -25,7 +28,7 @@ export function useExercises() {
     queryFn: async (): Promise<Exercise[]> => {
       const { data, error } = await supabase!
         .from('exercises')
-        .select('id, slug, name, muscle_group, equipment, weight_step_kg, default_rest_s, owner_id')
+        .select('id, slug, name, muscle_group, equipment, weight_step_kg, default_rest_s, owner_id, description, video_url')
         .is('archived_at', null)
       if (error) throw error
       return data.map((r) => ({
@@ -37,6 +40,8 @@ export function useExercises() {
         weightStepKg: Number(r.weight_step_kg),
         defaultRestS: r.default_rest_s,
         ownerId: r.owner_id,
+        description: r.description,
+        videoUrl: r.video_url,
       }))
     },
   })
@@ -54,6 +59,8 @@ export interface NewExercise {
   equipment: Equipment
   weightStepKg: number
   defaultRestS: number
+  description?: string | null
+  videoUrl?: string | null
 }
 
 export function useCreateExercise() {
@@ -70,14 +77,49 @@ export function useCreateExercise() {
           weight_step_kg: input.weightStepKg,
           default_rest_s: input.defaultRestS,
           owner_id: user!.id,
+          description: input.description?.trim() || null,
+          video_url: input.videoUrl || null,
         })
         .select('id')
         .single()
       if (error) throw error
-      return { ...input, id: data.id, slug: null, ownerId: user!.id }
+      return {
+        ...input,
+        id: data.id,
+        slug: null,
+        ownerId: user!.id,
+        description: input.description?.trim() || null,
+        videoUrl: input.videoUrl || null,
+      }
     },
     onSuccess: (exercise) => {
       queryClient.setQueryData<Exercise[]>(exercisesKey, (old) => (old ? [...old, exercise] : [exercise]))
+    },
+  })
+}
+
+export interface ExerciseGuideInput {
+  id: string
+  description: string | null
+  /** Canonical YouTube link (youtubeWatchUrl) or null. */
+  videoUrl: string | null
+}
+
+/** The owner edits the description and video of a custom exercise. */
+export function useUpdateExerciseGuide() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, description, videoUrl }: ExerciseGuideInput) => {
+      const { error } = await supabase!
+        .from('exercises')
+        .update({ description: description?.trim() || null, video_url: videoUrl || null })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_data, { id, description, videoUrl }) => {
+      queryClient.setQueryData<Exercise[]>(exercisesKey, (old) =>
+        old?.map((e) => (e.id === id ? { ...e, description: description?.trim() || null, videoUrl: videoUrl || null } : e)),
+      )
     },
   })
 }

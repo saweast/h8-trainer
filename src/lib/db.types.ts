@@ -216,36 +216,42 @@ export type Database = {
           archived_at: string | null
           created_at: string
           default_rest_s: number
+          description: string | null
           equipment: Database["public"]["Enums"]["equipment_type"]
           id: string
           muscle_group: Database["public"]["Enums"]["muscle_group"]
           name: string
           owner_id: string | null
           slug: string | null
+          video_url: string | null
           weight_step_kg: number
         }
         Insert: {
           archived_at?: string | null
           created_at?: string
           default_rest_s?: number
+          description?: string | null
           equipment: Database["public"]["Enums"]["equipment_type"]
           id?: string
           muscle_group: Database["public"]["Enums"]["muscle_group"]
           name: string
           owner_id?: string | null
           slug?: string | null
+          video_url?: string | null
           weight_step_kg?: number
         }
         Update: {
           archived_at?: string | null
           created_at?: string
           default_rest_s?: number
+          description?: string | null
           equipment?: Database["public"]["Enums"]["equipment_type"]
           id?: string
           muscle_group?: Database["public"]["Enums"]["muscle_group"]
           name?: string
           owner_id?: string | null
           slug?: string | null
+          video_url?: string | null
           weight_step_kg?: number
         }
         Relationships: [

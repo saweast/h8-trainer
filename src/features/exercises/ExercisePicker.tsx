@@ -9,6 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { MUSCLE_GROUPS, exerciseName, namesMatch, type MuscleGroup } from '@/data/exercises'
 import { currentLanguage } from '@/i18n'
 import { useExercises, type Exercise } from './api'
+import { ExerciseHintButton } from './guide/ExerciseHintButton'
+import { ExerciseThumb } from './guide/ExerciseThumb'
 import { CreateExerciseForm } from './CreateExerciseForm'
 
 interface ExercisePickerProps {
@@ -107,12 +109,13 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
               ) : (
                 <ul className="divide-y">
                   {list.map((e) => (
-                    <li key={e.id}>
+                    <li key={e.id} className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => pick(e)}
-                        className="flex min-h-14 w-full items-center gap-3 py-2.5 text-left transition-colors hover:bg-secondary/50"
+                        className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2.5 text-left transition-colors hover:bg-secondary/50"
                       >
+                        <ExerciseThumb slug={e.slug} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">{exerciseName(e, lang)}</span>
                           <span className="block text-xs text-muted-foreground">
@@ -126,6 +129,7 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
                         ) : null}
                         <Plus className="size-4 text-muted-foreground" aria-hidden />
                       </button>
+                      <ExerciseHintButton exercise={e} className="-mr-2" />
                     </li>
                   ))}
                 </ul>

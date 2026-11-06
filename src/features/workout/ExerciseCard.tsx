@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { exerciseName } from '@/data/exercises'
+import { ExerciseHintButton } from '@/features/exercises/guide/ExerciseHintButton'
+import { ExerciseThumb } from '@/features/exercises/guide/ExerciseThumb'
 import type { Exercise } from '@/features/exercises/api'
 import { currentLanguage } from '@/i18n'
 import { detectPrs, type ExerciseRecords } from '@/lib/records'
@@ -61,7 +63,8 @@ export function ExerciseCard({
   return (
     <section className="rounded-2xl border bg-card p-3">
       <div className="mb-2 flex items-start gap-2">
-        <div className="min-w-0 flex-1 pt-1 pl-1">
+        {exercise ? <ExerciseThumb slug={exercise.slug} className="mt-0.5" /> : null}
+        <div className="min-w-0 flex-1 pt-1">
           <h2 className="text-[15px] leading-snug font-medium">{exercise ? exerciseName(exercise, lang) : '…'}</h2>
           {exercise ? (
             <p className="text-xs text-muted-foreground">
@@ -69,6 +72,7 @@ export function ExerciseCard({
             </p>
           ) : null}
         </div>
+        {exercise ? <ExerciseHintButton exercise={exercise} className="-mr-2" /> : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-touch" aria-label={t('workout.exerciseMenu')}>

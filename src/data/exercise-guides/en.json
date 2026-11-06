@@ -1,0 +1,1055 @@
+{
+  "barbell_bench_press": {
+    "summary": "The classic chest builder: lower the bar to your chest and press it back up.",
+    "steps": [
+      "Lie on the bench with your eyes under the bar. Plant your feet and pull your shoulder blades back and down.",
+      "Grip the bar slightly wider than your shoulders, unrack it and hold it over your shoulders.",
+      "Breathe in and lower the bar slowly to your lower chest, elbows about 45° from your torso.",
+      "Breathe out and press up and slightly back until the bar is over your shoulders again."
+    ],
+    "tips": [
+      "Keep your hips on the bench and don't bounce the bar off your chest.",
+      "Stack your wrists over your elbows instead of letting them bend back."
+    ]
+  },
+  "incline_barbell_bench_press": {
+    "summary": "Pressing on a 30–45° bench shifts more work to the upper chest.",
+    "steps": [
+      "Set the bench to 30–45°, lie back, retract your shoulder blades and plant your feet.",
+      "Unrack the bar with a grip slightly wider than your shoulders.",
+      "Lower it to your upper chest just below the collarbones.",
+      "Press back up to straight arms without slamming your elbows."
+    ],
+    "tips": [
+      "Too steep an angle turns it into a shoulder press.",
+      "Don't flare your elbows to 90°; keep them a bit closer to your body."
+    ]
+  },
+  "decline_bench_press": {
+    "summary": "A head-down bench press that emphasises the lower chest.",
+    "steps": [
+      "Hook your legs under the pads and lie back on the decline bench.",
+      "Grip slightly wider than shoulder width and unrack, ideally with a spotter.",
+      "Lower the bar to your lower chest.",
+      "Press it back up along the same path."
+    ],
+    "tips": [
+      "Use a spotter: racking and unracking in this position is awkward.",
+      "Never bring the bar toward your neck."
+    ]
+  },
+  "dumbbell_bench_press": {
+    "summary": "Dumbbells give a longer range of motion and even out side-to-side strength.",
+    "steps": [
+      "Sit with the dumbbells on your thighs, lie back and bring them over your chest.",
+      "Turn your palms forward, retract your shoulder blades, feet on the floor.",
+      "Lower the dumbbells beside your chest until you feel a stretch.",
+      "Press up, bringing them slightly together over your chest."
+    ],
+    "tips": [
+      "Don't clank the dumbbells together at the top.",
+      "After the set, bring them back to your thighs rather than dropping them out wide."
+    ]
+  },
+  "incline_dumbbell_press": {
+    "summary": "Incline dumbbell press for the upper chest and front delts.",
+    "steps": [
+      "Set the bench to 30–45° and lie back with the dumbbells over your shoulders.",
+      "Palms forward, shoulder blades retracted.",
+      "Lower the dumbbells to upper-chest level.",
+      "Press up and slightly in."
+    ],
+    "tips": [
+      "Don't arch your lower back to turn it into a flat press.",
+      "Take 2–3 seconds on the way down."
+    ]
+  },
+  "dumbbell_fly": {
+    "summary": "Dumbbell flyes stretch and isolate the chest.",
+    "steps": [
+      "Lie on a bench with the dumbbells over your chest, palms facing each other.",
+      "Bend your elbows slightly and keep that angle.",
+      "Open your arms in a wide arc until you feel a light stretch in your chest.",
+      "Bring the dumbbells back along the same arc, as if hugging a barrel."
+    ],
+    "tips": [
+      "Don't bend and straighten your elbows; that makes it a press.",
+      "Go lighter than for presses: the shoulder is vulnerable at the bottom."
+    ]
+  },
+  "machine_chest_press": {
+    "summary": "A fixed path lets you load the chest safely without a spotter.",
+    "steps": [
+      "Set the seat so the handles line up with mid-chest.",
+      "Keep your back on the pad and your shoulder blades together.",
+      "Press the handles forward until your arms are almost straight.",
+      "Return slowly until you feel a stretch in your chest."
+    ],
+    "tips": [
+      "Keep your shoulder blades on the pad at the end of the press.",
+      "Don't let the weight stack crash between reps."
+    ]
+  },
+  "smith_bench_press": {
+    "summary": "Bench pressing in a Smith machine: the bar runs on rails, so you can train without a spotter.",
+    "steps": [
+      "Position the bench so the bar lands on your lower chest.",
+      "Grip slightly wider than your shoulders, retract your shoulder blades and unrack by rotating your wrists.",
+      "Lower the bar to your chest under control.",
+      "Press up and lock the hooks at the end of the set."
+    ],
+    "tips": [
+      "Check the bench position before the first set; you can't adjust mid-rep.",
+      "The path is fixed, so don't push the bar toward your head."
+    ]
+  },
+  "pec_deck": {
+    "summary": "The pec deck isolates the chest with a guided fly.",
+    "steps": [
+      "Set the seat so the handles are at chest height.",
+      "Keep your back on the pad and hold the handles or press your forearms into the pads.",
+      "Bring your arms together in front of you, squeezing your chest.",
+      "Open slowly until you feel a light stretch."
+    ],
+    "tips": [
+      "Don't let your arms travel far behind you; that loads the shoulders, not the chest.",
+      "Keep your shoulders down, away from your ears."
+    ]
+  },
+  "cable_crossover": {
+    "summary": "Cable flyes keep tension on the chest through the whole rep.",
+    "steps": [
+      "Set the pulleys high, grab the handles and step forward.",
+      "Lean slightly forward with a soft bend in your elbows.",
+      "Bring your hands down and together in an arc in front of your hips.",
+      "Return slowly until you feel a stretch."
+    ],
+    "tips": [
+      "Keep the elbow angle fixed; the movement comes from the shoulder.",
+      "Keep your torso still; don't rock."
+    ]
+  },
+  "push_up": {
+    "summary": "The bodyweight classic for chest, triceps and core.",
+    "steps": [
+      "Get into a high plank with your hands slightly wider than your shoulders.",
+      "Keep a straight line from head to heels; brace your glutes and abs.",
+      "Lower until your chest nearly touches the floor, elbows about 45° from your torso.",
+      "Push back up to straight arms."
+    ],
+    "tips": [
+      "Don't let your hips sag or pike up.",
+      "Too hard? Do them from your knees or with your hands on a bench."
+    ]
+  },
+  "chest_dips": {
+    "summary": "Dips with a forward lean target the lower chest.",
+    "steps": [
+      "Support yourself on the parallel bars with straight arms.",
+      "Lean your torso forward and let your elbows flare slightly.",
+      "Lower until your elbows reach about 90° or you feel a chest stretch.",
+      "Press yourself back up, keeping the lean."
+    ],
+    "tips": [
+      "Don't go too deep if your shoulders hurt.",
+      "Staying upright shifts the work to your triceps."
+    ]
+  },
+  "pull_up": {
+    "summary": "Wide-grip pull-ups: the go-to exercise for a wider back.",
+    "steps": [
+      "Hang from the bar with an overhand grip slightly wider than your shoulders.",
+      "Pull your shoulders down and your shoulder blades together.",
+      "Pull until your chin clears the bar, driving your elbows down.",
+      "Lower under control to straight arms."
+    ],
+    "tips": [
+      "Don't swing or kick your legs.",
+      "Not strong enough yet? Start with the assisted machine or a band."
+    ]
+  },
+  "assisted_pull_up": {
+    "summary": "Assisted pull-ups: the counterweight takes part of your body weight.",
+    "steps": [
+      "Set the counterweight: more weight means more help.",
+      "Kneel on the platform and grab the handles wider than your shoulders.",
+      "Pull until your chin is above the handles, driving your elbows down.",
+      "Lower slowly to straight arms."
+    ],
+    "tips": [
+      "Progress here means using less counterweight.",
+      "Keep your chest up; don't hunch."
+    ]
+  },
+  "lat_pulldown": {
+    "summary": "Pulling the bar to your chest builds the lats.",
+    "steps": [
+      "Sit with your thighs under the pads and grip the bar wider than your shoulders.",
+      "Lean back slightly with your chest up.",
+      "Pull the bar to your upper chest, bringing your shoulder blades together and your elbows down.",
+      "Let the bar rise smoothly until your arms are straight."
+    ],
+    "tips": [
+      "Don't pull behind your neck or lean far back.",
+      "Pull with your elbows, not your hands."
+    ]
+  },
+  "close_grip_lat_pulldown": {
+    "summary": "A close neutral grip gives the lats a longer range of motion.",
+    "steps": [
+      "Attach a V-handle, sit down and lock your legs in.",
+      "Hold the handle with a neutral grip and straight arms.",
+      "Pull it to your upper chest, elbows down and close to your sides.",
+      "Return up, letting your shoulder blades spread."
+    ],
+    "tips": [
+      "Keep your torso almost still with a slight lean back.",
+      "Don't round your back at the bottom."
+    ]
+  },
+  "straight_arm_pulldown": {
+    "summary": "A straight-arm cable pullover isolates the lats.",
+    "steps": [
+      "Stand facing a high pulley and hold a bar or rope with straight arms.",
+      "Hinge slightly forward with a flat back.",
+      "Sweep your arms down to your thighs without bending your elbows.",
+      "Return your arms smoothly to head height."
+    ],
+    "tips": [
+      "Soft elbows are fine, but the angle must not change.",
+      "Don't help with your torso."
+    ]
+  },
+  "seated_cable_row": {
+    "summary": "Seated cable rows work the middle of the back.",
+    "steps": [
+      "Sit, brace your feet and hold the V-handle with straight arms and a flat back.",
+      "Pull the handle to your stomach, squeezing your shoulder blades together.",
+      "Pause briefly with your shoulder blades squeezed.",
+      "Straighten your arms slowly without rounding your back."
+    ],
+    "tips": [
+      "Don't rock your torso back and forth.",
+      "Keep your shoulders down."
+    ]
+  },
+  "barbell_row": {
+    "summary": "Bent-over barbell rows build a thick, strong back.",
+    "steps": [
+      "Grip the bar at shoulder width with a slight bend in your knees.",
+      "Hinge forward with a flat back to about 45° or lower.",
+      "Pull the bar to your lower stomach, driving your elbows back.",
+      "Lower under control to straight arms."
+    ],
+    "tips": [
+      "Never round your lower back; it's the main risk here.",
+      "Don't jerk your torso upright on every rep."
+    ]
+  },
+  "t_bar_row": {
+    "summary": "T-bar rows for a thicker mid-back.",
+    "steps": [
+      "Straddle the bar with feet shoulder-width apart and grab the handle.",
+      "Hinge forward with a flat back and soft knees.",
+      "Pull the weight to your stomach, squeezing your shoulder blades.",
+      "Lower under control."
+    ],
+    "tips": [
+      "Keep your lower back neutral.",
+      "Don't use your legs or momentum."
+    ]
+  },
+  "dumbbell_row": {
+    "summary": "One-arm dumbbell rows with support on a bench.",
+    "steps": [
+      "Place one knee and hand on the bench, back flat and parallel to the floor.",
+      "Hold the dumbbell in your free hand with a straight arm.",
+      "Row it to your hip, elbow close to your body.",
+      "Lower to a full stretch."
+    ],
+    "tips": [
+      "Don't twist your torso to heave the weight up.",
+      "Drive your elbow back, not up."
+    ]
+  },
+  "machine_row": {
+    "summary": "A chest-supported machine row trains the back without loading the lower back.",
+    "steps": [
+      "Set the seat so the handles are at mid-chest height.",
+      "Press your chest into the pad and grab the handles.",
+      "Pull the handles toward you, squeezing your shoulder blades.",
+      "Return slowly to straight arms."
+    ],
+    "tips": [
+      "Keep your chest on the pad.",
+      "Don't shrug your shoulders toward your ears."
+    ]
+  },
+  "deadlift": {
+    "summary": "Lifting a barbell off the floor works the entire back of the body.",
+    "steps": [
+      "Stand with the bar over mid-foot, feet hip-width apart.",
+      "Grip the bar just outside your knees, back flat, chest up.",
+      "Push the floor away with your legs, keeping the bar close to your legs.",
+      "Stand up fully, then lower the bar along the same path."
+    ],
+    "tips": [
+      "Never round your back: less weight with perfect form is better.",
+      "Keep the bar close and don't lean back at the top."
+    ]
+  },
+  "back_extension": {
+    "summary": "Back extensions strengthen the lower back, glutes and hamstrings.",
+    "steps": [
+      "Set the pad under your hips, not your stomach.",
+      "Cross your arms over your chest, body in a straight line.",
+      "Hinge down with a flat back.",
+      "Raise your torso back into line with your legs."
+    ],
+    "tips": [
+      "Don't hyperextend past a straight line.",
+      "Hold a weight only once 15+ reps feel easy."
+    ]
+  },
+  "overhead_press": {
+    "summary": "The standing barbell press builds the shoulders and a stable core.",
+    "steps": [
+      "Unrack the bar at collarbone height with a grip slightly wider than your shoulders.",
+      "Feet hip-width apart; brace your glutes and abs.",
+      "Press the bar up, moving your head back slightly to let it pass.",
+      "Lock out overhead, then lower slowly to your collarbones."
+    ],
+    "tips": [
+      "Don't arch your lower back; keep your torso rigid.",
+      "Don't use your legs unless you mean to push press."
+    ]
+  },
+  "seated_dumbbell_press": {
+    "summary": "Seated dumbbell press for the front and side delts.",
+    "steps": [
+      "Sit on an upright bench with the dumbbells at shoulder height.",
+      "Palms forward, back against the pad.",
+      "Press the dumbbells up, bringing them slightly together overhead.",
+      "Lower to ear level or slightly below."
+    ],
+    "tips": [
+      "Keep your back on the pad.",
+      "Keep your elbows slightly in front of your body, not straight out to the sides."
+    ]
+  },
+  "machine_shoulder_press": {
+    "summary": "Machine shoulder press: a safe path with no balancing.",
+    "steps": [
+      "Set the seat so the handles are at shoulder height.",
+      "Keep your back on the pad and grab the handles.",
+      "Press up until your arms are almost straight.",
+      "Lower slowly to shoulder level."
+    ],
+    "tips": [
+      "Don't snap your elbows into lockout.",
+      "Keep your shoulders down."
+    ]
+  },
+  "lateral_raise": {
+    "summary": "Dumbbell lateral raises target the side delts.",
+    "steps": [
+      "Stand tall with the dumbbells at your thighs and a slight bend in your elbows.",
+      "Raise your arms out to the sides to shoulder height.",
+      "Keep your little finger slightly higher, as if pouring from a jug.",
+      "Lower slowly."
+    ],
+    "tips": [
+      "Don't swing or use your torso.",
+      "No need to go above shoulder height; that brings in the traps."
+    ]
+  },
+  "cable_lateral_raise": {
+    "summary": "A low-pulley lateral raise keeps tension on the delt through the whole range.",
+    "steps": [
+      "Stand side-on to a low pulley and take the handle in your far hand.",
+      "Start with the hand in front of your hips, elbow slightly bent.",
+      "Raise your arm out to the side to shoulder height.",
+      "Return slowly."
+    ],
+    "tips": [
+      "Keep your torso still; hold the frame with your free hand.",
+      "Use a light weight and control."
+    ]
+  },
+  "front_raise": {
+    "summary": "Dumbbell front raises for the front delts.",
+    "steps": [
+      "Stand tall with the dumbbells in front of your thighs, palms facing you.",
+      "Raise one or both dumbbells with straight arms to shoulder height.",
+      "Pause briefly.",
+      "Lower slowly."
+    ],
+    "tips": [
+      "Don't lean back to lift the weight.",
+      "Front delts already work hard in presses, so a few sets are enough."
+    ]
+  },
+  "rear_delt_fly": {
+    "summary": "Bent-over dumbbell raises for the rear delts.",
+    "steps": [
+      "Sit on the end of a bench and lean forward, chest toward your thighs, dumbbells under your legs.",
+      "Keep a slight bend in your elbows, palms facing each other.",
+      "Raise your arms out to the sides to shoulder height.",
+      "Lower slowly."
+    ],
+    "tips": [
+      "Don't squeeze your shoulder blades hard; that turns it into a back exercise.",
+      "Use a light weight and a short, controlled motion."
+    ]
+  },
+  "reverse_pec_deck": {
+    "summary": "Reverse flyes on the pec deck for the rear delts.",
+    "steps": [
+      "Sit facing the pad with the handles at shoulder height.",
+      "Grab them with straight arms and a slight bend in your elbows.",
+      "Open your arms back until they line up with your torso.",
+      "Return forward slowly."
+    ],
+    "tips": [
+      "Don't throw your head and torso back.",
+      "Keep your shoulders down."
+    ]
+  },
+  "face_pull": {
+    "summary": "Pulling a rope to your face builds the rear delts and healthy shoulders.",
+    "steps": [
+      "Set the pulley at face height and take the rope with an overhand grip.",
+      "Step back with straight arms.",
+      "Pull the rope toward your face, spreading the ends and lifting your elbows high and wide.",
+      "Straighten your arms slowly."
+    ],
+    "tips": [
+      "Finish with your hands behind your elbows, as if flexing your biceps.",
+      "Don't lean back."
+    ]
+  },
+  "upright_row": {
+    "summary": "Barbell upright rows for the delts and traps.",
+    "steps": [
+      "Stand tall holding the bar in front of your thighs with a shoulder-width grip.",
+      "Pull the bar up along your body to just below your chest, elbows above your hands.",
+      "Pause briefly.",
+      "Lower slowly."
+    ],
+    "tips": [
+      "Don't pull above shoulder level if your shoulder feels pinched.",
+      "A wider grip is easier on the shoulder joint."
+    ]
+  },
+  "barbell_curl": {
+    "summary": "Standing barbell curls for the biceps.",
+    "steps": [
+      "Stand tall holding the bar with an underhand, shoulder-width grip.",
+      "Pin your elbows to your sides.",
+      "Curl the bar up toward your shoulders.",
+      "Lower slowly until your arms are almost straight."
+    ],
+    "tips": [
+      "Don't swing your torso or let your elbows drift forward.",
+      "Lower more slowly than you lift."
+    ]
+  },
+  "dumbbell_curl": {
+    "summary": "Dumbbell curls train each arm on its own.",
+    "steps": [
+      "Stand tall with the dumbbells at your sides, palms facing you.",
+      "Curl, turning your palm up as you lift.",
+      "Bring the dumbbell to your shoulder.",
+      "Lower slowly, turning the palm back toward you."
+    ],
+    "tips": [
+      "Keep your elbows by your sides.",
+      "Don't help by swinging your shoulder forward."
+    ]
+  },
+  "hammer_curl": {
+    "summary": "Hammer curls with a neutral grip for the biceps and brachialis.",
+    "steps": [
+      "Stand tall with the dumbbells at your sides, palms facing each other.",
+      "Curl without changing your grip.",
+      "Bring the dumbbells up to your shoulders.",
+      "Lower slowly."
+    ],
+    "tips": [
+      "Keep your wrists straight.",
+      "Alternating arms is fine, but don't swing."
+    ]
+  },
+  "preacher_curl": {
+    "summary": "Preacher curls stop your body from helping the biceps.",
+    "steps": [
+      "Sit and rest the backs of your upper arms on the pad.",
+      "Hold the bar with an underhand grip, arms almost straight.",
+      "Curl until your forearms are vertical.",
+      "Lower slowly without snapping into a straight arm."
+    ],
+    "tips": [
+      "The biceps are vulnerable at the bottom, so no jerking.",
+      "Keep your elbows on the pad."
+    ]
+  },
+  "cable_curl": {
+    "summary": "Low-pulley cable curls keep constant tension on the biceps.",
+    "steps": [
+      "Stand facing a low pulley and hold a straight or EZ bar underhand.",
+      "Pin your elbows to your sides.",
+      "Curl the bar up toward your shoulders.",
+      "Return slowly."
+    ],
+    "tips": [
+      "Stand close so the cable runs vertically.",
+      "Keep your torso still."
+    ]
+  },
+  "machine_curl": {
+    "summary": "Machine curls give the biceps a stable path.",
+    "steps": [
+      "Set the seat so your elbows rest on the pad in line with the machine's pivot.",
+      "Grab the handles underhand.",
+      "Curl all the way up.",
+      "Return slowly."
+    ],
+    "tips": [
+      "Line your elbows up with the pivot.",
+      "Keep your upper arms on the pad."
+    ]
+  },
+  "triceps_pushdown": {
+    "summary": "Cable pushdowns for the triceps.",
+    "steps": [
+      "Stand facing a high pulley and grab a straight bar overhand.",
+      "Pin your elbows to your sides, forearms parallel to the floor.",
+      "Push the bar down until your arms are straight.",
+      "Return slowly to 90°."
+    ],
+    "tips": [
+      "Your elbows shouldn't move forward or back.",
+      "Don't lean over the bar."
+    ]
+  },
+  "rope_pushdown": {
+    "summary": "Rope pushdowns: spread the ends at the bottom for a full squeeze.",
+    "steps": [
+      "Hold the rope with a neutral grip, elbows by your sides.",
+      "Push down to straighten your arms.",
+      "At the bottom, pull the rope ends apart.",
+      "Return slowly."
+    ],
+    "tips": [
+      "Keep your elbows still.",
+      "Don't lean forward to help."
+    ]
+  },
+  "skull_crusher": {
+    "summary": "Lying triceps extensions with an EZ bar.",
+    "steps": [
+      "Lie on a bench holding an EZ bar over your chest with straight arms.",
+      "Tilt your arms slightly back toward your head.",
+      "Bend your elbows to lower the bar to your forehead or just behind your head.",
+      "Extend your arms without moving your upper arms."
+    ],
+    "tips": [
+      "Don't let your elbows flare out.",
+      "Use a moderate weight: elbows don't like jerks."
+    ]
+  },
+  "overhead_triceps_extension": {
+    "summary": "Overhead dumbbell extensions stretch the long head of the triceps.",
+    "steps": [
+      "Hold one dumbbell with both hands under the top plate and lift it overhead.",
+      "Keep your elbows pointing forward and close to your head.",
+      "Lower the dumbbell behind your head by bending your elbows.",
+      "Extend your arms back up."
+    ],
+    "tips": [
+      "Brace your abs so your lower back doesn't arch.",
+      "Don't let your elbows flare wide."
+    ]
+  },
+  "close_grip_bench_press": {
+    "summary": "Close-grip bench press: a heavy compound for the triceps.",
+    "steps": [
+      "Lie on the bench and grip the bar at shoulder width.",
+      "Unrack with your shoulder blades retracted.",
+      "Lower the bar to your lower chest, elbows close to your body.",
+      "Press back up."
+    ],
+    "tips": [
+      "Too narrow a grip strains the wrists.",
+      "Don't flare your elbows."
+    ]
+  },
+  "bench_dips": {
+    "summary": "Bench dips for the triceps.",
+    "steps": [
+      "Sit on the edge of a bench with your hands next to your hips.",
+      "Slide off the bench with your legs out in front.",
+      "Bend your elbows to lower your hips until your elbows reach 90°.",
+      "Straighten your arms to come back up."
+    ],
+    "tips": [
+      "Keep your back close to the bench.",
+      "Don't go too deep if your shoulders hurt."
+    ]
+  },
+  "machine_triceps_extension": {
+    "summary": "Machine triceps extensions.",
+    "steps": [
+      "Set the seat so your elbows rest on the pad in line with the pivot.",
+      "Grab the handles with your elbows bent.",
+      "Extend your arms fully.",
+      "Return slowly."
+    ],
+    "tips": [
+      "Keep your upper arms still.",
+      "Don't let the stack crash."
+    ]
+  },
+  "back_squat": {
+    "summary": "The barbell back squat: the main exercise for legs and glutes.",
+    "steps": [
+      "Rest the bar on your upper traps, unrack, feet slightly wider than your shoulders, toes turned out a little.",
+      "Breathe in, brace and start by sending your hips back and your knees out over your toes.",
+      "Squat until your thighs are parallel to the floor or lower, back flat.",
+      "Stand up by pushing through your whole foot; breathe out near the top."
+    ],
+    "tips": [
+      "Don't let your knees cave in.",
+      "Keep your heels down with your weight over mid-foot."
+    ]
+  },
+  "front_squat": {
+    "summary": "With the bar on your front delts, the front squat loads the quads more.",
+    "steps": [
+      "Rest the bar on your front delts near your neck, elbows high and forward.",
+      "Feet shoulder-width apart, torso upright.",
+      "Squat down, keeping your elbows high and chest open.",
+      "Stand up without tipping forward."
+    ],
+    "tips": [
+      "If your elbows drop, the bar rolls forward.",
+      "Your shoulders hold the bar; your fingers only steady it."
+    ]
+  },
+  "sumo_deadlift": {
+    "summary": "A wide-stance deadlift: shorter range, more glutes and adductors.",
+    "steps": [
+      "Take a wide stance with your toes out and the bar over mid-foot.",
+      "Grip the bar between your knees with a narrow grip, back flat.",
+      "Push your knees out and stand up, keeping the bar against your body.",
+      "Lock out fully, then lower under control."
+    ],
+    "tips": [
+      "Keep your knees tracking over your toes.",
+      "Don't let your hips rise faster than your shoulders."
+    ]
+  },
+  "romanian_deadlift": {
+    "summary": "The Romanian deadlift: a flat-back hinge that stretches the hamstrings.",
+    "steps": [
+      "Stand holding the bar, feet hip-width apart, knees slightly bent.",
+      "Push your hips back, sliding the bar down your thighs.",
+      "Lower until you feel a strong hamstring stretch, usually around mid-shin.",
+      "Drive your hips forward to stand up."
+    ],
+    "tips": [
+      "Keep your back flat the whole time; never round your lower back.",
+      "Your knee angle barely changes: it's not a squat."
+    ]
+  },
+  "leg_press": {
+    "summary": "The leg press loads quads and glutes without compressing the spine.",
+    "steps": [
+      "Sit with your lower back against the pad and feet shoulder-width on the platform.",
+      "Release the safeties and lower the platform until your knees reach about 90°.",
+      "Press the platform away through your whole foot.",
+      "Don't lock your knees at the top."
+    ],
+    "tips": [
+      "Keep your hips on the seat at the bottom.",
+      "Knees should track over your toes."
+    ]
+  },
+  "hack_squat": {
+    "summary": "The machine hack squat emphasises the quads.",
+    "steps": [
+      "Step into the machine with your back and shoulders on the pads, feet on the platform.",
+      "Release the safeties and lower as deep as you can without your hips coming off.",
+      "Drive up through your whole foot.",
+      "Don't lock your knees at the top."
+    ],
+    "tips": [
+      "Feet lower works the quads more; higher works the glutes more.",
+      "Keep your back on the pad."
+    ]
+  },
+  "smith_squat": {
+    "summary": "Squatting in a Smith machine: a fixed path you can train without a spotter.",
+    "steps": [
+      "Step under the bar, rest it on your traps, feet slightly forward.",
+      "Unrack by rotating your wrists.",
+      "Squat to parallel with a flat back.",
+      "Stand up and lock the hooks at the end of the set."
+    ],
+    "tips": [
+      "Place your feet slightly in front of you, or your knees travel far forward.",
+      "Set the safety stops before your first set."
+    ]
+  },
+  "leg_extension": {
+    "summary": "Leg extensions isolate the quads.",
+    "steps": [
+      "Adjust the back pad so your knees line up with the pivot and the roller sits above your ankles.",
+      "Hold the handles and keep your hips down.",
+      "Extend your legs fully and pause.",
+      "Lower slowly."
+    ],
+    "tips": [
+      "Don't kick the weight up.",
+      "Keep your hips on the seat."
+    ]
+  },
+  "lying_leg_curl": {
+    "summary": "Lying leg curls for the hamstrings.",
+    "steps": [
+      "Lie face down with your knees just past the edge and the roller above your heels.",
+      "Hold the handles and keep your hips down.",
+      "Curl the roller toward your glutes.",
+      "Lower slowly until your legs are almost straight."
+    ],
+    "tips": [
+      "Don't let your hips lift off the bench.",
+      "Control the way down; don't drop the weight."
+    ]
+  },
+  "seated_leg_curl": {
+    "summary": "Seated leg curls work the hamstrings in a lengthened position.",
+    "steps": [
+      "Sit with your knees at the pivot, the roller above your heels and the thigh pad locked down.",
+      "Hold the handles with your back against the pad.",
+      "Curl your legs as far as you can.",
+      "Return slowly."
+    ],
+    "tips": [
+      "Leaning slightly forward increases the stretch.",
+      "No jerking."
+    ]
+  },
+  "hip_adduction": {
+    "summary": "The adductor machine works your inner thighs.",
+    "steps": [
+      "Sit with the pads against the inside of your knees.",
+      "Set a comfortable starting width.",
+      "Squeeze your legs together and pause.",
+      "Open slowly."
+    ],
+    "tips": [
+      "Keep your back against the pad.",
+      "Don't open wider than your flexibility allows."
+    ]
+  },
+  "walking_lunge": {
+    "summary": "Dumbbell walking lunges for legs and glutes.",
+    "steps": [
+      "Stand tall with the dumbbells at your sides.",
+      "Step forward and lower until both knees are bent about 90°.",
+      "Push off the front foot and step into the next lunge.",
+      "Alternate legs with an upright torso."
+    ],
+    "tips": [
+      "Your back knee should almost touch the floor.",
+      "Don't let your front knee cave in."
+    ]
+  },
+  "bulgarian_split_squat": {
+    "summary": "Bulgarian split squats: rear foot on a bench, heavy work for one leg and glute.",
+    "steps": [
+      "Stand with your back to a bench and rest the top of your rear foot on it.",
+      "Place your front foot a big step ahead.",
+      "Lower until your front thigh is parallel to the floor.",
+      "Stand up with your front leg."
+    ],
+    "tips": [
+      "A slight forward lean hits the glutes more; upright hits the quads more.",
+      "Start without weight to find your balance."
+    ]
+  },
+  "goblet_squat": {
+    "summary": "Holding a dumbbell at your chest helps you squat with a flat back.",
+    "steps": [
+      "Hold a dumbbell vertically at your chest with both hands.",
+      "Feet slightly wider than your shoulders, toes turned out a little.",
+      "Squat deep with your elbows inside your knees.",
+      "Stand up through your whole foot."
+    ],
+    "tips": [
+      "Chest up, dumbbell close to your body.",
+      "A great way to learn the squat pattern."
+    ]
+  },
+  "step_up": {
+    "summary": "Dumbbell step-ups for legs and glutes.",
+    "steps": [
+      "Stand in front of a bench or box with dumbbells in your hands.",
+      "Place one whole foot on the bench.",
+      "Step up by driving through the top leg.",
+      "Step down slowly with the same leg, then switch."
+    ],
+    "tips": [
+      "Don't push off with the bottom leg.",
+      "Keep your knee over your foot."
+    ]
+  },
+  "hip_thrust": {
+    "summary": "The barbell hip thrust: the best exercise for the glutes.",
+    "steps": [
+      "Sit on the floor with your shoulder blades on a bench and the bar over your hips, with a pad.",
+      "Feet shoulder-width apart, knees bent.",
+      "Drive your hips up until your body forms a straight line from knees to shoulders.",
+      "Squeeze your glutes at the top and lower slowly."
+    ],
+    "tips": [
+      "Don't arch your lower back at the top.",
+      "Shins should be vertical at the top."
+    ]
+  },
+  "glute_bridge": {
+    "summary": "The floor glute bridge: a basic glute exercise.",
+    "steps": [
+      "Lie on your back with your knees bent and feet near your glutes.",
+      "Arms by your sides.",
+      "Lift your hips by squeezing your glutes.",
+      "Pause and lower slowly."
+    ],
+    "tips": [
+      "Push through your heels, not your toes.",
+      "Don't overarch your lower back."
+    ]
+  },
+  "hip_abduction": {
+    "summary": "The abductor machine works the outer thighs and glutes.",
+    "steps": [
+      "Sit with the pads against the outside of your knees.",
+      "Legs together, back against the pad.",
+      "Push your legs apart and pause.",
+      "Bring them back together slowly."
+    ],
+    "tips": [
+      "Leaning forward puts more work on the glutes.",
+      "Don't let the pads slam together."
+    ]
+  },
+  "glute_kickback_machine": {
+    "summary": "Machine kickbacks for the glutes.",
+    "steps": [
+      "Step into the machine, support yourself on your chest or hands, foot on the platform.",
+      "Keep your torso still.",
+      "Push your leg back, squeezing the glute.",
+      "Return slowly."
+    ],
+    "tips": [
+      "Don't arch your lower back to kick further.",
+      "Move from the hip."
+    ]
+  },
+  "cable_kickback": {
+    "summary": "Cable glute kickbacks from a low pulley.",
+    "steps": [
+      "Strap the cuff around your ankle and face the pulley.",
+      "Hold the frame and lean slightly forward.",
+      "Kick your leg back and slightly up.",
+      "Return slowly."
+    ],
+    "tips": [
+      "Don't swing your torso.",
+      "Keep a soft bend in the standing leg."
+    ]
+  },
+  "standing_calf_raise": {
+    "summary": "Standing calf raises.",
+    "steps": [
+      "Step into the machine with your shoulders under the pads and the balls of your feet on the edge.",
+      "Lower your heels into a stretch.",
+      "Rise onto your toes as high as you can.",
+      "Pause and lower slowly."
+    ],
+    "tips": [
+      "Knees straight but not locked.",
+      "Full range of motion matters more than the weight."
+    ]
+  },
+  "seated_calf_raise": {
+    "summary": "Seated calf raises target the soleus.",
+    "steps": [
+      "Sit with the pad on your thighs near your knees and the balls of your feet on the edge.",
+      "Release the lock and lower your heels into a stretch.",
+      "Rise onto your toes as high as you can.",
+      "Lower slowly."
+    ],
+    "tips": [
+      "Don't bounce at the bottom.",
+      "A pause at the top makes it more effective."
+    ]
+  },
+  "leg_press_calf_raise": {
+    "summary": "Calf raises on the leg press machine.",
+    "steps": [
+      "Sit in the machine with the balls of your feet on the bottom edge of the platform.",
+      "Legs straight; keep the safety stops engaged if the machine allows.",
+      "Push the platform away with your toes.",
+      "Return slowly into a calf stretch."
+    ],
+    "tips": [
+      "Go slowly so your feet don't slip off.",
+      "Don't bend your knees to help."
+    ]
+  },
+  "plank": {
+    "summary": "The plank: a static hold for the core.",
+    "steps": [
+      "Get onto your forearms with your elbows under your shoulders.",
+      "Extend your legs back onto your toes.",
+      "Keep a straight line from head to heels with glutes and abs braced.",
+      "Hold the position and breathe steadily."
+    ],
+    "tips": [
+      "Don't let your hips sag or pike up.",
+      "Log the time in seconds in the reps field."
+    ]
+  },
+  "crunch": {
+    "summary": "Floor crunches for the rectus abdominis.",
+    "steps": [
+      "Lie on your back with your knees bent and feet on the floor.",
+      "Hands by your temples or crossed on your chest.",
+      "Curl your torso up until your shoulder blades leave the floor.",
+      "Lower slowly."
+    ],
+    "tips": [
+      "Don't pull your head with your hands.",
+      "Your lower back stays on the floor."
+    ]
+  },
+  "hanging_leg_raise": {
+    "summary": "Hanging leg raises for the lower abs.",
+    "steps": [
+      "Hang from a bar with straight arms.",
+      "Brace your abs to stop swinging.",
+      "Raise your legs to hip height or higher, curling your pelvis up.",
+      "Lower slowly."
+    ],
+    "tips": [
+      "Don't swing: use your muscles, not momentum.",
+      "Too hard with straight legs? Raise bent knees."
+    ]
+  },
+  "russian_twist": {
+    "summary": "Russian twists for the obliques.",
+    "steps": [
+      "Sit on the floor with your knees bent and lean back to about 45°.",
+      "Hold your hands or a weight in front of your chest.",
+      "Rotate your torso from side to side.",
+      "Keep a controlled pace."
+    ],
+    "tips": [
+      "Keep your back straight; don't slump.",
+      "Rotate your torso, not just your arms."
+    ]
+  },
+  "cable_crunch": {
+    "summary": "Kneeling rope crunches on a high pulley.",
+    "steps": [
+      "Kneel in front of a high pulley and hold the rope beside your head.",
+      "Keep your hips still.",
+      "Crunch down, bringing your elbows toward your thighs.",
+      "Return up slowly."
+    ],
+    "tips": [
+      "Don't sit back onto your heels: the movement comes from your spine.",
+      "Don't pull with your arms."
+    ]
+  },
+  "machine_crunch": {
+    "summary": "Machine crunches for the abs.",
+    "steps": [
+      "Adjust the seat, hold the handles and hook your feet under the rollers.",
+      "Keep your back against the pad.",
+      "Crunch forward, bringing your chest toward your hips.",
+      "Return slowly."
+    ],
+    "tips": [
+      "Don't pull with your arms.",
+      "Breathe out as you crunch."
+    ]
+  },
+  "ab_wheel": {
+    "summary": "Ab wheel rollouts from your knees build a strong core.",
+    "steps": [
+      "Kneel with the wheel on the floor under your shoulders.",
+      "Brace your abs and glutes.",
+      "Roll the wheel forward slowly as far as you can with a flat back.",
+      "Pull back using your abs."
+    ],
+    "tips": [
+      "Don't let your lower back sag.",
+      "Increase the range gradually."
+    ]
+  },
+  "kettlebell_swing": {
+    "summary": "Kettlebell swings: an explosive hip drive for glutes and hamstrings.",
+    "steps": [
+      "Stand slightly wider than your shoulders with the kettlebell on the floor in front.",
+      "Hinge with a flat back, grab the bell and hike it between your legs.",
+      "Snap your hips forward so the bell floats up to chest height.",
+      "Let it swing back between your legs and repeat."
+    ],
+    "tips": [
+      "Your arms just hold the bell; the power comes from your hips.",
+      "It's a hinge, not a squat."
+    ]
+  },
+  "farmers_walk": {
+    "summary": "Walking with heavy dumbbells trains grip, traps and core.",
+    "steps": [
+      "Pick up heavy dumbbells in both hands.",
+      "Stand tall, shoulders down, shoulder blades back.",
+      "Walk with short steps for a set distance or time.",
+      "Set the dumbbells down with a flat back."
+    ],
+    "tips": [
+      "Don't slouch or sway.",
+      "Log the weight of one dumbbell."
+    ]
+  },
+  "clean_and_press": {
+    "summary": "Clean and press: an explosive full-body lift.",
+    "steps": [
+      "Stand at the bar, feet hip-width apart, grip slightly wider than your shoulders.",
+      "Lift the bar off the floor, extend your hips explosively and pull the bar up.",
+      "Drop under the bar and catch it on your front delts.",
+      "Stand up and press it overhead, then lower to your shoulders and to the floor."
+    ],
+    "tips": [
+      "Learn it with a light weight: technique matters more than load.",
+      "Keep a flat back at every stage."
+    ]
+  },
+  "burpee": {
+    "summary": "Burpees: squat, plank and jump in one movement.",
+    "steps": [
+      "Stand tall, squat and put your hands on the floor.",
+      "Jump your feet back into a plank (add a push-up if you like).",
+      "Jump your feet back to your hands.",
+      "Jump up with your arms overhead."
+    ],
+    "tips": [
+      "Keep your hips level in the plank.",
+      "Land softly on bent knees."
+    ]
+  }
+}

@@ -533,3 +533,51 @@ describe('charging template workouts', () => {
     ).rejects.toThrow()
   })
 })
+
+describe('custom exercise guides', () => {
+  it('lets the owner add a description and a YouTube link that linked users can read', async () => {
+    const exerciseId = await asUser(trainer.userId, async (tx) => {
+      const [e] = await rows<{ id: string }>(
+        tx,
+        `insert into public.exercises (name, muscle_group, equipment, owner_id, description, video_url)
+         values ('Тяга Hammer', 'back', 'machine', $1, 'Груди до подушки.', 'https://youtu.be/rT7DgCr-3pg') returning id`,
+        [trainer.userId],
+      )
+      await tx.query(`update public.exercises set video_url = 'https://www.youtube.com/watch?v=rT7DgCr-3pg' where id = $1`, [e.id])
+      return e.id
+    })
+    await db.query(`insert into public.trainer_athletes (trainer_id, athlete_id) values ($1, $2)`, [
+      trainer.userId,
+      bohdan.athleteId,
+    ])
+
+    await asUser(bohdan.userId, async (tx) => {
+      const [e] = await rows(tx, `select description, video_url from public.exercises where id = $1`, [exerciseId])
+      expect(e).toEqual({ description: 'Груди до подушки.', video_url: 'https://www.youtube.com/watch?v=rT7DgCr-3pg' })
+      const updated = await tx.query(`update public.exercises set description = 'hacked' where id = $1`, [exerciseId])
+      expect(updated.affectedRows).toBe(0)
+    })
+  })
+
+  it('accepts only YouTube links and keeps catalog exercises without them', async () => {
+    await expect(
+      asUser(trainer.userId, (tx) =>
+        tx.query(
+          `insert into public.exercises (name, muscle_group, equipment, owner_id, video_url)
+           values ('Фішинг', 'back', 'machine', $1, 'https://example.com/watch?v=x')`,
+          [trainer.userId],
+        ),
+      ),
+    ).rejects.toThrow()
+    await expect(
+      asUser(trainer.userId, (tx) =>
+        tx.query(
+          `insert into public.exercises (name, muscle_group, equipment, owner_id, video_url)
+           values ('Схоже', 'back', 'machine', $1, 'https://youtube.com.evil.io/x')`,
+          [trainer.userId],
+        ),
+      ),
+    ).rejects.toThrow()
+    await expect(db.query(`update public.exercises set description = 'x' where slug = 'deadlift'`)).rejects.toThrow()
+  })
+})

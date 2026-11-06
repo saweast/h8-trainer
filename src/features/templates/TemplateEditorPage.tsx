@@ -17,6 +17,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { exerciseName } from '@/data/exercises'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
+import { ExerciseHintButton } from '@/features/exercises/guide/ExerciseHintButton'
+import { ExerciseThumb } from '@/features/exercises/guide/ExerciseThumb'
 import { useExerciseMap, type Exercise } from '@/features/exercises/api'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { currentLanguage } from '@/i18n'
@@ -271,19 +273,23 @@ function Editor({ template }: { template: Template | undefined }) {
                   type="button"
                   disabled={readOnly}
                   onClick={() => setEditing(item)}
-                  className="min-w-0 flex-1 py-1 text-left"
+                  className="flex min-w-0 flex-1 items-center gap-3 py-1 text-left"
                 >
-                  <span className="block truncate text-sm font-medium">{nameOf(item.exerciseId)}</span>
-                  <span className="tabular block text-xs text-muted-foreground">
-                    {[
-                      formatTargets(item),
-                      item.targetWeightKg ? `${formatKg(item.targetWeightKg, lang)} ${t('workout.kg')}` : null,
-                      item.restS ? t('templates.restShort', { s: item.restS }) : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
+                  <ExerciseThumb slug={exercises.get(item.exerciseId)?.slug ?? null} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{nameOf(item.exerciseId)}</span>
+                    <span className="tabular block text-xs text-muted-foreground">
+                      {[
+                        formatTargets(item),
+                        item.targetWeightKg ? `${formatKg(item.targetWeightKg, lang)} ${t('workout.kg')}` : null,
+                        item.restS ? t('templates.restShort', { s: item.restS }) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
                   </span>
                 </button>
+                <ItemHint exercise={exercises.get(item.exerciseId)} />
                 {readOnly ? null : (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -369,4 +375,8 @@ function Editor({ template }: { template: Template | undefined }) {
       </Drawer>
     </div>
   )
+}
+
+function ItemHint({ exercise }: { exercise: Exercise | undefined }) {
+  return exercise ? <ExerciseHintButton exercise={exercise} /> : null
 }

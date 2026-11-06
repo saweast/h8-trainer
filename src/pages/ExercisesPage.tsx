@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EXERCISE_CATALOG, MUSCLE_GROUPS, exerciseName, namesMatch, type Equipment, type MuscleGroup } from '@/data/exercises'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
 import { useExercises } from '@/features/exercises/api'
+import { ExerciseThumb } from '@/features/exercises/guide/ExerciseThumb'
 import { CreateExerciseForm } from '@/features/exercises/CreateExerciseForm'
 import { currentLanguage } from '@/i18n'
 import { isSupabaseConfigured } from '@/lib/supabase'
@@ -165,6 +166,7 @@ function ExerciseRow({ row }: { row: Row }) {
   const lang = currentLanguage()
   const content = (
     <>
+      <ExerciseThumb slug={row.slug} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{exerciseName(row, lang)}</p>
         <p className="text-xs text-muted-foreground">
@@ -177,9 +179,9 @@ function ExerciseRow({ row }: { row: Row }) {
     </>
   )
   // Demo rows have no database id, so there is no detail page to open.
-  if (!isSupabaseConfigured) return <div className="flex min-h-14 items-center gap-3 px-4 py-2.5">{content}</div>
+  if (!isSupabaseConfigured) return <div className="flex min-h-14 items-center gap-3 px-3 py-2">{content}</div>
   return (
-    <Link to={`/exercises/${row.key}`} className="flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-secondary/50">
+    <Link to={`/exercises/${row.key}`} className="flex min-h-14 items-center gap-3 px-3 py-2 transition-colors hover:bg-secondary/50">
       {content}
       <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
     </Link>

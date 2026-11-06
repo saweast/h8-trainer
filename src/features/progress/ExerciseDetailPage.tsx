@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { exerciseName } from '@/data/exercises'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
 import { useAthlete } from '@/features/trainer/api'
+import { ExerciseGuideSection } from '@/features/exercises/guide/ExerciseGuideSection'
 import { useExerciseMap } from '@/features/exercises/api'
 import { currentLanguage } from '@/i18n'
 import { dateLocale } from '@/lib/dates'
@@ -98,6 +99,10 @@ export function ExerciseDetailPage() {
           ) : null}
         </div>
       </div>
+
+      {exercise && (!athleteId || !isPending) ? (
+        <ExerciseGuideSection key={exercise.id} exercise={exercise} defaultOpen={rows.length === 0} />
+      ) : null}
 
       {athleteId && isPending ? (
         <div className="grid grid-cols-2 gap-2">

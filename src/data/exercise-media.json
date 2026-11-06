@@ -1,0 +1,1157 @@
+{
+  "barbell_bench_press": {
+    "source": "Barbell_Bench_Press_-_Medium_Grip",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps"
+    ],
+    "video": {
+      "id": "rT7DgCr-3pg",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "incline_barbell_bench_press": {
+    "source": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps"
+    ],
+    "video": {
+      "id": "DbFgADa2PL8",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "decline_bench_press": {
+    "source": "Decline_Barbell_Bench_Press",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps"
+    ],
+    "video": {
+      "id": "LfyQBUKR8SE",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "dumbbell_bench_press": {
+    "source": "Dumbbell_Bench_Press",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps"
+    ],
+    "video": {
+      "id": "VmB1G1K7v94",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "incline_dumbbell_press": {
+    "source": "Incline_Dumbbell_Press",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps"
+    ],
+    "video": {
+      "id": "8iPEnn-ltC8",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "dumbbell_fly": {
+    "source": "Dumbbell_Flyes",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "eozdVDA78K0",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "machine_chest_press": {
+    "source": "Machine_Bench_Press",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps"
+    ],
+    "video": {
+      "id": "xUm0BiZCWlQ",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "smith_bench_press": {
+    "source": "Smith_Machine_Bench_Press",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps"
+    ],
+    "video": {
+      "id": "z_r6hDOYtO0",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "pec_deck": {
+    "source": "Butterfly",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "H4mVGHaK2f4",
+      "channel": "Colossus Fitness"
+    }
+  },
+  "cable_crossover": {
+    "source": "Cable_Crossover",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders"
+    ],
+    "video": {
+      "id": "WEM9FCIPlxQ",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "push_up": {
+    "source": "Pushups",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps"
+    ],
+    "video": {
+      "id": "wxhNoKZlfY8",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "chest_dips": {
+    "source": "Dips_-_Chest_Version",
+    "images": true,
+    "primary": [
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps"
+    ],
+    "video": {
+      "id": "sM6XUdt1rm4",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "pull_up": {
+    "source": "Pullups",
+    "images": true,
+    "primary": [
+      "lats"
+    ],
+    "secondary": [
+      "biceps",
+      "middle_back"
+    ],
+    "video": {
+      "id": "ylVmNQlKdAI",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "assisted_pull_up": {
+    "source": "Band_Assisted_Pull-Up",
+    "images": true,
+    "primary": [
+      "lats"
+    ],
+    "secondary": [
+      "biceps",
+      "middle_back"
+    ],
+    "video": {
+      "id": "wFj808u2HWU",
+      "channel": "PureGym"
+    }
+  },
+  "lat_pulldown": {
+    "source": "Wide-Grip_Lat_Pulldown",
+    "images": true,
+    "primary": [
+      "lats"
+    ],
+    "secondary": [
+      "biceps",
+      "middle_back",
+      "shoulders"
+    ],
+    "video": {
+      "id": "CAwf7n6Luuc",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "close_grip_lat_pulldown": {
+    "source": "Close-Grip_Front_Lat_Pulldown",
+    "images": true,
+    "primary": [
+      "lats"
+    ],
+    "secondary": [
+      "biceps",
+      "middle_back",
+      "shoulders"
+    ],
+    "video": {
+      "id": "ecRF8ERf2q4",
+      "channel": "Bodybuilding.com"
+    }
+  },
+  "straight_arm_pulldown": {
+    "source": "Straight-Arm_Pulldown",
+    "images": true,
+    "primary": [
+      "lats"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "wcVDItawocI",
+      "channel": "Bodybuilding.com"
+    }
+  },
+  "seated_cable_row": {
+    "source": "Seated_Cable_Rows",
+    "images": true,
+    "primary": [
+      "middle_back"
+    ],
+    "secondary": [
+      "biceps",
+      "lats",
+      "shoulders"
+    ],
+    "video": {
+      "id": "GZbfZ033f74",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "barbell_row": {
+    "source": "Bent_Over_Barbell_Row",
+    "images": true,
+    "primary": [
+      "middle_back"
+    ],
+    "secondary": [
+      "biceps",
+      "lats",
+      "shoulders"
+    ],
+    "video": {
+      "id": "9efgcAjQe7E",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "t_bar_row": {
+    "source": "T-Bar_Row_with_Handle",
+    "images": true,
+    "primary": [
+      "middle_back"
+    ],
+    "secondary": [
+      "biceps",
+      "lats"
+    ],
+    "video": {
+      "id": "j3Igk5nyZE4",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "dumbbell_row": {
+    "source": "One-Arm_Dumbbell_Row",
+    "images": true,
+    "primary": [
+      "middle_back"
+    ],
+    "secondary": [
+      "biceps",
+      "lats",
+      "shoulders"
+    ],
+    "video": {
+      "id": "pYcpY20QaE8",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "machine_row": {
+    "source": "Leverage_Iso_Row",
+    "images": true,
+    "primary": [
+      "lats"
+    ],
+    "secondary": [
+      "biceps",
+      "middle_back"
+    ],
+    "video": {
+      "id": "8MKGArS7w7c",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "deadlift": {
+    "source": "Barbell_Deadlift",
+    "images": true,
+    "primary": [
+      "hamstrings",
+      "glutes",
+      "lower_back"
+    ],
+    "secondary": [
+      "quadriceps",
+      "traps",
+      "lats",
+      "forearms"
+    ],
+    "video": {
+      "id": "u6UgD1H_AXw",
+      "channel": "CanditoTrainingHQ"
+    }
+  },
+  "back_extension": {
+    "source": "Hyperextensions_Back_Extensions",
+    "images": true,
+    "primary": [
+      "lower_back"
+    ],
+    "secondary": [
+      "glutes",
+      "hamstrings"
+    ],
+    "video": {
+      "id": "H8Swl1N-uis",
+      "channel": "Squat University"
+    }
+  },
+  "overhead_press": {
+    "source": "Standing_Military_Press",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [
+      "triceps"
+    ],
+    "video": {
+      "id": "2yjwXTZQDDI",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "seated_dumbbell_press": {
+    "source": "Seated_Dumbbell_Press",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [
+      "triceps"
+    ],
+    "video": {
+      "id": "qEwKCR5JCog",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "machine_shoulder_press": {
+    "source": "Machine_Shoulder_Military_Press",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [
+      "triceps"
+    ],
+    "video": {
+      "id": "Wqq43dKW1TU",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "lateral_raise": {
+    "source": "Side_Lateral_Raise",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "3VcKaXpzqRo",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "cable_lateral_raise": {
+    "source": "Cable_Seated_Lateral_Raise",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [
+      "middle_back",
+      "traps"
+    ],
+    "video": {
+      "id": "PPrzBWZDOhA",
+      "channel": "Testosterone Nation"
+    }
+  },
+  "front_raise": {
+    "source": "Front_Dumbbell_Raise",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "-t7fuZ0KhDA",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "rear_delt_fly": {
+    "source": "Seated_Bent-Over_Rear_Delt_Raise",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "ttvfGg9d76c",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "reverse_pec_deck": {
+    "source": "Reverse_Machine_Flyes",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "JQsEq37gJbY",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "face_pull": {
+    "source": "Face_Pull",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [
+      "middle_back",
+      "traps"
+    ],
+    "video": {
+      "id": "rep-qVOkqgk",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "upright_row": {
+    "source": "Upright_Barbell_Row",
+    "images": true,
+    "primary": [
+      "shoulders"
+    ],
+    "secondary": [
+      "traps"
+    ],
+    "video": {
+      "id": "amCU-ziHITM",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "barbell_curl": {
+    "source": "Barbell_Curl",
+    "images": true,
+    "primary": [
+      "biceps"
+    ],
+    "secondary": [
+      "forearms"
+    ],
+    "video": {
+      "id": "QZEqB6wUPxQ",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "dumbbell_curl": {
+    "source": "Dumbbell_Bicep_Curl",
+    "images": true,
+    "primary": [
+      "biceps"
+    ],
+    "secondary": [
+      "forearms"
+    ],
+    "video": {
+      "id": "sAq_ocpRh_I",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "hammer_curl": {
+    "source": "Hammer_Curls",
+    "images": true,
+    "primary": [
+      "biceps"
+    ],
+    "secondary": [
+      "forearms"
+    ],
+    "video": {
+      "id": "zC3nLlEvin4",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "preacher_curl": {
+    "source": "Preacher_Curl",
+    "images": true,
+    "primary": [
+      "biceps"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "DoCWeUBA0Gs",
+      "channel": "Howcast"
+    }
+  },
+  "cable_curl": {
+    "source": "Standing_Biceps_Cable_Curl",
+    "images": true,
+    "primary": [
+      "biceps"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "AsAVbj7puKo",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "machine_curl": {
+    "source": "Machine_Bicep_Curl",
+    "images": true,
+    "primary": [
+      "biceps"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "M_uPvGrMx_o",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "triceps_pushdown": {
+    "source": "Triceps_Pushdown",
+    "images": true,
+    "primary": [
+      "triceps"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "2-LAMcpzODU",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "rope_pushdown": {
+    "source": "Triceps_Pushdown_-_Rope_Attachment",
+    "images": true,
+    "primary": [
+      "triceps"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "vB5OHsJ3EME",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "skull_crusher": {
+    "source": "EZ-Bar_Skullcrusher",
+    "images": true,
+    "primary": [
+      "triceps"
+    ],
+    "secondary": [
+      "forearms"
+    ],
+    "video": {
+      "id": "d_KZxkY_0cM",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "overhead_triceps_extension": {
+    "source": "Standing_Dumbbell_Triceps_Extension",
+    "images": true,
+    "primary": [
+      "triceps"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "-Vyt2QdsR7E",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "close_grip_bench_press": {
+    "source": "Close-Grip_Barbell_Bench_Press",
+    "images": true,
+    "primary": [
+      "triceps"
+    ],
+    "secondary": [
+      "chest",
+      "shoulders"
+    ],
+    "video": {
+      "id": "nEF0bv2FW94",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "bench_dips": {
+    "source": "Bench_Dips",
+    "images": true,
+    "primary": [
+      "triceps"
+    ],
+    "secondary": [
+      "chest",
+      "shoulders"
+    ],
+    "video": {
+      "id": "c3ZGl4pAwZ4",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "machine_triceps_extension": {
+    "source": "Machine_Triceps_Extension",
+    "images": true,
+    "primary": [
+      "triceps"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "j4XSuFLiZ6I",
+      "channel": "Live Lean TV Daily Exercises"
+    }
+  },
+  "back_squat": {
+    "source": "Barbell_Full_Squat",
+    "images": true,
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutes",
+      "hamstrings",
+      "lower_back"
+    ],
+    "video": {
+      "id": "SW_C1A-rejs",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "front_squat": {
+    "source": "Front_Barbell_Squat",
+    "images": true,
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutes",
+      "hamstrings"
+    ],
+    "video": {
+      "id": "tlfahNdNPPI",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "sumo_deadlift": {
+    "source": "Sumo_Deadlift",
+    "images": true,
+    "primary": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary": [
+      "adductors",
+      "quadriceps",
+      "lower_back",
+      "traps"
+    ],
+    "video": {
+      "id": "1v4r9hht_K4",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "romanian_deadlift": {
+    "source": "Romanian_Deadlift",
+    "images": true,
+    "primary": [
+      "hamstrings"
+    ],
+    "secondary": [
+      "glutes",
+      "lower_back"
+    ],
+    "video": {
+      "id": "JCXUYuzwNrM",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "leg_press": {
+    "source": "Leg_Press",
+    "images": true,
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutes",
+      "hamstrings"
+    ],
+    "video": {
+      "id": "IZxyjW7MPJQ",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "hack_squat": {
+    "source": "Hack_Squat",
+    "images": true,
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutes",
+      "hamstrings"
+    ],
+    "video": {
+      "id": "LfEhHboTcow",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "smith_squat": {
+    "source": "Smith_Machine_Squat",
+    "images": true,
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutes",
+      "hamstrings",
+      "lower_back"
+    ],
+    "video": {
+      "id": "AHnX-aimA4E",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "leg_extension": {
+    "source": "Leg_Extensions",
+    "images": true,
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "YyvSfVjQeL0",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "lying_leg_curl": {
+    "source": "Lying_Leg_Curls",
+    "images": true,
+    "primary": [
+      "hamstrings"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "1Tq3QdYUuHs",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "seated_leg_curl": {
+    "source": "Seated_Leg_Curl",
+    "images": true,
+    "primary": [
+      "hamstrings"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "ELOCsoDSmrg",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "hip_adduction": {
+    "source": "Thigh_Adductor",
+    "images": true,
+    "primary": [
+      "adductors"
+    ],
+    "secondary": [
+      "glutes",
+      "hamstrings"
+    ],
+    "video": {
+      "id": "GmRSV_n2E_0",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "walking_lunge": {
+    "source": "Dumbbell_Lunges",
+    "images": true,
+    "primary": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary": [
+      "hamstrings"
+    ],
+    "video": {
+      "id": "7mDWDlzFobQ",
+      "channel": "Howcast"
+    }
+  },
+  "bulgarian_split_squat": {
+    "source": "Split_Squat_with_Dumbbells",
+    "images": true,
+    "primary": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary": [
+      "hamstrings",
+      "adductors"
+    ],
+    "video": {
+      "id": "2C-uNgKwPLE",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "goblet_squat": {
+    "source": "Goblet_Squat",
+    "images": true,
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutes",
+      "hamstrings"
+    ],
+    "video": {
+      "id": "MeIiIdhvXT4",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "step_up": {
+    "source": "Dumbbell_Step_Ups",
+    "images": true,
+    "primary": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary": [
+      "hamstrings"
+    ],
+    "video": {
+      "id": "WCFCdxzFBa4",
+      "channel": "Get Exercise Confident"
+    }
+  },
+  "hip_thrust": {
+    "source": "Barbell_Hip_Thrust",
+    "images": true,
+    "primary": [
+      "glutes"
+    ],
+    "secondary": [
+      "hamstrings"
+    ],
+    "video": {
+      "id": "SEdqd1n0cvg",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "glute_bridge": {
+    "source": "Butt_Lift_Bridge",
+    "images": true,
+    "primary": [
+      "glutes"
+    ],
+    "secondary": [
+      "hamstrings"
+    ],
+    "video": {
+      "id": "8bbE64NuDTU",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "hip_abduction": {
+    "source": "Thigh_Abductor",
+    "images": true,
+    "primary": [
+      "abductors"
+    ],
+    "secondary": [
+      "glutes"
+    ],
+    "video": {
+      "id": "2b97cvyH9sE",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "glute_kickback_machine": {
+    "source": "Glute_Kickback",
+    "images": true,
+    "primary": [
+      "glutes"
+    ],
+    "secondary": [
+      "hamstrings"
+    ],
+    "video": {
+      "id": "kUJ3OH9ADZk",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "cable_kickback": {
+    "source": "One-Legged_Cable_Kickback",
+    "images": true,
+    "primary": [
+      "glutes"
+    ],
+    "secondary": [
+      "hamstrings"
+    ],
+    "video": {
+      "id": "dU1R-AHW4IM",
+      "channel": "Kia Khadem"
+    }
+  },
+  "standing_calf_raise": {
+    "source": "Standing_Calf_Raises",
+    "images": true,
+    "primary": [
+      "calves"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "MAMzF7iZNkc",
+      "channel": "Bodybuilding.com"
+    }
+  },
+  "seated_calf_raise": {
+    "source": "Seated_Calf_Raise",
+    "images": true,
+    "primary": [
+      "calves"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "JbyjNymZOt0",
+      "channel": "LIVESTRONG"
+    }
+  },
+  "leg_press_calf_raise": {
+    "source": "Calf_Press_On_The_Leg_Press_Machine",
+    "images": true,
+    "primary": [
+      "calves"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "M4FojyRAcuE",
+      "channel": "Tiger Fitness"
+    }
+  },
+  "plank": {
+    "source": "Plank",
+    "images": true,
+    "primary": [
+      "abdominals"
+    ],
+    "secondary": [
+      "shoulders"
+    ],
+    "video": {
+      "id": "pSHjTRCQxIw",
+      "channel": "ScottHermanFitness"
+    },
+    "thumb": "end"
+  },
+  "crunch": {
+    "source": "Crunches",
+    "images": true,
+    "primary": [
+      "abdominals"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "NGRKFMKhF8s",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "hanging_leg_raise": {
+    "source": "Hanging_Leg_Raise",
+    "images": true,
+    "primary": [
+      "abdominals"
+    ],
+    "secondary": [
+      "forearms"
+    ],
+    "video": {
+      "id": "X-ACS9vpRyU",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "russian_twist": {
+    "source": "Russian_Twist",
+    "images": true,
+    "primary": [
+      "abdominals"
+    ],
+    "secondary": [
+      "lower_back"
+    ],
+    "video": {
+      "id": "wkD8rjkodUI",
+      "channel": "Howcast"
+    }
+  },
+  "cable_crunch": {
+    "source": "Cable_Crunch",
+    "images": true,
+    "primary": [
+      "abdominals"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "3qjoXDTuyOE",
+      "channel": "Bodybuilding.com"
+    }
+  },
+  "machine_crunch": {
+    "source": "Ab_Crunch_Machine",
+    "images": true,
+    "primary": [
+      "abdominals"
+    ],
+    "secondary": [],
+    "video": {
+      "id": "4sJACG-H4Fs",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "ab_wheel": {
+    "source": "Ab_Roller",
+    "images": true,
+    "primary": [
+      "abdominals"
+    ],
+    "secondary": [
+      "shoulders"
+    ],
+    "video": {
+      "id": "rqiTPdK1c_I",
+      "channel": "Mind Pump TV"
+    }
+  },
+  "kettlebell_swing": {
+    "source": "One-Arm_Kettlebell_Swings",
+    "images": true,
+    "primary": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary": [
+      "lower_back",
+      "shoulders",
+      "abdominals"
+    ],
+    "video": {
+      "id": "YSxHifyI6s8",
+      "channel": "Men's Health"
+    }
+  },
+  "farmers_walk": {
+    "source": "Farmers_Walk",
+    "images": true,
+    "primary": [
+      "forearms",
+      "traps"
+    ],
+    "secondary": [
+      "abdominals",
+      "glutes",
+      "quadriceps"
+    ],
+    "video": {
+      "id": "Tgi5SNDbBZQ",
+      "channel": "ScottHermanFitness"
+    }
+  },
+  "clean_and_press": {
+    "source": "Clean_and_Press",
+    "images": true,
+    "primary": [
+      "shoulders",
+      "glutes",
+      "quadriceps"
+    ],
+    "secondary": [
+      "hamstrings",
+      "traps",
+      "triceps",
+      "lower_back"
+    ],
+    "video": {
+      "id": "KCe8l86-alA",
+      "channel": "PureGym"
+    }
+  },
+  "burpee": {
+    "source": null,
+    "images": false,
+    "primary": [
+      "quadriceps",
+      "chest"
+    ],
+    "secondary": [
+      "shoulders",
+      "triceps",
+      "abdominals",
+      "glutes"
+    ],
+    "video": {
+      "id": "wS4OsJ4yzx4",
+      "channel": "ScottHermanFitness"
+    }
+  }
+}

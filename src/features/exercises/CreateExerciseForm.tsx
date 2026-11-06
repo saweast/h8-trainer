@@ -6,9 +6,11 @@ import { Chip } from '@/components/common/Chip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { EQUIPMENT, MUSCLE_GROUPS, type Equipment, type MuscleGroup } from '@/data/exercises'
 import { useMode } from '@/features/mode/modeContext'
 import { parseWeight } from '@/lib/format'
+import { youtubeId, youtubeWatchUrl } from '@/lib/youtube'
 import { exerciseDefaults, useCreateExercise, useSaveExerciseSettings, type Exercise } from './api'
 
 interface CreateExerciseFormProps {
@@ -31,19 +33,32 @@ export function CreateExerciseForm({ initialName = '', athleteId, onCreated }: C
   const [step, setStep] = useState<string | null>(null)
   const [rest, setRest] = useState<string | null>(null)
   const [setup, setSetup] = useState('')
+  const [description, setDescription] = useState('')
+  const [link, setLink] = useState('')
   const [nameError, setNameError] = useState(false)
+  const [linkError, setLinkError] = useState(false)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) {
-      setNameError(true)
+    const videoId = link.trim() ? youtubeId(link) : null
+    if (!name.trim() || (link.trim() && !videoId)) {
+      setNameError(!name.trim())
+      setLinkError(Boolean(link.trim() && !videoId))
       return
     }
     const weightStepKg = parseWeight(step ?? String(defaults.weightStepKg)) || defaults.weightStepKg
     const restParsed = Number.parseInt(rest ?? String(defaults.defaultRestS), 10)
     const defaultRestS = Number.isFinite(restParsed) ? Math.min(Math.max(restParsed, 0), 1800) : defaults.defaultRestS
     try {
-      const exercise = await create.mutateAsync({ name, muscle, equipment, weightStepKg, defaultRestS })
+      const exercise = await create.mutateAsync({
+        name,
+        muscle,
+        equipment,
+        weightStepKg,
+        defaultRestS,
+        description,
+        videoUrl: videoId ? youtubeWatchUrl(videoId) : null,
+      })
       if (setup.trim() && athleteId) {
         saveSettings.mutate({ exerciseId: exercise.id, setupNotes: setup, restS: null })
       }
@@ -127,6 +142,38 @@ export function CreateExerciseForm({ initialName = '', athleteId, onCreated }: C
           maxLength={200}
           className="h-11 rounded-xl"
         />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="exercise-description">{t('guide.description')}</Label>
+        <Textarea
+          id="exercise-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder={t('guide.descriptionPlaceholder')}
+          maxLength={1000}
+          rows={3}
+          className="rounded-xl text-base"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="exercise-video">{t('guide.videoUrl')}</Label>
+        <Input
+          id="exercise-video"
+          type="url"
+          inputMode="url"
+          value={link}
+          onChange={(e) => {
+            setLink(e.target.value)
+            setLinkError(false)
+          }}
+          placeholder={t('guide.videoUrlPlaceholder')}
+          maxLength={200}
+          aria-invalid={linkError}
+          className="h-11 rounded-xl"
+        />
+        {linkError ? <p className="text-xs text-destructive">{t('guide.videoUrlInvalid')}</p> : null}
       </div>
 
       {isTrainer ? (
