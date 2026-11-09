@@ -23,6 +23,7 @@ import { templateItemsFromWorkout, workoutMatchesTemplate } from '@/lib/template
 import { minutesBetween } from '@/lib/time'
 import { exercisesWithPr, workoutTotals } from '@/lib/workoutStats'
 import { useExerciseRecords, useWorkoutActions, type Workout } from './api'
+import { ExerciseFeedback } from './ExerciseFeedback'
 import { WorkoutComments } from './WorkoutComments'
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -63,7 +64,7 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
     if (!ownTemplate) return
     const items = templateItemsFromWorkout(workout.exercises).map((item) => {
       const old = ownTemplate.items.find((i) => i.exerciseId === item.exerciseId)
-      return old ? { ...item, targetWeightKg: old.targetWeightKg, restS: old.restS, notes: old.notes } : item
+      return old ? { ...item, targetWeightKg: old.targetWeightKg, restS: old.restS, notes: old.notes, sets: old.sets } : item
     })
     saveTemplate.mutate(
       { id: ownTemplate.id, name: ownTemplate.name, notes: ownTemplate.notes, items },
@@ -158,6 +159,14 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
                   )
                 })}
               </ul>
+              {item.sets.some((s) => s.completedAt !== null) ? (
+                <ExerciseFeedback
+                  difficulty={item.difficulty}
+                  text={item.athleteFeedback}
+                  onChange={(patch) => actions.setFeedback(item.id, patch)}
+                  className="mt-3 border-t pt-3"
+                />
+              ) : null}
             </section>
           )
         })}

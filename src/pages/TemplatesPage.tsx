@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
+import { PlansSection } from '@/features/plans/PlansSection'
 import { useIsMine, usePrograms, useTemplates, useTemplateUsage } from '@/features/templates/api'
 import { useAssignments } from '@/features/trainer/api'
 import { currentLanguage } from '@/i18n'
@@ -56,6 +57,7 @@ export function TemplatesPage() {
     return (
       <div>
         <PageHeader title={t('templates.title')} />
+        <PlansSection />
         <EmptyState icon={ClipboardList} title={t('templates.emptyTitle')} body={t('templates.emptyBody')}>
           <Button size="xl" onClick={() => create('/templates/new')}>
             <Plus aria-hidden />
@@ -76,6 +78,8 @@ export function TemplatesPage() {
           </Button>
         }
       />
+
+      <PlansSection />
 
       <ul className="divide-y rounded-2xl border bg-card">
         {templates.map((tpl) => {

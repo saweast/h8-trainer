@@ -16,7 +16,8 @@ import type { Exercise } from '@/features/exercises/api'
 import { currentLanguage } from '@/i18n'
 import { detectPrs, type ExerciseRecords } from '@/lib/records'
 import type { PreviousSet } from '@/lib/templatePrefill'
-import type { WorkoutExercise, WorkoutSet } from './api'
+import type { ExerciseFeedbackPatch, WorkoutExercise, WorkoutSet } from './api'
+import { ExerciseFeedback } from './ExerciseFeedback'
 import { SET_GRID, SetRow } from './SetRow'
 
 type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'completedAt'>>
@@ -33,6 +34,7 @@ interface ExerciseCardProps {
   onAddSet: () => void
   onRemove: () => void
   onSaveSetup: (notes: string) => void
+  onFeedback: (patch: ExerciseFeedbackPatch) => void
 }
 
 export function ExerciseCard({
@@ -47,6 +49,7 @@ export function ExerciseCard({
   onAddSet,
   onRemove,
   onSaveSetup,
+  onFeedback,
 }: ExerciseCardProps) {
   const { t } = useTranslation()
   const lang = currentLanguage()
@@ -150,6 +153,15 @@ export function ExerciseCard({
         <Plus aria-hidden />
         {t('workout.addSet')}
       </Button>
+
+      {item.sets.some((s) => s.completedAt !== null) || item.difficulty !== null ? (
+        <ExerciseFeedback
+          difficulty={item.difficulty}
+          text={item.athleteFeedback}
+          onChange={onFeedback}
+          className="mt-3 border-t pt-3"
+        />
+      ) : null}
     </section>
   )
 }

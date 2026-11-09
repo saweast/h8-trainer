@@ -23,6 +23,7 @@ import { useExerciseMap, type Exercise } from '@/features/exercises/api'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { currentLanguage } from '@/i18n'
 import { formatKg } from '@/lib/format'
+import { formatSetSpec } from '@/lib/setSpec'
 import { formatTargets } from '@/lib/templateFromWorkout'
 import {
   useDeleteTemplate,
@@ -105,6 +106,8 @@ function Editor({ template }: { template: Template | undefined }) {
     return e ? exerciseName(e, lang) : '…'
   }
 
+  const isBodyweight = (exerciseId: string) => exercises.get(exerciseId)?.equipment === 'bodyweight'
+
   const addExercise = (exercise: Exercise) =>
     setDraft((d) => ({
       ...d,
@@ -119,6 +122,7 @@ function Editor({ template }: { template: Template | undefined }) {
           targetWeightKg: null,
           restS: null,
           notes: null,
+          sets: null,
         },
       ],
     }))
@@ -280,8 +284,12 @@ function Editor({ template }: { template: Template | undefined }) {
                     <span className="block truncate text-sm font-medium">{nameOf(item.exerciseId)}</span>
                     <span className="tabular block text-xs text-muted-foreground">
                       {[
-                        formatTargets(item),
-                        item.targetWeightKg ? `${formatKg(item.targetWeightKg, lang)} ${t('workout.kg')}` : null,
+                        ...(item.sets?.length
+                          ? [formatSetSpec(item.sets, { locale: lang, bodyweight: isBodyweight(item.exerciseId) })]
+                          : [
+                              formatTargets(item),
+                              item.targetWeightKg ? `${formatKg(item.targetWeightKg, lang)} ${t('workout.kg')}` : null,
+                            ]),
                         item.restS ? t('templates.restShort', { s: item.restS }) : null,
                       ]
                         .filter(Boolean)
@@ -350,6 +358,7 @@ function Editor({ template }: { template: Template | undefined }) {
       <TemplateItemDrawer
         item={editing}
         title={editing ? nameOf(editing.exerciseId) : ''}
+        bodyweight={editing ? isBodyweight(editing.exerciseId) : false}
         onClose={(updated) => {
           if (updated && editing) {
             setDraft((d) => ({ ...d, items: d.items.map((i) => (i.key === editing.key ? { ...updated, key: i.key } : i)) }))

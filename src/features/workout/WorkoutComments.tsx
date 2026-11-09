@@ -5,24 +5,27 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { useHasTrainer } from '@/features/athlete/useMyAthlete'
 import { useAuth } from '@/features/auth/authContext'
 import { useMode } from '@/features/mode/modeContext'
 import { useAddComment, useDeleteComment, useWorkoutComments } from '@/features/trainer/api'
 import { currentLanguage } from '@/i18n'
 import { dateLocale } from '@/lib/dates'
 
-/** Trainer ↔ client notes on a workout. Hidden for solo users until there's something to show. */
+/** Trainer ↔ client notes on a workout. Hidden for solo users (no trainer) until there's something to show. */
 export function WorkoutComments({ workoutId, createdBy }: { workoutId: string; createdBy: string | null }) {
   const { t } = useTranslation()
   const lang = currentLanguage()
   const { user } = useAuth()
   const { isTrainer } = useMode()
   const { data: comments } = useWorkoutComments(workoutId)
+  const { data: hasTrainer } = useHasTrainer()
   const add = useAddComment(workoutId)
   const remove = useDeleteComment(workoutId)
   const [body, setBody] = useState('')
 
-  const relevant = isTrainer || (comments?.length ?? 0) > 0 || (createdBy !== null && createdBy !== user?.id)
+  const relevant =
+    isTrainer || hasTrainer === true || (comments?.length ?? 0) > 0 || (createdBy !== null && createdBy !== user?.id)
   if (!relevant) return null
 
   const submit = (e: FormEvent) => {

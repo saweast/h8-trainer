@@ -16,3 +16,21 @@ export function useMyAthleteId() {
     },
   })
 }
+
+/** Whether the signed-in athlete is linked to at least one trainer. */
+export function useHasTrainer() {
+  const { data: athleteId } = useMyAthleteId()
+  return useQuery({
+    queryKey: ['has-trainer', athleteId],
+    enabled: Boolean(supabase && athleteId),
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { count, error } = await supabase!
+        .from('trainer_athletes')
+        .select('trainer_id', { count: 'exact', head: true })
+        .eq('athlete_id', athleteId!)
+      if (error) throw error
+      return (count ?? 0) > 0
+    },
+  })
+}

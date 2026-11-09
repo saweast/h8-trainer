@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/authContext'
 import { activeWorkoutKey } from '@/features/workout/api'
+import { fromSpecSets, toSpecSets } from '@/lib/setSpec'
 import { supabase } from '@/lib/supabase'
 import type { TemplateItemInput } from '@/lib/templateFromWorkout'
 
@@ -64,7 +65,7 @@ export function useTemplate(id: string | undefined) {
         .from('templates')
         .select(
           `id, name, notes, owner_id,
-           template_exercises (exercise_id, position, target_sets, target_reps_min, target_reps_max, target_weight_kg, rest_s, notes)`,
+           template_exercises (exercise_id, position, target_sets, target_reps_min, target_reps_max, target_weight_kg, rest_s, notes, sets)`,
         )
         .eq('id', id!)
         .single()
@@ -84,6 +85,7 @@ export function useTemplate(id: string | undefined) {
             targetWeightKg: te.target_weight_kg === null ? null : Number(te.target_weight_kg),
             restS: te.rest_s,
             notes: te.notes,
+            sets: te.sets === null ? null : toSpecSets(te.sets),
           })),
       }
     },
@@ -129,6 +131,7 @@ export function useSaveTemplate() {
           target_weight_kg: i.targetWeightKg,
           rest_s: i.restS,
           notes: i.notes,
+          sets: i.sets?.length ? fromSpecSets(i.sets) : null,
         })),
       })
       if (error) throw error
