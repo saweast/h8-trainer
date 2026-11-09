@@ -1,4 +1,4 @@
-import { ChevronRight, ClipboardList, Play, Plus, Repeat, UserStar } from 'lucide-react'
+import { ChevronRight, ClipboardList, LayoutGrid, Play, Plus, Repeat, UserStar } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
@@ -21,6 +21,7 @@ import {
   useTemplates,
   useTemplateUsage,
 } from '@/features/templates/api'
+import { useAthletePlan, useNextPlanSlot, usePlan, useStartFromPlan } from '@/features/plans/api'
 import { useAssignments } from '@/features/trainer/api'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useStartWorkout } from './api'
@@ -54,7 +55,13 @@ export function StartWorkoutDrawer({ athleteId, forClient, trigger }: StartWorko
   const { data: programs } = usePrograms()
   const { data: usage } = useTemplateUsage(athleteId)
   const { data: assignments } = useAssignments(forClient ? undefined : athleteId)
-  const busy = startEmpty.isPending || startTemplate.isPending
+  const startPlan = useStartFromPlan(athleteId)
+  const { data: activePlan } = useAthletePlan(athleteId)
+  const { data: plan } = usePlan(activePlan?.id)
+  const { data: planSlot } = useNextPlanSlot(activePlan?.id)
+  const busy = startEmpty.isPending || startTemplate.isPending || startPlan.isPending
+  const slotDayIndex = plan?.days.findIndex((d) => d.id === planSlot?.dayId) ?? -1
+  const slotDay = slotDayIndex >= 0 ? plan!.days[slotDayIndex] : undefined
 
   // Mine, plus: for a client — their own; for myself — what my trainer assigned to me.
   const assignedTemplates = new Set(assignments?.flatMap((a) => (a.templateId ? [a.templateId] : [])))
@@ -92,6 +99,11 @@ export function StartWorkoutDrawer({ athleteId, forClient, trigger }: StartWorko
     startEmpty.mutate({ membershipId }, { onSuccess: go, onError: fail })
   }
 
+  const fromPlan = () => {
+    if (!athleteId || busy || !activePlan || !planSlot) return
+    startPlan.mutate({ planId: activePlan.id, week: planSlot.week, dayId: planSlot.dayId, membershipId }, { onSuccess: go, onError: fail })
+  }
+
   const fromTemplate = (templateId: string, programId?: string) => {
     if (!athleteId || busy) return
     startTemplate.mutate({ templateId, programId, membershipId }, { onSuccess: go, onError: fail })
@@ -127,7 +139,39 @@ export function StartWorkoutDrawer({ athleteId, forClient, trigger }: StartWorko
             )
           ) : null}
 
-          {next ? (
+          {activePlan && planSlot && slotDay ? (
+            <div className="rounded-2xl border-[1.5px] border-primary bg-lime-muted">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={fromPlan}
+                className="w-full rounded-t-2xl px-4 py-3 text-left transition-colors hover:bg-lime-muted/70"
+              >
+                <span className="flex items-center justify-between">
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
+                    {t('plan.next')}
+                  </span>
+                  <ChevronRight className="size-4" aria-hidden />
+                </span>
+                <span className="mt-2 block text-[15px] font-medium">
+                  {t('plan.weekN', { n: planSlot.week })} · {slotDay.name || t('plan.dayN', { n: slotDayIndex + 1 })}
+                </span>
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <LayoutGrid className="size-3.5" aria-hidden />
+                  {activePlan.name}
+                </span>
+              </button>
+              <Link
+                to={`/plans/${activePlan.id}`}
+                onClick={() => setOpen(false)}
+                className="block border-t border-primary/30 px-4 py-2 text-xs font-medium text-lime-text dark:text-lime"
+              >
+                {t('plan.openPlan')}
+              </Link>
+            </div>
+          ) : null}
+
+          {next && !(activePlan && planSlot) ? (
             <button
               type="button"
               disabled={busy}

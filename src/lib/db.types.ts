@@ -383,6 +383,164 @@ export type Database = {
           },
         ]
       }
+      plan_cells: {
+        Row: {
+          plan_row_id: string
+          sets: Json
+          week: number
+        }
+        Insert: {
+          plan_row_id: string
+          sets: Json
+          week: number
+        }
+        Update: {
+          plan_row_id?: string
+          sets?: Json
+          week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_cells_plan_row_id_fkey"
+            columns: ["plan_row_id"]
+            isOneToOne: false
+            referencedRelation: "plan_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_days: {
+        Row: {
+          id: string
+          name: string
+          plan_id: string
+          position: number
+        }
+        Insert: {
+          id?: string
+          name?: string
+          plan_id: string
+          position: number
+        }
+        Update: {
+          id?: string
+          name?: string
+          plan_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_days_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_rows: {
+        Row: {
+          exercise_id: string
+          id: string
+          notes: string | null
+          plan_day_id: string
+          position: number
+          rest_s: number | null
+        }
+        Insert: {
+          exercise_id: string
+          id?: string
+          notes?: string | null
+          plan_day_id: string
+          position: number
+          rest_s?: number | null
+        }
+        Update: {
+          exercise_id?: string
+          id?: string
+          notes?: string | null
+          plan_day_id?: string
+          position?: number
+          rest_s?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_rows_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_rows_plan_day_id_fkey"
+            columns: ["plan_day_id"]
+            isOneToOne: false
+            referencedRelation: "plan_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          archived_at: string | null
+          athlete_id: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string
+          source_plan_id: string | null
+          updated_at: string
+          weeks: number
+        }
+        Insert: {
+          archived_at?: string | null
+          athlete_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          owner_id?: string
+          source_plan_id?: string | null
+          updated_at?: string
+          weeks?: number
+        }
+        Update: {
+          archived_at?: string | null
+          athlete_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          source_plan_id?: string | null
+          updated_at?: string
+          weeks?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plans_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plans_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plans_source_plan_id_fkey"
+            columns: ["source_plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -707,6 +865,7 @@ export type Database = {
           exercise_id: string
           id: string
           notes: string | null
+          plan_row_id: string | null
           position: number
           workout_id: string
         }
@@ -714,6 +873,7 @@ export type Database = {
           exercise_id: string
           id?: string
           notes?: string | null
+          plan_row_id?: string | null
           position: number
           workout_id: string
         }
@@ -721,10 +881,18 @@ export type Database = {
           exercise_id?: string
           id?: string
           notes?: string | null
+          plan_row_id?: string | null
           position?: number
           workout_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workout_exercises_plan_row_id_fkey"
+            columns: ["plan_row_id"]
+            isOneToOne: false
+            referencedRelation: "plan_rows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workout_exercises_exercise_id_fkey"
             columns: ["exercise_id"]
@@ -757,6 +925,9 @@ export type Database = {
           id: string
           membership_id: string | null
           notes: string | null
+          plan_day_id: string | null
+          plan_id: string | null
+          plan_week: number | null
           program_id: string | null
           started_at: string
           template_id: string | null
@@ -771,6 +942,9 @@ export type Database = {
           id?: string
           membership_id?: string | null
           notes?: string | null
+          plan_day_id?: string | null
+          plan_id?: string | null
+          plan_week?: number | null
           program_id?: string | null
           started_at?: string
           template_id?: string | null
@@ -785,6 +959,9 @@ export type Database = {
           id?: string
           membership_id?: string | null
           notes?: string | null
+          plan_day_id?: string | null
+          plan_id?: string | null
+          plan_week?: number | null
           program_id?: string | null
           started_at?: string
           template_id?: string | null
@@ -792,6 +969,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workouts_plan_day_id_fkey"
+            columns: ["plan_day_id"]
+            isOneToOne: false
+            referencedRelation: "plan_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workouts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workouts_athlete_id_fkey"
             columns: ["athlete_id"]
@@ -1030,8 +1221,16 @@ export type Database = {
       }
       admin_workout: { Args: { p_workout: string }; Returns: Json }
       claim_invite: { Args: { p_code: string }; Returns: string }
+      copy_plan: {
+        Args: { p_athlete: string; p_name?: string; p_source: string }
+        Returns: string
+      }
       create_offline_client: {
         Args: { p_display_name: string }
+        Returns: string
+      }
+      create_plan_from_templates: {
+        Args: { p_athlete: string; p_name: string; p_template_ids: string[]; p_weeks: number }
         Returns: string
       }
       exercise_records: {
@@ -1070,8 +1269,23 @@ export type Database = {
           workout_id: string
         }[]
       }
+      next_plan_slot: {
+        Args: { p_plan: string }
+        Returns: { plan_day_id: string; week: number }[]
+      }
       next_program_template: {
         Args: { p_athlete: string; p_program: string }
+        Returns: string
+      }
+      save_plan: {
+        Args: {
+          p_athlete: string
+          p_days: Json
+          p_id: string
+          p_name: string
+          p_notes: string
+          p_weeks: number
+        }
         Returns: string
       }
       save_program: {
@@ -1080,6 +1294,15 @@ export type Database = {
       }
       save_template: {
         Args: { p_id: string; p_items: Json; p_name: string; p_notes: string }
+        Returns: string
+      }
+      start_workout_from_plan: {
+        Args: {
+          p_day: string
+          p_membership?: string
+          p_plan: string
+          p_week: number
+        }
         Returns: string
       }
       start_workout_from_template: {

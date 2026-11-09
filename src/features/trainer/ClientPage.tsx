@@ -24,6 +24,7 @@ import { useMemberships, type Membership } from '@/features/memberships/api'
 import { MembershipCard } from '@/features/memberships/MembershipCard'
 import { MembershipDrawer, type MembershipDraftTarget } from '@/features/memberships/MembershipDrawer'
 import { useMode } from '@/features/mode/modeContext'
+import { ClientPlanSection } from '@/features/plans/ClientPlanSection'
 import { useIsMine, usePrograms, useTemplates } from '@/features/templates/api'
 import { useExerciseRecords, useRecentWorkouts } from '@/features/workout/api'
 import { StartWorkoutDrawer } from '@/features/workout/StartWorkoutDrawer'
@@ -179,7 +180,7 @@ export function ClientPage() {
         <TabsList className="w-full">
           <TabsTrigger value="history">{t('trainer.tabHistory')}</TabsTrigger>
           <TabsTrigger value="progress">{t('trainer.tabProgress')}</TabsTrigger>
-          <TabsTrigger value="templates">{t('trainer.tabTemplates')}</TabsTrigger>
+          <TabsTrigger value="plan">{t('trainer.tabPlan')}</TabsTrigger>
           <TabsTrigger value="body">{t('trainer.tabBody')}</TabsTrigger>
         </TabsList>
         <TabsContent value="history" className="mt-3">
@@ -188,8 +189,12 @@ export function ClientPage() {
         <TabsContent value="progress" className="mt-3">
           <ClientProgress athleteId={athleteId} />
         </TabsContent>
-        <TabsContent value="templates" className="mt-3">
-          <ClientAssignments athleteId={athleteId} />
+        <TabsContent value="plan" className="mt-3 flex flex-col gap-5">
+          <ClientPlanSection athleteId={athleteId} />
+          <section className="flex flex-col gap-2">
+            <h2 className="text-[15px] font-medium">{t('trainer.tabTemplates')}</h2>
+            <ClientAssignments athleteId={athleteId} />
+          </section>
         </TabsContent>
         <TabsContent value="body" className="mt-3">
           <Button asChild variant="secondary" size="touch" className="w-full">

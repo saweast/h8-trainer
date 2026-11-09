@@ -434,6 +434,8 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       void queryClient.invalidateQueries({ queryKey: ['exercise-records', athleteId] })
       void queryClient.invalidateQueries({ queryKey: ['last-performance', athleteId] })
       void queryClient.invalidateQueries({ queryKey: ['workouts-range', athleteId] })
+      void queryClient.invalidateQueries({ queryKey: ['plan-facts'] })
+      void queryClient.invalidateQueries({ queryKey: ['plan-next-slot'] })
       void queryClient.invalidateQueries({ queryKey: ['exercise-sessions', athleteId] })
     },
   })

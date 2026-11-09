@@ -94,13 +94,18 @@ describe('hardening', () => {
       'admin_users',
       'admin_workout',
       'claim_invite',
+      'copy_plan',
       'create_offline_client',
+      'create_plan_from_templates',
       'exercise_records',
       'get_invite',
       'last_performance',
+      'next_plan_slot',
       'next_program_template',
+      'save_plan',
       'save_program',
       'save_template',
+      'start_workout_from_plan',
       'start_workout_from_template',
       'trainer_clients_overview',
     ])
@@ -760,6 +765,250 @@ describe('admin', () => {
     await asUser(admin.userId, (tx) => tx.query(`select public.admin_set_can_be_trainer($1, true)`, [coach.userId]))
     await asUser(coach.userId, async (tx) => {
       expect(await rows(tx, `select id from public.workouts where athlete_id = $1`, [coachClientId])).toHaveLength(1)
+    })
+  })
+})
+
+describe('plans', () => {
+  let client: { userId: string; athleteId: string }
+  let stranger: { userId: string; athleteId: string }
+  let squatId: string
+  let templatePlan: string
+  let clientPlan: string
+  const makeIds = () => ({
+    day1: crypto.randomUUID(),
+    day2: crypto.randomUUID(),
+    squatRow: crypto.randomUUID(),
+    benchRow: crypto.randomUUID(),
+    pressRow: crypto.randomUUID(),
+  })
+  const t = makeIds()
+  const c = makeIds()
+  const squatW1 = [{ w: 20, r: 10, warmup: true }, { w: 80, r: 8 }, { w: 80, r: 8 }, { w: 80, r: 8 }]
+  const squatW2 = [{ w: 20, r: 10, warmup: true }, { w: 85, r: 6 }, { w: 85, r: 6 }, { w: 85, r: 6 }]
+
+  const days = (ids: ReturnType<typeof makeIds>, opts: { squatW2?: unknown[]; dropBench?: boolean; swapDays?: boolean } = {}) => {
+    const list = [
+      {
+        id: ids.day1,
+        name: '1 тренування',
+        rows: [
+          {
+            id: ids.squatRow,
+            exercise_id: squatId,
+            rest_s: 180,
+            cells: [
+              { week: 1, sets: squatW1 },
+              { week: 2, sets: opts.squatW2 ?? squatW2 },
+              { week: 9, sets: squatW2 }, // beyond the plan length → dropped
+            ],
+          },
+          ...(opts.dropBench ? [] : [{ id: ids.benchRow, exercise_id: benchId, cells: [{ week: 1, sets: [{ w: 60, r: 8 }] }] }]),
+        ],
+      },
+      { id: ids.day2, name: '2 тренування', rows: [{ id: ids.pressRow, exercise_id: benchId, cells: [] }] },
+    ]
+    return JSON.stringify(opts.swapDays ? list.reverse() : list)
+  }
+
+  const save = (user: string, planId: string | null, athleteId: string | null, json: string) =>
+    asUser(user, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.save_plan($1, $2, ' Хвиля ', null, 3, $3::jsonb) as id`, [
+        planId,
+        athleteId,
+        json,
+      ])
+      return r.id
+    })
+
+  beforeAll(async () => {
+    const [squat] = await rows<{ id: string }>(db, `select id from public.exercises where slug = 'back_squat'`)
+    squatId = squat.id
+    client = await createUser('Planclient')
+    stranger = await createUser('Stranger')
+    await db.query(`insert into public.trainer_athletes (trainer_id, athlete_id) values ($1, $2)`, [
+      trainer.userId,
+      client.athleteId,
+    ])
+  })
+
+  it('saves a plan template that only linked users can read', async () => {
+    templatePlan = await save(trainer.userId, null, null, days(t))
+    await asUser(trainer.userId, async (tx) => {
+      const [p] = await rows(tx, `select name, weeks, athlete_id from public.plans where id = $1`, [templatePlan])
+      expect(p).toEqual({ name: 'Хвиля', weeks: 3, athlete_id: null })
+      const cells = await rows(tx, `select week, sets from public.plan_cells where plan_row_id = $1 order by week`, [t.squatRow])
+      expect(cells).toEqual([
+        { week: 1, sets: squatW1 },
+        { week: 2, sets: squatW2 },
+      ])
+    })
+    await asUser(client.userId, async (tx) => {
+      expect(await rows(tx, `select id from public.plans where id = $1`, [templatePlan])).toHaveLength(1)
+      expect(await rows(tx, `select week from public.plan_cells where plan_row_id = $1`, [t.squatRow])).toHaveLength(2)
+    })
+    await asUser(stranger.userId, async (tx) => {
+      expect(await rows(tx, `select id from public.plans where id = $1`, [templatePlan])).toEqual([])
+      expect(await rows(tx, `select week from public.plan_cells where plan_row_id = $1`, [t.squatRow])).toEqual([])
+    })
+  })
+
+  it('copies a template to a client and keeps one active plan per client', async () => {
+    const first = await asUser(trainer.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.copy_plan($1, $2) as id`, [templatePlan, client.athleteId])
+      return r.id
+    })
+    clientPlan = await save(trainer.userId, null, client.athleteId, days(c))
+    await asUser(trainer.userId, async (tx) => {
+      const plans = await rows(tx, `select id, archived_at is null as active, source_plan_id from public.plans where athlete_id = $1 order by created_at`, [
+        client.athleteId,
+      ])
+      expect(plans).toEqual([
+        { id: first, active: false, source_plan_id: templatePlan },
+        { id: clientPlan, active: true, source_plan_id: null },
+      ])
+      const [{ count }] = await rows<{ count: number }>(
+        tx,
+        `select count(*)::int as count from public.plan_cells pc
+         join public.plan_rows r on r.id = pc.plan_row_id join public.plan_days d on d.id = r.plan_day_id
+         where d.plan_id = $1`,
+        [first],
+      )
+      expect(count).toBe(3)
+    })
+  })
+
+  it("refuses ids from another plan and someone else's plan", async () => {
+    await expect(save(trainer.userId, null, client.athleteId, days(t))).rejects.toThrow(/another plan/)
+    await expect(save(client.userId, clientPlan, client.athleteId, days(c))).rejects.toThrow(/row-level security/)
+    await expect(save(stranger.userId, null, client.athleteId, days(makeIds()))).rejects.toThrow(/row-level security/)
+    await asUser(client.userId, async (tx) => {
+      const updated = await tx.query(`update public.plan_cells set sets = '[{"w":1,"r":1}]' where plan_row_id = $1`, [c.squatRow])
+      expect(updated.affectedRows).toBe(0)
+    })
+    await expect(
+      asUser(client.userId, (tx) => tx.query(`update public.plans set athlete_id = null where id = $1`, [clientPlan])),
+    ).rejects.toThrow(/permission denied/)
+    await asUser(stranger.userId, async (tx) => {
+      expect(await rows(tx, `select id from public.plans where id = $1`, [clientPlan])).toEqual([])
+    })
+  })
+
+  it('starts planned sets with warm-ups and moves on after the last finished slot', async () => {
+    const next = () =>
+      asUser(client.userId, async (tx) => rows(tx, `select week, plan_day_id from public.next_plan_slot($1)`, [clientPlan]))
+    const run = (week: number, day: string) =>
+      asUser(client.userId, async (tx) => {
+        const [r] = await rows<{ id: string }>(tx, `select public.start_workout_from_plan($1, $2, $3) as id`, [clientPlan, week, day])
+        await tx.query(
+          `update public.sets set completed_at = now()
+           where workout_exercise_id in (select id from public.workout_exercises where workout_id = $1)`,
+          [r.id],
+        )
+        await tx.query(`update public.workouts set finished_at = now() where id = $1`, [r.id])
+        return r.id
+      })
+
+    expect(await next()).toEqual([{ week: 1, plan_day_id: c.day1 }])
+    const w1 = await run(1, c.day1)
+    await asUser(client.userId, async (tx) => {
+      const [w] = await rows(tx, `select title, plan_id, plan_day_id, plan_week from public.workouts where id = $1`, [w1])
+      expect(w).toEqual({ title: '1 тренування', plan_id: clientPlan, plan_day_id: c.day1, plan_week: 1 })
+      const sets = await rows(
+        tx,
+        `select we.plan_row_id, s.weight_kg, s.reps, s.is_warmup from public.sets s
+         join public.workout_exercises we on we.id = s.workout_exercise_id
+         where we.workout_id = $1 order by we.position, s.position`,
+        [w1],
+      )
+      expect(sets).toEqual([
+        { plan_row_id: c.squatRow, weight_kg: '20.00', reps: 10, is_warmup: true },
+        { plan_row_id: c.squatRow, weight_kg: '80.00', reps: 8, is_warmup: false },
+        { plan_row_id: c.squatRow, weight_kg: '80.00', reps: 8, is_warmup: false },
+        { plan_row_id: c.squatRow, weight_kg: '80.00', reps: 8, is_warmup: false },
+        { plan_row_id: c.benchRow, weight_kg: '60.00', reps: 8, is_warmup: false },
+      ])
+    })
+    expect(await next()).toEqual([{ week: 1, plan_day_id: c.day2 }])
+
+    // day 2 of week 1 skipped: the plan still moves on
+    await run(2, c.day1)
+    expect(await next()).toEqual([{ week: 2, plan_day_id: c.day2 }])
+
+    // an empty cell repeats last time
+    const w3 = await run(2, c.day2)
+    await asUser(client.userId, async (tx) => {
+      const sets = await rows(
+        tx,
+        `select s.weight_kg, s.reps from public.sets s join public.workout_exercises we on we.id = s.workout_exercise_id
+         where we.workout_id = $1 order by s.position`,
+        [w3],
+      )
+      expect(sets).toEqual([{ weight_kg: '60.00', reps: 8 }])
+    })
+    expect(await next()).toEqual([{ week: 3, plan_day_id: c.day1 }])
+
+    await expect(
+      asUser(client.userId, (tx) => tx.query(`select public.start_workout_from_plan($1, 4, $2)`, [clientPlan, c.day1])),
+    ).rejects.toThrow(/week out of range/)
+    await expect(
+      asUser(stranger.userId, (tx) => tx.query(`select public.start_workout_from_plan($1, 1, $2)`, [clientPlan, c.day1])),
+    ).rejects.toThrow(/plan not found/)
+  })
+
+  it('keeps done workouts linked when the plan is edited', async () => {
+    await save(trainer.userId, clientPlan, client.athleteId, days(c, { squatW2: [{ w: 90, r: 5 }], swapDays: true, dropBench: true }))
+    await asUser(trainer.userId, async (tx) => {
+      const linked = await rows<{ plan_row_id: string | null; slug: string }>(
+        tx,
+        `select we.plan_row_id, e.slug from public.workout_exercises we
+         join public.workouts w on w.id = we.workout_id join public.exercises e on e.id = we.exercise_id
+         where w.plan_id = $1 and w.plan_week = 1 and w.plan_day_id = $2 order by we.position`,
+        [clientPlan, c.day1],
+      )
+      expect(linked).toEqual([
+        { plan_row_id: c.squatRow, slug: 'back_squat' },
+        { plan_row_id: null, slug: 'barbell_bench_press' }, // the row was removed
+      ])
+      const days = await rows(tx, `select id, position from public.plan_days where plan_id = $1 order by position`, [clientPlan])
+      expect(days).toEqual([
+        { id: c.day2, position: 0 },
+        { id: c.day1, position: 1 },
+      ])
+      const [cell] = await rows(tx, `select sets from public.plan_cells where plan_row_id = $1 and week = 2`, [c.squatRow])
+      expect(cell).toEqual({ sets: [{ w: 90, r: 5 }] })
+    })
+  })
+
+  it('builds a plan from templates', async () => {
+    const tplId = await asUser(trainer.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.save_template(null, 'Груди', null, $1::jsonb) as id`, [
+        JSON.stringify([
+          { exercise_id: benchId, target_sets: 2, target_reps_max: 10, target_weight_kg: 50 },
+          { exercise_id: squatId, sets: squatW1 },
+          { exercise_id: squatId, target_sets: 3, target_reps_max: 5 },
+        ]),
+      ])
+      return r.id
+    })
+    await asUser(trainer.userId, async (tx) => {
+      const [p] = await rows<{ id: string }>(tx, `select public.create_plan_from_templates(null, 'З шаблону', 2, $1::uuid[]) as id`, [
+        [tplId],
+      ])
+      const cells = await rows(
+        tx,
+        `select r.position, pc.week, pc.sets from public.plan_cells pc
+         join public.plan_rows r on r.id = pc.plan_row_id join public.plan_days d on d.id = r.plan_day_id
+         where d.plan_id = $1 order by r.position, pc.week`,
+        [p.id],
+      )
+      const benchSets = [{ w: 50, r: 10 }, { w: 50, r: 10 }]
+      expect(cells).toEqual([
+        { position: 0, week: 1, sets: benchSets },
+        { position: 0, week: 2, sets: benchSets },
+        { position: 1, week: 1, sets: squatW1 },
+        { position: 1, week: 2, sets: squatW1 },
+      ])
     })
   })
 })

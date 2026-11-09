@@ -26,6 +26,7 @@ const TrainerClientsPage = lazy(() => import('@/pages/TrainerClientsPage').then(
 const TemplateEditorPage = lazy(() =>
   import('@/features/templates/TemplateEditorPage').then((m) => ({ default: m.TemplateEditorPage })),
 )
+const PlanEditorPage = lazy(() => import('@/features/plans/PlanEditorPage').then((m) => ({ default: m.PlanEditorPage })))
 const ProgramEditorPage = lazy(() =>
   import('@/features/templates/ProgramEditorPage').then((m) => ({ default: m.ProgramEditorPage })),
 )
@@ -57,6 +58,7 @@ export default function App() {
                   <Route path="workout/:workoutId" element={<WorkoutPage />} />
                   <Route path="templates/:templateId" element={<TemplateEditorPage />} />
                   <Route path="programs/:programId" element={<ProgramEditorPage />} />
+                  <Route path="plans/:planId" element={<PlanEditorPage />} />
                   <Route element={<AppShell />}>
                     <Route index element={<HomePage />} />
                     <Route path="history" element={<HistoryPage />} />
