@@ -222,7 +222,13 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
             <ArrowLeft />
           </Button>
           <p className="truncate text-[15px] font-medium">
-            {athleteId ? t('plan.clientPlanTitle') : saved ? t('plan.templateTitle') : t('plan.newTemplateTitle')}
+            {athleteId && athleteId === myAthleteId
+              ? t('plan.myPlanTitle')
+              : athleteId
+                ? t('plan.clientPlanTitle')
+                : saved
+                  ? t('plan.templateTitle')
+                  : t('plan.newTemplateTitle')}
           </p>
           <div className="flex items-center">
             {readOnly ? (
@@ -391,15 +397,18 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
                               initial={row.cells[w]}
                               bodyweight={bodyweight(row.exerciseId)}
                               onCommit={(sets) => update((d) => setCell(d, row.id, w, sets))}
-                              onCancel={() => setInline(null)}
+                              onClose={() => setInline(null)}
                               onMove={(dir) => moveInline(row.id, w, dir)}
+                              onDetails={() => {
+                                setInline(null)
+                                setDrawer({ rowId: row.id, week: w })
+                              }}
                             />
                           ) : (
                             <button
                               type="button"
                               className="block w-full rounded-md px-1 py-0.5 text-left hover:bg-secondary/70"
                               onClick={() => (readOnly ? setDrawer({ rowId: row.id, week: w }) : setInline({ rowId: row.id, week: w }))}
-                              onDoubleClick={() => setDrawer({ rowId: row.id, week: w })}
                             >
                               <CellView
                                 planned={row.cells[w]}

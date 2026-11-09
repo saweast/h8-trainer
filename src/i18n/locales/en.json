@@ -614,7 +614,7 @@
     "noRows": "Add this session's exercises.",
     "moveUp": "Move up",
     "moveDown": "Move down",
-    "keyboardHint": "Click to edit. Enter moves down, Tab to the next week, Esc cancels. Double-click for details.",
+    "keyboardHint": "Click to edit. Enter moves down, Tab to the next week, Esc cancels. “Details” shows what was done, feedback, start.",
     "planned": "Plan",
     "done": "Done",
     "openWorkout": "Open workout",
@@ -627,7 +627,9 @@
     "finished": "plan finished",
     "start": "Start",
     "startSlot": "Start: wk {{n}} · {{day}}",
-    "openPlan": "Open plan"
+    "openPlan": "Open plan",
+    "details": "Details",
+    "myPlanTitle": "My plan"
   },
   "feedback": {
     "title": "Client feedback",

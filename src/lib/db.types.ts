@@ -954,6 +954,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "workout_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workout_exercises_feedback_by_fkey"
             columns: ["feedback_by"]
             isOneToOne: false
@@ -965,13 +972,6 @@ export type Database = {
             columns: ["plan_row_id"]
             isOneToOne: false
             referencedRelation: "plan_rows"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "workout_exercises_exercise_id_fkey"
-            columns: ["exercise_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
             referencedColumns: ["id"]
           },
           {
@@ -1044,20 +1044,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "workouts_plan_day_id_fkey"
-            columns: ["plan_day_id"]
-            isOneToOne: false
-            referencedRelation: "plan_days"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "workouts_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "workouts_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
@@ -1083,6 +1069,20 @@ export type Database = {
             columns: ["membership_id"]
             isOneToOne: false
             referencedRelation: "memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workouts_plan_day_id_fkey"
+            columns: ["plan_day_id"]
+            isOneToOne: false
+            referencedRelation: "plan_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workouts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
             referencedColumns: ["id"]
           },
           {
@@ -1304,7 +1304,12 @@ export type Database = {
         Returns: string
       }
       create_plan_from_templates: {
-        Args: { p_athlete: string; p_name: string; p_template_ids: string[]; p_weeks: number }
+        Args: {
+          p_athlete: string
+          p_name: string
+          p_template_ids: string[]
+          p_weeks: number
+        }
         Returns: string
       }
       exercise_records: {
@@ -1345,7 +1350,10 @@ export type Database = {
       }
       next_plan_slot: {
         Args: { p_plan: string }
-        Returns: { plan_day_id: string; week: number }[]
+        Returns: {
+          plan_day_id: string
+          week: number
+        }[]
       }
       next_program_template: {
         Args: { p_athlete: string; p_program: string }
@@ -1388,6 +1396,19 @@ export type Database = {
         }
         Returns: string
       }
+      trainer_clients_overview: {
+        Args: never
+        Returns: {
+          athlete_id: string
+          avatar_url: string
+          display_name: string
+          has_account: boolean
+          last_workout_at: string
+          last_workout_id: string
+          last_workout_title: string
+          linked_at: string
+        }[]
+      }
       trainer_feedback_feed: {
         Args: { p_limit?: number }
         Returns: {
@@ -1403,19 +1424,6 @@ export type Database = {
           plan_row_id: string
           week: number
           workout_id: string
-        }[]
-      }
-      trainer_clients_overview: {
-        Args: never
-        Returns: {
-          athlete_id: string
-          avatar_url: string
-          display_name: string
-          has_account: boolean
-          last_workout_at: string
-          last_workout_id: string
-          last_workout_title: string
-          linked_at: string
         }[]
       }
     }

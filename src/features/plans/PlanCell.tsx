@@ -1,5 +1,5 @@
-import { Check, ChevronDown, MessageSquare } from 'lucide-react'
-import { useState, type KeyboardEvent } from 'react'
+import { Check, ChevronDown, Maximize2, MessageSquare } from 'lucide-react'
+import { useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { currentLanguage } from '@/i18n'
 import { cellStatus, doneAsSpec, type CellStatus } from '@/lib/planGrid'
@@ -76,19 +76,29 @@ interface InlineEditorProps {
   initial: SpecSet[] | undefined
   bodyweight: boolean
   onCommit: (sets: SpecSet[]) => void
-  onCancel: () => void
+  /** Leave editing (Esc, click outside). */
+  onClose: () => void
   /** Move after committing: Enter → down, Tab → right, Shift+Tab → left. */
   onMove: (direction: 'down' | 'right' | 'left') => void
+  /** Open the cell drawer: what was done, feedback, comments, start. */
+  onDetails: () => void
 }
 
 /** Spreadsheet-like editing in place: type, Enter/Tab to commit and move on, Esc to cancel. */
-export function InlineCellEditor({ initial, bodyweight, onCommit, onCancel, onMove }: InlineEditorProps) {
+export function InlineCellEditor({ initial, bodyweight, onCommit, onClose, onMove, onDetails }: InlineEditorProps) {
   const { t } = useTranslation()
   const lang = currentLanguage()
   const [text, setText] = useState(() => (initial?.length ? formatSetSpec(initial, { bodyweight, locale: lang }) : ''))
   const parsed = parseSetSpec(text, { bodyweight })
   const invalid = parsed.warnings.find((w) => w.kind === 'invalid')
   const swapped = parsed.warnings.find((w) => w.kind === 'swapped')
+
+  // Set once the editor has been left by a key or button, so the following blur doesn't act again.
+  const left = useRef(false)
+  const leave = (fn: () => void) => {
+    left.current = true
+    fn()
+  }
 
   const commit = () => {
     if (invalid) return false
@@ -99,13 +109,13 @@ export function InlineCellEditor({ initial, bodyweight, onCommit, onCancel, onMo
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape') {
       e.preventDefault()
-      onCancel()
+      leave(onClose)
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (commit()) onMove('down')
+      if (commit()) leave(() => onMove('down'))
     } else if (e.key === 'Tab') {
       e.preventDefault()
-      if (commit()) onMove(e.shiftKey ? 'left' : 'right')
+      if (commit()) leave(() => onMove(e.shiftKey ? 'left' : 'right'))
     }
   }
 
@@ -120,7 +130,10 @@ export function InlineCellEditor({ initial, bodyweight, onCommit, onCancel, onMo
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKeyDown}
         onBlur={() => {
-          if (!commit()) onCancel()
+          if (left.current) return
+          // click outside: keep valid input, drop invalid
+          commit()
+          leave(onClose)
         }}
         aria-label={t('setSpec.label')}
         aria-invalid={Boolean(invalid)}
@@ -143,6 +156,19 @@ export function InlineCellEditor({ initial, bodyweight, onCommit, onCancel, onMo
           {t('setSpec.working')}: {formatSetSpec(work, { bodyweight, locale: lang })}
         </span>
       ) : null}
+      <button
+        type="button"
+        // keep focus in the input so blur doesn't close the editor first
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          commit()
+          leave(onDetails)
+        }}
+        className="flex items-center gap-1 self-start text-[11px] font-medium text-lime-text underline-offset-2 hover:underline dark:text-lime"
+      >
+        <Maximize2 className="size-3" aria-hidden />
+        {t('plan.details')}
+      </button>
     </span>
   )
 }
