@@ -254,6 +254,7 @@ function ExerciseCardContainer({
       onAddSet={() => actions.addSet(item.id)}
       onRemove={() => actions.removeExercise(item.id)}
       onSaveSetup={onSaveSetup}
+      onFeedback={(patch) => actions.setFeedback(item.id, patch)}
     />
   )
 }

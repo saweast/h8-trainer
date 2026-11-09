@@ -23,6 +23,7 @@ import { templateItemsFromWorkout, workoutMatchesTemplate } from '@/lib/template
 import { minutesBetween } from '@/lib/time'
 import { exercisesWithPr, workoutTotals } from '@/lib/workoutStats'
 import { useExerciseRecords, useWorkoutActions, type Workout } from './api'
+import { ExerciseFeedback } from './ExerciseFeedback'
 import { WorkoutComments } from './WorkoutComments'
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -158,6 +159,14 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
                   )
                 })}
               </ul>
+              {item.sets.some((s) => s.completedAt !== null) ? (
+                <ExerciseFeedback
+                  difficulty={item.difficulty}
+                  text={item.athleteFeedback}
+                  onChange={(patch) => actions.setFeedback(item.id, patch)}
+                  className="mt-3 border-t pt-3"
+                />
+              ) : null}
             </section>
           )
         })}

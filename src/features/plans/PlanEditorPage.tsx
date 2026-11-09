@@ -574,7 +574,7 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
         onStart={onStart}
       >
         {drawerTarget && saved ? (
-          <CellFeedbackThread planId={planId} rowId={drawerTarget.rowId} week={drawerTarget.week} fact={drawerTarget.fact} />
+          <CellFeedbackThread planId={planId} athleteId={athleteId} rowId={drawerTarget.rowId} week={drawerTarget.week} fact={drawerTarget.fact} />
         ) : null}
       </CellDrawer>
 

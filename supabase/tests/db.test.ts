@@ -108,6 +108,7 @@ describe('hardening', () => {
       'start_workout_from_plan',
       'start_workout_from_template',
       'trainer_clients_overview',
+      'trainer_feedback_feed',
     ])
   })
 
@@ -1009,6 +1010,102 @@ describe('plans', () => {
         { position: 1, week: 1, sets: squatW1 },
         { position: 1, week: 2, sets: squatW1 },
       ])
+    })
+  })
+})
+
+describe('client feedback', () => {
+  let client: { userId: string; athleteId: string }
+  let outsider: { userId: string; athleteId: string }
+  let planId: string
+  const dayId = crypto.randomUUID()
+  const rowId = crypto.randomUUID()
+  let workoutId: string
+  let weId: string
+
+  beforeAll(async () => {
+    client = await createUser('Feedbackclient')
+    outsider = await createUser('Outsider')
+    await db.query(`insert into public.trainer_athletes (trainer_id, athlete_id) values ($1, $2)`, [trainer.userId, client.athleteId])
+    planId = await asUser(trainer.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.save_plan(null, $1, 'Відгуки', null, 2, $2::jsonb) as id`, [
+        client.athleteId,
+        JSON.stringify([
+          { id: dayId, name: 'День', rows: [{ id: rowId, exercise_id: benchId, cells: [{ week: 1, sets: [{ w: 60, r: 8 }] }] }] },
+        ]),
+      ])
+      return r.id
+    })
+    workoutId = await asUser(client.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.start_workout_from_plan($1, 1, $2) as id`, [planId, dayId])
+      return r.id
+    })
+    const [we] = await rows<{ id: string }>(db, `select id from public.workout_exercises where workout_id = $1`, [workoutId])
+    weId = we.id
+  })
+
+  it('stamps exercise feedback on the server', async () => {
+    await asUser(client.userId, async (tx) => {
+      await tx.query(`update public.workout_exercises set difficulty = 3, athlete_feedback = 'важко на 3-му' where id = $1`, [weId])
+      const [we] = await rows<{ feedback_by: string; stamped: boolean }>(
+        tx,
+        `select feedback_by, feedback_at is not null as stamped from public.workout_exercises where id = $1`,
+        [weId],
+      )
+      expect(we).toEqual({ feedback_by: client.userId, stamped: true })
+    })
+    await expect(
+      asUser(client.userId, (tx) => tx.query(`update public.workout_exercises set feedback_at = now() - interval '1 year' where id = $1`, [weId])),
+    ).rejects.toThrow(/permission denied/)
+    await expect(
+      asUser(client.userId, (tx) => tx.query(`update public.workout_exercises set difficulty = 5 where id = $1`, [weId])),
+    ).rejects.toThrow(/check/)
+  })
+
+  it('lets the client and trainer discuss a plan cell, nobody else', async () => {
+    await asUser(client.userId, (tx) =>
+      tx.query(`insert into public.plan_comments (plan_id, plan_row_id, week, body) values ($1, $2, 1, 'болить плече')`, [planId, rowId]),
+    )
+    await asUser(trainer.userId, (tx) =>
+      tx.query(`insert into public.plan_comments (plan_id, plan_row_id, week, body) values ($1, $2, 1, 'заміню на гантелі')`, [planId, rowId]),
+    )
+    await asUser(client.userId, async (tx) => {
+      const list = await rows(tx, `select body from public.plan_comments where plan_id = $1 order by created_at`, [planId])
+      expect(list).toEqual([{ body: 'болить плече' }, { body: 'заміню на гантелі' }])
+    })
+    await expect(
+      asUser(outsider.userId, (tx) => tx.query(`insert into public.plan_comments (plan_id, body) values ($1, 'x')`, [planId])),
+    ).rejects.toThrow(/row-level security/)
+    await asUser(outsider.userId, async (tx) => {
+      expect(await rows(tx, `select id from public.plan_comments where plan_id = $1`, [planId])).toEqual([])
+    })
+    // a row from another plan can't be attached
+    await expect(
+      asUser(client.userId, (tx) =>
+        tx.query(`insert into public.plan_comments (plan_id, plan_row_id, body) values ($1, gen_random_uuid(), 'x')`, [planId]),
+      ),
+    ).rejects.toThrow()
+  })
+
+  it("shows the trainer their clients' feedback, not their own or anyone else's", async () => {
+    await asUser(client.userId, (tx) =>
+      tx.query(`insert into public.workout_comments (workout_id, author_id, body) values ($1, $2, 'дякую')`, [workoutId, client.userId]),
+    )
+    await asUser(trainer.userId, async (tx) => {
+      const feed = await rows<{ kind: string; athlete_name: string; body: string; difficulty: number | null; plan_row_id: string | null }>(
+        tx,
+        `select kind, athlete_name, body, difficulty, plan_row_id from public.trainer_feedback_feed() where athlete_id = $1`,
+        [client.athleteId],
+      )
+      expect(feed).toEqual([
+        { kind: 'workout', athlete_name: 'Feedbackclient', body: 'дякую', difficulty: null, plan_row_id: null },
+        { kind: 'plan', athlete_name: 'Feedbackclient', body: 'болить плече', difficulty: null, plan_row_id: rowId },
+        { kind: 'exercise', athlete_name: 'Feedbackclient', body: 'важко на 3-му', difficulty: 3, plan_row_id: rowId },
+      ])
+      await tx.query(`update public.profiles set feedback_seen_at = now() where id = $1`, [trainer.userId])
+    })
+    await asUser(outsider.userId, async (tx) => {
+      expect(await rows(tx, `select * from public.trainer_feedback_feed()`)).toEqual([])
     })
   })
 })

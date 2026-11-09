@@ -409,6 +409,58 @@ export type Database = {
           },
         ]
       }
+      plan_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          plan_id: string
+          plan_row_id: string | null
+          week: number | null
+        }
+        Insert: {
+          author_id?: string
+          body: string
+          created_at?: string
+          id?: string
+          plan_id: string
+          plan_row_id?: string | null
+          week?: number | null
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          plan_id?: string
+          plan_row_id?: string | null
+          week?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_comments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_comments_plan_row_id_fkey"
+            columns: ["plan_row_id"]
+            isOneToOne: false
+            referencedRelation: "plan_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_days: {
         Row: {
           id: string
@@ -547,6 +599,7 @@ export type Database = {
           can_be_trainer: boolean
           created_at: string
           display_name: string
+          feedback_seen_at: string | null
           id: string
           is_admin: boolean
           is_trainer: boolean
@@ -558,6 +611,7 @@ export type Database = {
           can_be_trainer?: boolean
           created_at?: string
           display_name?: string
+          feedback_seen_at?: string | null
           id: string
           is_admin?: boolean
           is_trainer?: boolean
@@ -569,6 +623,7 @@ export type Database = {
           can_be_trainer?: boolean
           created_at?: string
           display_name?: string
+          feedback_seen_at?: string | null
           id?: string
           is_admin?: boolean
           is_trainer?: boolean
@@ -862,7 +917,11 @@ export type Database = {
       }
       workout_exercises: {
         Row: {
+          athlete_feedback: string | null
+          difficulty: number | null
           exercise_id: string
+          feedback_at: string | null
+          feedback_by: string | null
           id: string
           notes: string | null
           plan_row_id: string | null
@@ -870,7 +929,11 @@ export type Database = {
           workout_id: string
         }
         Insert: {
+          athlete_feedback?: string | null
+          difficulty?: number | null
           exercise_id: string
+          feedback_at?: string | null
+          feedback_by?: string | null
           id?: string
           notes?: string | null
           plan_row_id?: string | null
@@ -878,7 +941,11 @@ export type Database = {
           workout_id: string
         }
         Update: {
+          athlete_feedback?: string | null
+          difficulty?: number | null
           exercise_id?: string
+          feedback_at?: string | null
+          feedback_by?: string | null
           id?: string
           notes?: string | null
           plan_row_id?: string | null
@@ -886,6 +953,13 @@ export type Database = {
           workout_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workout_exercises_feedback_by_fkey"
+            columns: ["feedback_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workout_exercises_plan_row_id_fkey"
             columns: ["plan_row_id"]
@@ -1313,6 +1387,23 @@ export type Database = {
           p_template: string
         }
         Returns: string
+      }
+      trainer_feedback_feed: {
+        Args: { p_limit?: number }
+        Returns: {
+          athlete_id: string
+          athlete_name: string
+          author_name: string
+          body: string
+          created_at: string
+          difficulty: number
+          exercise_id: string
+          kind: string
+          plan_id: string
+          plan_row_id: string
+          week: number
+          workout_id: string
+        }[]
       }
       trainer_clients_overview: {
         Args: never

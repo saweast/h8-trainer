@@ -654,5 +654,27 @@
     "start": "Почати",
     "startSlot": "Почати: тиж {{n}} · {{day}}",
     "openPlan": "Відкрити план"
+  },
+  "feedback": {
+    "title": "Відгуки клієнтів",
+    "newTitle_one": "{{count}} новий відгук",
+    "newTitle_few": "{{count}} нові відгуки",
+    "newTitle_many": "{{count}} нових відгуків",
+    "newTitle_other": "{{count}} нового відгуку",
+    "markSeen": "Прочитано",
+    "showAll": "Усі відгуки",
+    "onWorkout": "коментар до тренування",
+    "onPlan": "коментар до плану",
+    "howWasIt": "Як пішло?",
+    "level1": "Легко",
+    "level2": "Норм",
+    "level3": "Важко",
+    "addNote": "+ коментар",
+    "notePlaceholder": "Що відчув, що не так — побачить тренер",
+    "fromClient": "Відгук клієнта",
+    "cellPlaceholder": "Питання чи відгук до цієї вправи",
+    "planPlaceholder": "Коментар до плану загалом",
+    "planTitle": "Обговорення плану",
+    "latestInCells": "Останнє у клітинках"
   }
 }

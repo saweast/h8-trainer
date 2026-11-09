@@ -628,5 +628,25 @@
     "start": "Start",
     "startSlot": "Start: wk {{n}} · {{day}}",
     "openPlan": "Open plan"
+  },
+  "feedback": {
+    "title": "Client feedback",
+    "newTitle_one": "{{count}} new feedback",
+    "newTitle_other": "{{count}} new feedback",
+    "markSeen": "Mark read",
+    "showAll": "All feedback",
+    "onWorkout": "workout comment",
+    "onPlan": "plan comment",
+    "howWasIt": "How was it?",
+    "level1": "Easy",
+    "level2": "OK",
+    "level3": "Hard",
+    "addNote": "+ note",
+    "notePlaceholder": "How it felt, what was off — your trainer will see it",
+    "fromClient": "Client feedback",
+    "cellPlaceholder": "A question or feedback on this exercise",
+    "planPlaceholder": "A comment on the plan as a whole",
+    "planTitle": "Plan discussion",
+    "latestInCells": "Latest in cells"
   }
 }

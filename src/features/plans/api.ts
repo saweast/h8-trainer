@@ -28,6 +28,18 @@ export interface PlanFact {
   workoutExerciseId: string
   finishedAt: string | null
   sets: DoneSet[]
+  difficulty: number | null
+  athleteFeedback: string | null
+}
+
+export interface PlanComment {
+  id: string
+  rowId: string | null
+  week: number | null
+  authorId: string
+  authorName: string
+  body: string
+  createdAt: string
 }
 
 export const plansKey = ['plans'] as const
@@ -148,7 +160,7 @@ export function usePlanFacts(planId: string | undefined, athleteId: string | nul
         .from('workouts')
         .select(
           `id, plan_week, started_at, finished_at,
-           workout_exercises (id, plan_row_id, sets (position, weight_kg, reps, is_warmup, completed_at))`,
+           workout_exercises (id, plan_row_id, difficulty, athlete_feedback, sets (position, weight_kg, reps, is_warmup, completed_at))`,
         )
         .eq('plan_id', planId!)
         .eq('athlete_id', athleteId!)
@@ -163,6 +175,8 @@ export function usePlanFacts(planId: string | undefined, athleteId: string | nul
             workoutId: w.id,
             workoutExerciseId: we.id,
             finishedAt: w.finished_at,
+            difficulty: we.difficulty,
+            athleteFeedback: we.athlete_feedback,
             sets: [...we.sets]
               .sort((a, b) => a.position - b.position)
               .map((s) => ({
@@ -297,5 +311,57 @@ export function useStartFromPlan(athleteId: string | undefined) {
       void queryClient.invalidateQueries({ queryKey: factsKey(input.planId) })
       void queryClient.invalidateQueries({ queryKey: nextSlotKey(input.planId) })
     },
+  })
+}
+
+// Comments ----------------------------------------------------------------------------------
+
+const commentsKey = (planId: string) => ['plan-comments', planId] as const
+
+export function usePlanComments(planId: string | undefined) {
+  return useQuery({
+    queryKey: commentsKey(planId ?? ''),
+    enabled: Boolean(supabase && planId),
+    queryFn: async (): Promise<PlanComment[]> => {
+      const { data, error } = await supabase!
+        .from('plan_comments')
+        .select('id, plan_row_id, week, author_id, body, created_at, profiles (display_name)')
+        .eq('plan_id', planId!)
+        .order('created_at')
+      if (error) throw error
+      return data.map((c) => ({
+        id: c.id,
+        rowId: c.plan_row_id,
+        week: c.week,
+        authorId: c.author_id,
+        authorName: c.profiles?.display_name ?? '',
+        body: c.body,
+        createdAt: c.created_at,
+      }))
+    },
+  })
+}
+
+export function useAddPlanComment(planId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { rowId: string | null; week: number | null; body: string }) => {
+      const { error } = await supabase!
+        .from('plan_comments')
+        .insert({ plan_id: planId, plan_row_id: input.rowId, week: input.week, body: input.body.trim() })
+      if (error) throw error
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: commentsKey(planId) }),
+  })
+}
+
+export function useDeletePlanComment(planId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase!.from('plan_comments').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: commentsKey(planId) }),
   })
 }

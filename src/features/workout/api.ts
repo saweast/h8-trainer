@@ -21,7 +21,15 @@ export interface WorkoutExercise {
   exerciseId: string
   position: number
   notes: string | null
+  /** Client feedback: 1 easy · 2 ok · 3 hard. */
+  difficulty: number | null
+  athleteFeedback: string | null
   sets: WorkoutSet[]
+}
+
+export interface ExerciseFeedbackPatch {
+  difficulty?: number | null
+  athleteFeedback?: string | null
 }
 
 export interface Workout {
@@ -79,7 +87,7 @@ export function useWorkout(id: string | undefined) {
         .from('workouts')
         .select(
           `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by,
-           workout_exercises (id, exercise_id, position, notes,
+           workout_exercises (id, exercise_id, position, notes, difficulty, athlete_feedback,
              sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, completed_at))`,
         )
         .eq('id', id!)
@@ -102,6 +110,8 @@ export function useWorkout(id: string | undefined) {
             exerciseId: we.exercise_id,
             position: we.position,
             notes: we.notes,
+            difficulty: we.difficulty,
+            athleteFeedback: we.athlete_feedback,
             sets: we.sets
               .map((s) => ({
                 id: s.id,
@@ -328,6 +338,18 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
+  const patchExercise = useMutation({
+    scope,
+    onError,
+    mutationFn: async ({ id, patch }: { id: string; patch: ExerciseFeedbackPatch }) => {
+      const row: TablesUpdate<'workout_exercises'> = {}
+      if (patch.difficulty !== undefined) row.difficulty = patch.difficulty
+      if (patch.athleteFeedback !== undefined) row.athlete_feedback = patch.athleteFeedback?.trim() || null
+      const { error } = await supabase!.from('workout_exercises').update(row).eq('id', id)
+      if (error) throw error
+    },
+  })
+
   const deleteSet = useMutation({
     scope,
     onError,
@@ -346,6 +368,8 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       exerciseId,
       position,
       notes: null,
+      difficulty: null,
+      athleteFeedback: null,
       sets: planned.map((p) => ({
         id: newId(),
         workoutExerciseId: weId,
@@ -390,6 +414,15 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
   const updateSet = (setId: string, patch: SetPatch) => {
     updateCached(queryClient, workoutId, (old) => mapSets(old, (s) => (s.id === setId ? { ...s, ...patch } : s)))
     patchSet.mutate({ setId, patch })
+  }
+
+  const setFeedback = (workoutExerciseId: string, patch: ExerciseFeedbackPatch) => {
+    updateCached(queryClient, workoutId, (old) => ({
+      ...old,
+      exercises: old.exercises.map((e) => (e.id === workoutExerciseId ? { ...e, ...patch } : e)),
+    }))
+    patchExercise.mutate({ id: workoutExerciseId, patch })
+    void queryClient.invalidateQueries({ queryKey: ['plan-facts'] })
   }
 
   const removeSet = (setId: string) => {
@@ -457,5 +490,5 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
-  return { addExercise, removeExercise, addSet, updateSet, removeSet, finish, discard }
+  return { addExercise, removeExercise, addSet, updateSet, removeSet, setFeedback, finish, discard }
 }
