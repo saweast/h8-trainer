@@ -1,3 +1,4 @@
+import type { SpecSet } from './setSpec'
 import { isWorkingDone, type StatSet } from './workoutStats'
 
 export interface TemplateItemInput {
@@ -8,6 +9,8 @@ export interface TemplateItemInput {
   targetWeightKg: number | null
   restS: number | null
   notes: string | null
+  /** Exact planned sets (warm-ups included); overrides the uniform targets when present. */
+  sets?: SpecSet[] | null
 }
 
 interface WorkoutExerciseLike {

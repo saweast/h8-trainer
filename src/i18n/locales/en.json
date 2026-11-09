@@ -546,5 +546,18 @@
     "adductors": "Adductors",
     "abductors": "Abductors",
     "calves": "Calves"
+  },
+  "setSpec": {
+    "label": "Sets",
+    "hint": "Spreadsheet style: weight x reps x sets. E.g. 20x10, 50x5, 80x8x3",
+    "hintBodyweight": "Reps x sets. E.g. 12x4 or 10(band), 8x3",
+    "warmup": "Warm-up",
+    "working": "Working",
+    "toggleHint": "Tap a set to switch warm-up / working",
+    "volume": "working volume {{kg}} kg",
+    "invalid": "Couldn't read “{{token}}”",
+    "swapped": "“{{token}}” is a lot of sets. Did you mean",
+    "tooMany": "Too many sets: 30 at most",
+    "orSimple": "Or simply: identical sets"
   }
 }

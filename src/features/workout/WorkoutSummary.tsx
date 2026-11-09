@@ -63,7 +63,7 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
     if (!ownTemplate) return
     const items = templateItemsFromWorkout(workout.exercises).map((item) => {
       const old = ownTemplate.items.find((i) => i.exerciseId === item.exerciseId)
-      return old ? { ...item, targetWeightKg: old.targetWeightKg, restS: old.restS, notes: old.notes } : item
+      return old ? { ...item, targetWeightKg: old.targetWeightKg, restS: old.restS, notes: old.notes, sets: old.sets } : item
     })
     saveTemplate.mutate(
       { id: ownTemplate.id, name: ownTemplate.name, notes: ownTemplate.notes, items },

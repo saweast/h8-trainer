@@ -538,6 +538,7 @@ export type Database = {
           notes: string | null
           position: number
           rest_s: number | null
+          sets: Json | null
           target_reps_max: number | null
           target_reps_min: number | null
           target_sets: number
@@ -550,6 +551,7 @@ export type Database = {
           notes?: string | null
           position: number
           rest_s?: number | null
+          sets?: Json | null
           target_reps_max?: number | null
           target_reps_min?: number | null
           target_sets?: number
@@ -562,6 +564,7 @@ export type Database = {
           notes?: string | null
           position?: number
           rest_s?: number | null
+          sets?: Json | null
           target_reps_max?: number | null
           target_reps_min?: number | null
           target_sets?: number

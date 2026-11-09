@@ -442,6 +442,57 @@ describe('templates and programs', () => {
     })
   })
 
+  it('starts exact planned sets with warm-ups, ignoring last time', async () => {
+    const plan = [
+      { w: 20, r: 10, warmup: true },
+      { w: 50, r: 5, warmup: true, note: 'повільно' },
+      { w: 82.5, r: 8 },
+      { w: 82.5, r: 8 },
+      { w: 82.5, r: 8 },
+    ]
+    const tplId = await asUser(anna.userId, async (tx) => {
+      const [r] = await rows<{ id: string }>(tx, `select public.save_template(null, 'Хвиля', null, $1::jsonb) as id`, [
+        items({ exercise_id: benchId, target_sets: 1, target_reps_max: 1, sets: plan }),
+      ])
+      return r.id
+    })
+    await asUser(anna.userId, async (tx) => {
+      const [te] = await rows(tx, `select target_sets, sets from public.template_exercises where template_id = $1`, [tplId])
+      expect(te).toEqual({ target_sets: 3, sets: plan })
+      const [w] = await rows<{ id: string }>(tx, `select public.start_workout_from_template($1, $2) as id`, [
+        anna.athleteId,
+        tplId,
+      ])
+      const sets = await rows(
+        tx,
+        `select s.position, s.weight_kg, s.reps, s.is_warmup from public.sets s
+         join public.workout_exercises we on we.id = s.workout_exercise_id
+         where we.workout_id = $1 order by s.position`,
+        [w.id],
+      )
+      expect(sets).toEqual([
+        { position: 1, weight_kg: '20.00', reps: 10, is_warmup: true },
+        { position: 2, weight_kg: '50.00', reps: 5, is_warmup: true },
+        { position: 3, weight_kg: '82.50', reps: 8, is_warmup: false },
+        { position: 4, weight_kg: '82.50', reps: 8, is_warmup: false },
+        { position: 5, weight_kg: '82.50', reps: 8, is_warmup: false },
+      ])
+      const [we] = await rows(tx, `select notes from public.workout_exercises where workout_id = $1`, [w.id])
+      expect(we).toEqual({ notes: 'повільно' })
+      await tx.query(`delete from public.workouts where id = $1`, [w.id])
+    })
+  })
+
+  it('rejects malformed planned sets', async () => {
+    for (const bad of [[], [{ w: 20 }], [{ w: 20, r: 0 }], [{ w: 2000, r: 5 }], [{ w: 20, r: 5.5 }], [{ w: '20', r: 5 }]]) {
+      await expect(
+        asUser(anna.userId, (tx) =>
+          tx.query(`select public.save_template(null, 'x', null, $1::jsonb)`, [items({ exercise_id: benchId, sets: bad })]),
+        ),
+      ).rejects.toThrow(/template_exercises_sets_valid/)
+    }
+  })
+
   it('cycles through program days and tracks template usage', async () => {
     templateB = await asUser(anna.userId, async (tx) => {
       const [r] = await rows<{ id: string }>(tx, `select public.save_template(null, 'Ноги B', null, $1::jsonb) as id`, [
