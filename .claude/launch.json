@@ -29,6 +29,21 @@
         "--strictPort"
       ],
       "port": 5174
+    },
+    {
+      "name": "h8-trainer-local",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--mode",
+        "demo",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
     }
   ]
 }
