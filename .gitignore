@@ -29,3 +29,6 @@ dist-ssr
 !.env.example
 supabase/.temp
 supabase/.branches
+
+# Demo recordings (scripts/demo): build, raw output, videos, guide
+/demo/

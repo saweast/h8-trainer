@@ -64,6 +64,23 @@ where id = (select id from auth.users where email = '<email>');
 Каталог вправ: `src/data/exercise-catalog.json` — єдине джерело (назви uk/en у застосунку + seed у БД).
 Після зміни запусти `npm run gen:seed`.
 
+## Демо-відео флов
+
+`scripts/demo/` записує відео кожного сценарію (звичайне тренування, заняття тренера з клієнтом,
+шаблони й план по тижнях, відгуки, запрошення, пакети…) на **локальній** копії бази з демо-акаунтами —
+прод не чіпається. Потрібен запущений Docker Desktop.
+
+```bash
+npm run demo:up                 # локальний Supabase + .env.demo.local
+npm run demo:record             # усі флови: reset БД → seed → запис → demo/videos/*.mp4
+npm run demo:record -- 05 07    # лише флови, чиї id містять 05 або 07
+npm run demo:guide              # сторінка-гайд demo/guide/index.html з відео й скрінами кроків
+```
+
+Кожен флов — файл у `scripts/demo/flows/` з кроками «підпис + дія»; підписи малюються під екраном
+телефона, тапи підсвічуються. Демо-персонажі та їхня історія — у `scripts/demo/seed.mjs`.
+Під час запису Chromium відкривається у вікні за межами екрана (headless пише відео лише в 1×).
+
 ## Деплой
 
 `.github/workflows/deploy.yml` на кожен push у `main`: lint → test → build → GitHub Pages.
