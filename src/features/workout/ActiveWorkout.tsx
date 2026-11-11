@@ -1,6 +1,6 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, Dumbbell, Plus, UserStar } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useIsMutating, useQueryClient } from '@tanstack/react-query'
+import { ChevronDown, Dumbbell, Eye, Plus, UserStar } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
@@ -16,12 +16,14 @@ import {
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { useTemplate } from '@/features/templates/api'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
+import { useAuth } from '@/features/auth/authContext'
 import { useAthlete } from '@/features/trainer/api'
 import type { ExerciseRecords } from '@/lib/records'
 import { prefillSets } from '@/lib/templatePrefill'
 import { autoTitle } from '@/lib/workoutStats'
 import {
   fetchLastPerformance,
+  pendingWrites,
   useExerciseRecords,
   useLastPerformance,
   useWorkoutActions,
@@ -54,11 +56,17 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
   const { data: myAthleteId } = useMyAthleteId()
   const forSomeoneElse = myAthleteId !== undefined && workout.athleteId !== myAthleteId
   const { data: client } = useAthlete(forSomeoneElse ? workout.athleteId : undefined)
+  const { user } = useAuth()
+  // Someone else started this session (the trainer, for the client — or the other way round):
+  // they record and finish it; here it is a live view, with exercise feedback still allowed.
+  const liveView = Boolean(user && workout.createdBy && workout.createdBy !== user.id)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [finishOpen, setFinishOpen] = useState(false)
   const celebrated = useRef(new Set<string>())
+  const saving = useIsMutating({ predicate: (m) => m.options.scope?.id === `workout:${workout.id}` }) > 0
 
   useWakeLock(true)
+  useFlushOnLeave(workout.id)
 
   const addExercise = async (exercise: Exercise) => {
     let previous = [] as Awaited<ReturnType<typeof fetchLastPerformance>>
@@ -106,13 +114,20 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
         })),
         (m) => t(`muscle.${m}`),
       )
+    // Commit a weight/reps field still being edited before the finish joins the queue.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
     actions.finish.mutate(
       { title },
       {
-        onSuccess: () => {
+        onSuccess: ({ savedSets, doneHere }) => {
           rest.stop()
           setFinishOpen(false)
           window.scrollTo({ top: 0 })
+          if (savedSets < doneHere) toast.warning(t('workout.savedPartly', { saved: savedSets, total: doneHere }))
+          else toast.success(t('workout.saved', { count: savedSets }))
+        },
+        onError: (error) => {
+          if ((error as { code?: string }).code === '22023') toast.error(t('workout.nothingSaved'))
         },
       },
     )
@@ -138,15 +153,31 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
           </Button>
           <div className="min-w-0 text-center">
             <ElapsedClock since={workout.startedAt} className="tabular block text-base font-medium" />
-            <p className="truncate text-xs text-muted-foreground">{workout.title || t('workout.untitled')}</p>
+            <p className="truncate text-xs text-muted-foreground" aria-live="polite">
+              {saving ? t('workout.saving') : workout.title || t('workout.untitled')}
+            </p>
           </div>
-          <Button size="touch" variant={doneSets > 0 ? 'default' : 'secondary'} onClick={() => setFinishOpen(true)}>
-            {t('workout.finish')}
-          </Button>
+          {liveView ? (
+            <span className="flex h-11 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-muted-foreground">
+              <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden />
+              {t('workout.live')}
+            </span>
+          ) : (
+            <Button size="touch" variant={doneSets > 0 ? 'default' : 'secondary'} onClick={() => setFinishOpen(true)}>
+              {t('workout.finish')}
+            </Button>
+          )}
         </div>
       </header>
 
-      {forSomeoneElse ? (
+      {liveView ? (
+        <div className="mx-auto max-w-md px-4 pt-3">
+          <p className="flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
+            <Eye className="size-4 shrink-0" aria-hidden />
+            <span>{forSomeoneElse ? t('workout.liveViewClient') : t('workout.liveViewTrainer')}</span>
+          </p>
+        </div>
+      ) : forSomeoneElse ? (
         <div className="mx-auto max-w-md px-4 pt-3">
           <p className="flex items-center gap-2 rounded-xl bg-trainer-muted px-3 py-2 text-xs text-trainer-text">
             <UserStar className="size-4 shrink-0" aria-hidden />
@@ -163,11 +194,17 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
         style={{ paddingBottom: rest.running || rest.justFinished ? '9rem' : '2rem' }}
       >
         {workout.exercises.length === 0 ? (
-          <EmptyState icon={Dumbbell} title={t('workout.emptyTitle')} body={t('workout.emptyBody')}>
-            <Button size="xl" onClick={() => setPickerOpen(true)}>
-              <Plus aria-hidden />
-              {t('workout.addExercise')}
-            </Button>
+          <EmptyState
+            icon={Dumbbell}
+            title={t('workout.emptyTitle')}
+            body={liveView ? t('workout.liveEmptyBody') : t('workout.emptyBody')}
+          >
+            {liveView ? null : (
+              <Button size="xl" onClick={() => setPickerOpen(true)}>
+                <Plus aria-hidden />
+                {t('workout.addExercise')}
+              </Button>
+            )}
           </EmptyState>
         ) : (
           <>
@@ -180,6 +217,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
                 records={records?.get(item.exerciseId) ?? null}
                 setupNotes={settings?.get(item.exerciseId)?.setupNotes ?? null}
                 actions={actions}
+                readOnly={liveView}
                 onSetCompleted={(_set, isPr) => onSetCompleted(item, isPr)}
                 onSaveSetup={(notes) =>
                   saveSettings.mutate({
@@ -190,10 +228,12 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
                 }
               />
             ))}
-            <Button variant="secondary" size="xl" onClick={() => setPickerOpen(true)}>
-              <Plus aria-hidden />
-              {t('workout.addExercise')}
-            </Button>
+            {liveView ? null : (
+              <Button variant="secondary" size="xl" onClick={() => setPickerOpen(true)}>
+                <Plus aria-hidden />
+                {t('workout.addExercise')}
+              </Button>
+            )}
           </>
         )}
       </main>
@@ -218,6 +258,37 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
   )
 }
 
+/**
+ * Leaving the page must not lose the last change: a field still being typed in is committed when
+ * the tab is hidden, and closing the tab asks first while changes are still on their way.
+ */
+function useFlushOnLeave(workoutId: string) {
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    const flush = () => {
+      if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
+    }
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      flush()
+      if (pendingWrites(queryClient, workoutId) > 0) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    document.addEventListener('visibilitychange', onHidden)
+    window.addEventListener('pagehide', flush)
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden)
+      window.removeEventListener('pagehide', flush)
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
+  }, [queryClient, workoutId])
+}
+
 interface ContainerProps {
   workout: Workout
   item: WorkoutExercise
@@ -225,6 +296,7 @@ interface ContainerProps {
   records: ExerciseRecords | null
   setupNotes: string | null
   actions: Actions
+  readOnly: boolean
   onSetCompleted: (set: WorkoutSet, isPr: boolean) => void
   onSaveSetup: (notes: string) => void
 }
@@ -237,6 +309,7 @@ function ExerciseCardContainer({
   records,
   setupNotes,
   actions,
+  readOnly,
   onSetCompleted,
   onSaveSetup,
 }: ContainerProps) {
@@ -248,6 +321,7 @@ function ExerciseCardContainer({
       lastTime={lastTime ?? []}
       records={records}
       setupNotes={setupNotes}
+      readOnly={readOnly}
       onSetChange={(setId, patch) => actions.updateSet(setId, patch)}
       onSetCompleted={onSetCompleted}
       onSetDelete={(setId) => actions.removeSet(setId)}

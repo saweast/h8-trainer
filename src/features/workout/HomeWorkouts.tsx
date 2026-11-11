@@ -1,21 +1,29 @@
-import { Dumbbell, Play } from 'lucide-react'
+import { Dumbbell, Eye, Play } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useActiveWorkout, useRecentWorkouts } from './api'
+import { useAuth } from '@/features/auth/authContext'
+import { useActiveWorkout, useRecentWorkouts, type ActiveWorkoutInfo } from './api'
 import { ElapsedClock } from './ElapsedClock'
 import { StartWorkoutDrawer } from './StartWorkoutDrawer'
 import { WorkoutList } from './WorkoutList'
 
 /** Start button, or a "resume" card when a workout is already in progress. */
 export function StartOrResume({ athleteId }: { athleteId: string | undefined }) {
-  const { t } = useTranslation()
   const { data: active, isPending } = useActiveWorkout(athleteId)
 
   if (athleteId && isPending) return <Skeleton className="h-12 rounded-xl" />
   if (!active) return <StartWorkoutDrawer athleteId={athleteId} />
+  return <ResumeCard active={active} />
+}
+
+/** "Workout in progress" with a way back into it (also on the trainer's client card). */
+export function ResumeCard({ active }: { active: ActiveWorkoutInfo }) {
+  const { t } = useTranslation()
+  const { user } = useAuth()
+  const byOther = Boolean(user && active.createdBy && active.createdBy !== user.id)
 
   return (
     <div className="rounded-2xl border-[1.5px] border-primary bg-lime-muted p-4">
@@ -26,8 +34,8 @@ export function StartOrResume({ athleteId }: { athleteId: string | undefined }) 
       {active.title ? <p className="mt-0.5 text-xs text-muted-foreground">{active.title}</p> : null}
       <Button asChild size="xl" className="mt-3 w-full">
         <Link to={`/workout/${active.id}`}>
-          <Play aria-hidden />
-          {t('workout.resume')}
+          {byOther ? <Eye aria-hidden /> : <Play aria-hidden />}
+          {byOther ? t('workout.watch') : t('workout.resume')}
         </Link>
       </Button>
     </div>

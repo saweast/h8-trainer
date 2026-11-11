@@ -1,5 +1,5 @@
 import { Check, Trophy } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
@@ -62,6 +62,15 @@ export function SetRow({ set, label, last, isPr, readOnly = false, onChange, onC
     if (Number.isFinite(p.reps) && p.reps !== set.reps) patch.reps = p.reps
     if (Object.keys(patch).length) onChange(patch)
   }
+
+  // Save while typing too (after a short pause), not only on blur: a closed tab or a locked phone
+  // shouldn't lose a weight that was typed but never left.
+  const commitLater = useEffectEvent(() => commit())
+  useEffect(() => {
+    if (readOnly || (weightDraft === null && repsDraft === null)) return
+    const timer = window.setTimeout(commitLater, 1200)
+    return () => window.clearTimeout(timer)
+  }, [weightDraft, repsDraft, readOnly])
 
   const toggleDone = () => {
     if (done) {

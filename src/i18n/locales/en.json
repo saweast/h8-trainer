@@ -317,7 +317,18 @@
     "moreActions": "Workout actions",
     "deleteWorkout": "Delete workout",
     "deleteConfirm": "The workout and all its sets will be deleted for good.",
-    "deleteError": "Couldn't delete. A workout charged to a package can only be deleted by the trainer."
+    "deleteError": "Couldn't delete. A workout charged to a package can only be deleted by the trainer.",
+    "saving": "Saving…",
+    "saved_one": "Saved {{count}} set",
+    "saved_other": "Saved {{count}} sets",
+    "savedPartly": "Saved {{saved}} of {{total}} sets — some didn’t reach the server. Check the workout.",
+    "nothingSaved": "The server has no completed sets — nothing to save.",
+    "finishedElsewhere": "The workout was finished — it’s in the history now.",
+    "live": "Live",
+    "liveViewClient": "Your client is recording this workout. You see it live — it can’t be edited or finished from here.",
+    "liveViewTrainer": "Your trainer is running this workout. You see it live and can leave feedback on exercises.",
+    "liveEmptyBody": "Exercises show up here as soon as they’re added.",
+    "watch": "Watch live"
   },
   "picker": {
     "title": "Add exercise",

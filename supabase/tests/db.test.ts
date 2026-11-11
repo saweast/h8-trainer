@@ -94,10 +94,12 @@ describe('hardening', () => {
       'admin_users',
       'admin_workout',
       'claim_invite',
+      'close_stale_workouts',
       'copy_plan',
       'create_offline_client',
       'create_plan_from_templates',
       'exercise_records',
+      'finish_workout',
       'get_invite',
       'last_performance',
       'next_plan_slot',
@@ -1107,5 +1109,119 @@ describe('client feedback', () => {
     await asUser(outsider.userId, async (tx) => {
       expect(await rows(tx, `select * from public.trainer_feedback_feed()`)).toEqual([])
     })
+  })
+})
+
+describe('finishing a live session', () => {
+  let client: { userId: string; athleteId: string }
+
+  /** Trainer starts a workout for the client with one exercise: sets [done?, …]. */
+  async function liveSession(done: boolean[], { by = trainer.userId } = {}) {
+    return asUser(by, async (tx) => {
+      const [w] = await rows<{ id: string }>(tx, `insert into public.workouts (athlete_id) values ($1) returning id`, [
+        client.athleteId,
+      ])
+      const [we] = await rows<{ id: string }>(
+        tx,
+        `insert into public.workout_exercises (workout_id, exercise_id, position) values ($1, $2, 0) returning id`,
+        [w.id, benchId],
+      )
+      for (const [i, d] of done.entries()) {
+        await tx.query(
+          `insert into public.sets (workout_exercise_id, position, weight_kg, reps, completed_at) values ($1, $2, 60, 8, $3)`,
+          [we.id, i + 1, d ? new Date().toISOString() : null],
+        )
+      }
+      return w.id
+    })
+  }
+
+  const setCount = async (workoutId: string) => {
+    const [r] = await rows<{ done: number; pending: number }>(
+      db,
+      `select count(*) filter (where s.completed_at is not null)::int as done, count(*) filter (where s.completed_at is null)::int as pending
+       from public.sets s join public.workout_exercises we on we.id = s.workout_exercise_id where we.workout_id = $1`,
+      [workoutId],
+    )
+    return r
+  }
+
+  beforeAll(async () => {
+    client = await createUser('Liveclient')
+    await db.query(`insert into public.trainer_athletes (trainer_id, athlete_id) values ($1, $2)`, [trainer.userId, client.athleteId])
+  })
+
+  it('keeps every set the server has as done, whoever finishes', async () => {
+    const id = await liveSession([true, true, true, false])
+    // The client finishes from a screen that only saw the first set done: nothing of the trainer's is lost.
+    const [res] = await asUser(client.userId, (tx) => rows(tx, `select * from public.finish_workout($1, 'Груди')`, [id]))
+    expect(res.completed_sets).toBe(3)
+    expect(await setCount(id)).toEqual({ done: 3, pending: 0 })
+    // The trainer's finish afterwards is a no-op that reports the same result.
+    const [again] = await asUser(trainer.userId, (tx) => rows(tx, `select * from public.finish_workout($1, 'Інше')`, [id]))
+    expect(again).toEqual(res)
+    const [w] = await rows(db, `select title from public.workouts where id = $1`, [id])
+    expect(w.title).toBe('Груди')
+  })
+
+  it('refuses to finish a workout with nothing done, or someone else’s', async () => {
+    const id = await liveSession([false])
+    await expect(asUser(trainer.userId, (tx) => tx.query(`select public.finish_workout($1)`, [id]))).rejects.toThrow(/no completed sets/)
+    await expect(asUser(bohdan.userId, (tx) => tx.query(`select public.finish_workout($1)`, [id]))).rejects.toThrow(/not found/)
+  })
+
+  it('does not let the client discard the session their trainer is recording', async () => {
+    const id = await liveSession([true])
+    const deleted = await asUser(client.userId, (tx) => tx.query(`delete from public.workouts where id = $1`, [id]))
+    expect(deleted.affectedRows).toBe(0)
+    // ...but the one who started it can, and a finished one follows the usual rules
+    const own = await liveSession([false], { by: client.userId })
+    const ownDeleted = await asUser(client.userId, (tx) => tx.query(`delete from public.workouts where id = $1`, [own]))
+    expect(ownDeleted.affectedRows).toBe(1)
+    await asUser(trainer.userId, (tx) => tx.query(`select public.finish_workout($1)`, [id]))
+    const finishedDeleted = await asUser(client.userId, (tx) => tx.query(`delete from public.workouts where id = $1`, [id]))
+    expect(finishedDeleted.affectedRows).toBe(1)
+  })
+
+  it('tracks activity and auto-finishes sessions idle for 30 minutes', async () => {
+    const idle = await liveSession([true, false])
+    const empty = await liveSession([false])
+    const active = await liveSession([true])
+    await db.query(`update public.workouts set started_at = now() - interval '2 hours', last_activity_at = now() - interval '40 minutes' where id = any($1)`, [
+      [idle, empty],
+    ])
+    // A change to a set counts as activity.
+    const [{ before }] = await rows<{ before: string }>(db, `select last_activity_at as before from public.workouts where id = $1`, [idle])
+    expect(new Date(before).getTime()).toBeLessThan(Date.now() - 30 * 60_000)
+
+    await expect(asUser(bohdan.userId, (tx) => tx.query(`select public.close_stale_workouts($1)`, [client.athleteId]))).rejects.toThrow(
+      /not found/,
+    )
+    const [{ n }] = await asUser(client.userId, (tx) => rows<{ n: number }>(tx, `select public.close_stale_workouts($1) as n`, [client.athleteId]))
+    expect(n).toBe(2)
+
+    const [w] = await rows<{ finished_at: string; last_activity_at: string }>(
+      db,
+      `select finished_at, last_activity_at from public.workouts where id = $1`,
+      [idle],
+    )
+    expect(w.finished_at).toEqual(w.last_activity_at)
+    expect(await setCount(idle)).toEqual({ done: 1, pending: 0 })
+    expect(await rows(db, `select id from public.workouts where id = $1`, [empty])).toEqual([])
+    expect(await rows(db, `select finished_at from public.workouts where id = $1`, [active])).toEqual([{ finished_at: null }])
+  })
+
+  it('bumps last activity when sets change', async () => {
+    const id = await liveSession([false])
+    await db.query(`update public.workouts set last_activity_at = now() - interval '1 hour' where id = $1`, [id])
+    await asUser(trainer.userId, (tx) =>
+      tx.query(
+        `update public.sets s set completed_at = now() from public.workout_exercises we
+         where we.id = s.workout_exercise_id and we.workout_id = $1`,
+        [id],
+      ),
+    )
+    const [w] = await rows<{ fresh: boolean }>(db, `select last_activity_at > now() - interval '1 minute' as fresh from public.workouts where id = $1`, [id])
+    expect(w.fresh).toBe(true)
   })
 })

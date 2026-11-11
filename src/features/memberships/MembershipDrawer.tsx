@@ -104,7 +104,7 @@ function Form({ athleteId, target, canSellPackages, onClose }: { athleteId: stri
         <DrawerTitle className="font-heading text-lg">{heading}</DrawerTitle>
         <DrawerDescription className="sr-only">{heading}</DrawerDescription>
       </DrawerHeader>
-      <form onSubmit={submit} noValidate className="flex flex-col gap-4 overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <form onSubmit={submit} noValidate className="flex flex-col gap-4 overflow-x-hidden overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         {canSellPackages && !editing ? (
           <SegmentedControl<MembershipKind>
             ariaLabel={t('membership.kind')}
@@ -157,12 +157,12 @@ function Form({ athleteId, target, canSellPackages, onClose }: { athleteId: stri
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="ms-start">{t('membership.startsOn')}</Label>
             <Input id="ms-start" type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} className="h-11 rounded-xl" />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="ms-end">{t('membership.endsOn')}</Label>
             <Input
               id="ms-end"
@@ -189,12 +189,12 @@ function Form({ athleteId, target, canSellPackages, onClose }: { athleteId: stri
         </div>
         {error ? <p className="-mt-2 text-xs text-destructive">{error}</p> : null}
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="ms-paid">{t('membership.paidOn')}</Label>
             <Input id="ms-paid" type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} className="h-11 rounded-xl" />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="ms-title">{t('membership.title')}</Label>
             <Input
               id="ms-title"

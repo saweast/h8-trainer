@@ -26,7 +26,8 @@ import { MembershipDrawer, type MembershipDraftTarget } from '@/features/members
 import { useMode } from '@/features/mode/modeContext'
 import { ClientPlanSection } from '@/features/plans/ClientPlanSection'
 import { useIsMine, usePrograms, useTemplates } from '@/features/templates/api'
-import { useExerciseRecords, useRecentWorkouts } from '@/features/workout/api'
+import { useActiveWorkout, useExerciseRecords, useRecentWorkouts } from '@/features/workout/api'
+import { ResumeCard } from '@/features/workout/HomeWorkouts'
 import { StartWorkoutDrawer } from '@/features/workout/StartWorkoutDrawer'
 import { WorkoutList } from '@/features/workout/WorkoutList'
 import { currentLanguage } from '@/i18n'
@@ -51,6 +52,7 @@ export function ClientPage() {
   const { data: clients } = useTrainerClients(isTrainer)
   const { data: memberships } = useMemberships(athleteId)
   const { data: recent } = useRecentWorkouts(athleteId, 20)
+  const { data: active } = useActiveWorkout(athleteId)
   const [today] = useState(() => new Date())
   const [membershipTarget, setMembershipTarget] = useState<MembershipDraftTarget | null>(null)
   const [sheet, setSheet] = useState<Sheet>(null)
@@ -160,21 +162,26 @@ export function ClientPage() {
         </Link>
       ) : null}
 
-      <div>
-        <StartWorkoutDrawer
-          athleteId={athleteId}
-          forClient={{ athleteId, userId: athlete.userId, name: athlete.displayName, membershipId: chargeable }}
-          trigger={
-            <Button size="xl" className="w-full">
-              <Play aria-hidden />
-              {t('trainer.start')}
-            </Button>
-          }
-        />
-        <p className={cn('mt-1.5 text-center text-xs', chargeable ? 'text-muted-foreground' : 'text-warning-text')}>
-          {chargeable ? t('membership.charge') : t('membership.noActivePackage')}
-        </p>
-      </div>
+      {active ? (
+        // A session already running for this client (e.g. after the tab was closed): go back to it.
+        <ResumeCard active={active} />
+      ) : (
+        <div>
+          <StartWorkoutDrawer
+            athleteId={athleteId}
+            forClient={{ athleteId, userId: athlete.userId, name: athlete.displayName, membershipId: chargeable }}
+            trigger={
+              <Button size="xl" className="w-full">
+                <Play aria-hidden />
+                {t('trainer.start')}
+              </Button>
+            }
+          />
+          <p className={cn('mt-1.5 text-center text-xs', chargeable ? 'text-muted-foreground' : 'text-warning-text')}>
+            {chargeable ? t('membership.charge') : t('membership.noActivePackage')}
+          </p>
+        </div>
+      )}
 
       <Tabs defaultValue="history">
         <TabsList className="w-full">
