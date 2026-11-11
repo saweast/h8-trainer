@@ -159,6 +159,22 @@
     @apply bg-background text-foreground antialiased;
     overscroll-behavior-y: none;
   }
+  /* iOS Safari gives native date inputs an intrinsic min width and ignores `width`, so two of them
+     side by side overflow their columns and the sheet scrolls sideways. */
+  input[type='date'] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input[type='date']::-webkit-date-and-time-value {
+    min-width: 0;
+    text-align: left;
+  }
+  input[type='date']::-webkit-datetime-edit {
+    padding: 0;
+  }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;

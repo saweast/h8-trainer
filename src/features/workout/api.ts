@@ -43,6 +43,8 @@ export interface Workout {
   programId: string | null
   membershipId: string | null
   createdBy: string | null
+  /** Last change to the workout's exercises or sets (server time); drives auto-finish. */
+  lastActivityAt: string
   exercises: WorkoutExercise[]
 }
 
@@ -72,62 +74,142 @@ export const recentWorkoutsKey = (athleteId: string | undefined) => ['recent-wor
 const byPosition = <T extends { position: number }>(a: T, b: T) => a.position - b.position
 const newId = () => crypto.randomUUID()
 
+/** A workout left without changes this long is finished automatically (also on the server). */
+export const AUTO_FINISH_IDLE_MS = 30 * 60_000
+/** How often an open workout re-reads the server, so trainer and client see each other's sets. */
+const LIVE_SYNC_MS = 5_000
+
+const workoutScope = (workoutId: string) => `workout:${workoutId}`
+
+/** A write that reached the server but changed nothing: the row is gone or not ours anymore. */
+export class NotSavedError extends Error {
+  constructor(what: string) {
+    super(`${what}: nothing was saved`)
+    this.name = 'NotSavedError'
+  }
+}
+
+/** Retry only when the request didn't get an answer; a refusal from the database won't change. */
+function retryNetwork(failures: number, error: unknown) {
+  if (error instanceof NotSavedError) return false
+  const code = (error as { code?: string } | null)?.code
+  return !code && failures < 3
+}
+
+/** Awaits an update/delete with `.select('id')` and fails unless it touched at least one row. */
+async function expectRows(
+  request: PromiseLike<{ data: unknown[] | null; error: unknown }>,
+  what: string,
+): Promise<void> {
+  const { data, error } = await request
+  if (error) throw error
+  if (!data?.length) throw new NotSavedError(what)
+}
+
+// Local edits per workout, so a live refetch that started before an edit doesn't undo it.
+const localEdits = new Map<string, number>()
+const bumpLocalEdits = (workoutId: string) => localEdits.set(workoutId, (localEdits.get(workoutId) ?? 0) + 1)
+
+/** Writes for this workout still queued or in flight. */
+export function pendingWrites(queryClient: QueryClient, workoutId: string) {
+  return queryClient.isMutating({ predicate: (m) => m.options.scope?.id === workoutScope(workoutId) })
+}
+
+const WORKOUT_SELECT = `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by, last_activity_at,
+  workout_exercises (id, exercise_id, position, notes, difficulty, athlete_feedback,
+    sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, completed_at))`
+
+/** The workout doesn't exist (deleted) or isn't visible to me. */
+export class WorkoutGoneError extends Error {
+  constructor() {
+    super('workout not found')
+    this.name = 'WorkoutGoneError'
+  }
+}
+
+/** Workouts finished from this screen (vs. by the other device or automatically). */
+export const finishedHere = new Set<string>()
+
+async function fetchWorkout(id: string): Promise<Workout> {
+  const { data, error } = await supabase!.from('workouts').select(WORKOUT_SELECT).eq('id', id).maybeSingle()
+  if (error) throw error
+  if (!data) throw new WorkoutGoneError()
+  return {
+    id: data.id,
+    athleteId: data.athlete_id,
+    title: data.title,
+    startedAt: data.started_at,
+    finishedAt: data.finished_at,
+    notes: data.notes,
+    templateId: data.template_id,
+    programId: data.program_id,
+    membershipId: data.membership_id,
+    createdBy: data.created_by,
+    lastActivityAt: data.last_activity_at,
+    exercises: data.workout_exercises
+      .map((we) => ({
+        id: we.id,
+        exerciseId: we.exercise_id,
+        position: we.position,
+        notes: we.notes,
+        difficulty: we.difficulty,
+        athleteFeedback: we.athlete_feedback,
+        sets: we.sets
+          .map((s) => ({
+            id: s.id,
+            workoutExerciseId: s.workout_exercise_id,
+            position: s.position,
+            weightKg: Number(s.weight_kg),
+            reps: s.reps,
+            isWarmup: s.is_warmup,
+            completedAt: s.completed_at,
+          }))
+          .sort(byPosition),
+      }))
+      .sort(byPosition),
+  }
+}
+
 // Queries -----------------------------------------------------------------------------------
 
 export function useWorkout(id: string | undefined) {
+  const queryClient = useQueryClient()
   return useQuery({
     queryKey: workoutKey(id ?? ''),
     enabled: Boolean(supabase && id),
-    // This screen owns the cache (optimistic edits); a background refetch could briefly revert
-    // changes still queued for the server.
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
+    // While the workout is open, keep reading the server: the trainer and the client may both have
+    // it open, and each must see the other's sets (and an automatic finish) before acting on them.
+    staleTime: 2_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) => (query.state.data?.finishedAt ? false : LIVE_SYNC_MS),
+    retry: (failures, error) => !(error instanceof WorkoutGoneError) && failures < 1,
     queryFn: async (): Promise<Workout> => {
-      const { data, error } = await supabase!
-        .from('workouts')
-        .select(
-          `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by,
-           workout_exercises (id, exercise_id, position, notes, difficulty, athlete_feedback,
-             sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, completed_at))`,
-        )
-        .eq('id', id!)
-        .single()
-      if (error) throw error
-      return {
-        id: data.id,
-        athleteId: data.athlete_id,
-        title: data.title,
-        startedAt: data.started_at,
-        finishedAt: data.finished_at,
-        notes: data.notes,
-        templateId: data.template_id,
-        programId: data.program_id,
-        membershipId: data.membership_id,
-        createdBy: data.created_by,
-        exercises: data.workout_exercises
-          .map((we) => ({
-            id: we.id,
-            exerciseId: we.exercise_id,
-            position: we.position,
-            notes: we.notes,
-            difficulty: we.difficulty,
-            athleteFeedback: we.athlete_feedback,
-            sets: we.sets
-              .map((s) => ({
-                id: s.id,
-                workoutExerciseId: s.workout_exercise_id,
-                position: s.position,
-                weightKg: Number(s.weight_kg),
-                reps: s.reps,
-                isWarmup: s.is_warmup,
-                completedAt: s.completed_at,
-              }))
-              .sort(byPosition),
-          }))
-          .sort(byPosition),
+      const editsBefore = localEdits.get(id!) ?? 0
+      let fresh = await fetchWorkout(id!)
+      if (!fresh.finishedAt && Date.now() - new Date(fresh.lastActivityAt).getTime() > AUTO_FINISH_IDLE_MS) {
+        // Idle too long: the server finishes it (same rule as the background job).
+        const { error } = await supabase!.rpc('close_stale_workouts', { p_athlete: fresh.athleteId })
+        if (!error) {
+          try {
+            fresh = await fetchWorkout(id!)
+          } catch {
+            // deleted: nothing was done in it
+          }
+        }
       }
+      // Optimistic edits not on the server yet win over this snapshot; the next sync catches up.
+      const cached = queryClient.getQueryData<Workout>(workoutKey(id!))
+      if (cached && (pendingWrites(queryClient, id!) > 0 || (localEdits.get(id!) ?? 0) !== editsBefore)) return cached
+      return fresh
     },
   })
+}
+
+export interface ActiveWorkoutInfo {
+  id: string
+  title: string
+  startedAt: string
+  createdBy: string | null
 }
 
 /** The athlete's unfinished workout, if any (resume instead of starting a second one). */
@@ -135,17 +217,19 @@ export function useActiveWorkout(athleteId: string | undefined) {
   return useQuery({
     queryKey: activeWorkoutKey(athleteId),
     enabled: Boolean(supabase && athleteId),
-    queryFn: async () => {
+    queryFn: async (): Promise<ActiveWorkoutInfo | null> => {
+      // Abandoned sessions (30 min without changes) are finished before "in progress" is shown.
+      await supabase!.rpc('close_stale_workouts', { p_athlete: athleteId! })
       const { data, error } = await supabase!
         .from('workouts')
-        .select('id, title, started_at')
+        .select('id, title, started_at, created_by')
         .eq('athlete_id', athleteId!)
         .is('finished_at', null)
         .order('started_at', { ascending: false })
         .limit(1)
         .maybeSingle()
       if (error) throw error
-      return data ? { id: data.id, title: data.title, startedAt: data.started_at } : null
+      return data ? { id: data.id, title: data.title, startedAt: data.started_at, createdBy: data.created_by } : null
     },
   })
 }
@@ -254,6 +338,7 @@ export function useStartWorkout(athleteId: string | undefined) {
 type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'completedAt'>>
 
 function updateCached(queryClient: QueryClient, workoutId: string, fn: (w: Workout) => Workout) {
+  bumpLocalEdits(workoutId)
   queryClient.setQueryData<Workout>(workoutKey(workoutId), (old) => (old ? fn(old) : old))
 }
 
@@ -281,7 +366,7 @@ function toSetRow(s: WorkoutSet) {
 
 export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
   const queryClient = useQueryClient()
-  const scope = { id: `workout:${workoutId}` }
+  const scope = { id: workoutScope(workoutId) }
   // On failure: tell the user and reload the workout so the screen matches the server.
   const onError = () => {
     notifyError?.()
@@ -293,14 +378,21 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
   // server, queued in order behind each other.
   const insertExercise = useMutation({
     scope,
+    retry: retryNetwork,
     onError,
     mutationFn: async (we: WorkoutExercise) => {
+      // Upserts that ignore duplicates: a retry after a lost response must not fail on the same id.
       const { error } = await supabase!
         .from('workout_exercises')
-        .insert({ id: we.id, workout_id: workoutId, exercise_id: we.exerciseId, position: we.position })
+        .upsert(
+          { id: we.id, workout_id: workoutId, exercise_id: we.exerciseId, position: we.position },
+          { onConflict: 'id', ignoreDuplicates: true },
+        )
       if (error) throw error
       if (we.sets.length) {
-        const { error: setsError } = await supabase!.from('sets').insert(we.sets.map(toSetRow))
+        const { error: setsError } = await supabase!
+          .from('sets')
+          .upsert(we.sets.map(toSetRow), { onConflict: 'id', ignoreDuplicates: true })
         if (setsError) throw setsError
       }
     },
@@ -308,24 +400,26 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
 
   const deleteExercise = useMutation({
     scope,
+    retry: retryNetwork,
     onError,
     mutationFn: async (workoutExerciseId: string) => {
-      const { error } = await supabase!.from('workout_exercises').delete().eq('id', workoutExerciseId)
-      if (error) throw error
+      await expectRows(supabase!.from('workout_exercises').delete().eq('id', workoutExerciseId).select('id'), 'delete exercise')
     },
   })
 
   const insertSet = useMutation({
     scope,
+    retry: retryNetwork,
     onError,
     mutationFn: async (set: WorkoutSet) => {
-      const { error } = await supabase!.from('sets').insert(toSetRow(set))
+      const { error } = await supabase!.from('sets').upsert(toSetRow(set), { onConflict: 'id', ignoreDuplicates: true })
       if (error) throw error
     },
   })
 
   const patchSet = useMutation({
     scope,
+    retry: retryNetwork,
     onError,
     mutationFn: async ({ setId, patch }: { setId: string; patch: SetPatch }) => {
       const row: TablesUpdate<'sets'> = {}
@@ -333,29 +427,28 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       if (patch.reps !== undefined) row.reps = patch.reps
       if (patch.isWarmup !== undefined) row.is_warmup = patch.isWarmup
       if (patch.completedAt !== undefined) row.completed_at = patch.completedAt
-      const { error } = await supabase!.from('sets').update(row).eq('id', setId)
-      if (error) throw error
+      await expectRows(supabase!.from('sets').update(row).eq('id', setId).select('id'), 'update set')
     },
   })
 
   const patchExercise = useMutation({
     scope,
+    retry: retryNetwork,
     onError,
     mutationFn: async ({ id, patch }: { id: string; patch: ExerciseFeedbackPatch }) => {
       const row: TablesUpdate<'workout_exercises'> = {}
       if (patch.difficulty !== undefined) row.difficulty = patch.difficulty
       if (patch.athleteFeedback !== undefined) row.athlete_feedback = patch.athleteFeedback?.trim() || null
-      const { error } = await supabase!.from('workout_exercises').update(row).eq('id', id)
-      if (error) throw error
+      await expectRows(supabase!.from('workout_exercises').update(row).eq('id', id).select('id'), 'exercise feedback')
     },
   })
 
   const deleteSet = useMutation({
     scope,
+    retry: retryNetwork,
     onError,
     mutationFn: async (setId: string) => {
-      const { error } = await supabase!.from('sets').delete().eq('id', setId)
-      if (error) throw error
+      await expectRows(supabase!.from('sets').delete().eq('id', setId).select('id'), 'delete set')
     },
   })
 
@@ -432,36 +525,25 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
 
   const finish = useMutation({
     scope,
+    retry: retryNetwork,
     onError,
+    // Queued behind every edit above, so the server already has all of them. The server decides
+    // what was done: a stale screen (the other device) can't drop sets it hasn't seen yet.
     mutationFn: async ({ title }: { title: string }) => {
-      const w = current()
-      if (!w) throw new Error('workout not loaded')
-      // Drop planned-but-not-done sets and exercises left empty.
-      const pendingSetIds = w.exercises.flatMap((e) => e.sets.filter((s) => !s.completedAt).map((s) => s.id))
-      const emptyExerciseIds = w.exercises.filter((e) => !e.sets.some((s) => s.completedAt)).map((e) => e.id)
-      if (pendingSetIds.length) {
-        const { error } = await supabase!.from('sets').delete().in('id', pendingSetIds)
-        if (error) throw error
-      }
-      if (emptyExerciseIds.length) {
-        const { error } = await supabase!.from('workout_exercises').delete().in('id', emptyExerciseIds)
-        if (error) throw error
-      }
-      const finishedAt = new Date().toISOString()
-      const { error } = await supabase!.from('workouts').update({ finished_at: finishedAt, title }).eq('id', workoutId)
+      const before = current()
+      const doneHere = before?.exercises.flatMap((e) => e.sets).filter((s) => s.completedAt).length ?? 0
+      finishedHere.add(workoutId)
+      const { data, error } = await supabase!.rpc('finish_workout', { p_workout: workoutId, p_title: title })
       if (error) throw error
-      updateCached(queryClient, workoutId, (old) => ({
-        ...mapSets(old, (s) => (s.completedAt ? s : null)),
-        title,
-        finishedAt,
-      }))
-      updateCached(queryClient, workoutId, (old) => ({
-        ...old,
-        exercises: old.exercises.filter((e) => e.sets.length > 0),
-      }))
-      return w.athleteId
+      const result = data[0]
+      if (!result?.finished_at) throw new NotSavedError('finish workout')
+      const saved = await fetchWorkout(workoutId)
+      if (!saved.finishedAt) throw new NotSavedError('finish workout')
+      bumpLocalEdits(workoutId)
+      queryClient.setQueryData(workoutKey(workoutId), saved)
+      return { athleteId: saved.athleteId, savedSets: result.completed_sets, doneHere }
     },
-    onSuccess: (athleteId) => {
+    onSuccess: ({ athleteId }) => {
       void queryClient.invalidateQueries({ queryKey: activeWorkoutKey(athleteId) })
       void queryClient.invalidateQueries({ queryKey: recentWorkoutsKey(athleteId) })
       void queryClient.invalidateQueries({ queryKey: ['exercise-records', athleteId] })
@@ -475,11 +557,12 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
 
   const discard = useMutation({
     scope,
+    retry: retryNetwork,
     onError: () => notifyError?.(),
     mutationFn: async () => {
       const athleteId = current()?.athleteId
-      const { error } = await supabase!.from('workouts').delete().eq('id', workoutId)
-      if (error) throw error
+      // Zero rows deleted = not allowed (someone else's live session, a charged one) or already gone.
+      await expectRows(supabase!.from('workouts').delete().eq('id', workoutId).select('id'), 'discard workout')
       return athleteId
     },
     onSuccess: (athleteId) => {

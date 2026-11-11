@@ -28,6 +28,8 @@ interface ExerciseCardProps {
   lastTime: PreviousSet[]
   records: ExerciseRecords | null
   setupNotes: string | null
+  /** Live view of someone else's session: sets and exercises can't be changed, feedback can. */
+  readOnly?: boolean
   onSetChange: (setId: string, patch: SetPatch) => void
   onSetCompleted: (set: WorkoutSet, isPr: boolean) => void
   onSetDelete: (setId: string) => void
@@ -43,6 +45,7 @@ export function ExerciseCard({
   lastTime,
   records,
   setupNotes,
+  readOnly = false,
   onSetChange,
   onSetCompleted,
   onSetDelete,
@@ -76,6 +79,7 @@ export function ExerciseCard({
           ) : null}
         </div>
         {exercise ? <ExerciseHintButton exercise={exercise} className="-mr-2" /> : null}
+        {readOnly ? null : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-touch" aria-label={t('workout.exerciseMenu')}>
@@ -92,6 +96,7 @@ export function ExerciseCard({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        )}
       </div>
 
       {editingSetup ? (
@@ -137,6 +142,7 @@ export function ExerciseCard({
               label={label}
               last={last}
               isPr={isPr}
+              readOnly={readOnly}
               onChange={(patch) => onSetChange(set.id, patch)}
               onCompleted={(values) => {
                 // Check records with the values being saved, not the cached row.
@@ -149,10 +155,12 @@ export function ExerciseCard({
         })}
       </div>
 
-      <Button variant="ghost" size="touch" className="mt-2 w-full bg-secondary/50" onClick={onAddSet}>
-        <Plus aria-hidden />
-        {t('workout.addSet')}
-      </Button>
+      {readOnly ? null : (
+        <Button variant="ghost" size="touch" className="mt-2 w-full bg-secondary/50" onClick={onAddSet}>
+          <Plus aria-hidden />
+          {t('workout.addSet')}
+        </Button>
+      )}
 
       {item.sets.some((s) => s.completedAt !== null) || item.difficulty !== null ? (
         <ExerciseFeedback
