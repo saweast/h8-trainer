@@ -7,7 +7,11 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MUSCLE_GROUPS, exerciseName, namesMatch, type MuscleGroup } from '@/data/exercises'
+import { useMode } from '@/features/mode/modeContext'
+import { NoteIcon, NoteTarget } from '@/features/notes/ClientNotes'
+import { noteFlag, useClientNotes } from '@/features/notes/api'
 import { currentLanguage } from '@/i18n'
+import { cn } from '@/lib/utils'
 import { useExercises, type Exercise } from './api'
 import { ExerciseHintButton } from './guide/ExerciseHintButton'
 import { ExerciseThumb } from './guide/ExerciseThumb'
@@ -24,6 +28,10 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
   const { t } = useTranslation()
   const lang = currentLanguage()
   const { data: exercises, isPending } = useExercises()
+  const { isTrainer } = useMode()
+  // the trainer's notes about this client (none for anyone else, RLS decides)
+  const { data: notes } = useClientNotes(athleteId, isTrainer && open)
+  const restrictions = (notes ?? []).filter((n) => n.kind !== 'note').sort((a, b) => Number(a.kind === 'prefer') - Number(b.kind === 'prefer'))
   const [query, setQuery] = useState('')
   const [muscle, setMuscle] = useState<MuscleGroup | null>(null)
   const [creating, setCreating] = useState(false)
@@ -76,6 +84,19 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
         ) : (
           <>
             <div className="flex flex-col gap-3 px-4">
+              {restrictions.length ? (
+                <ul aria-label={t('notes.title')} className="flex max-h-28 flex-col gap-1.5 overflow-y-auto rounded-xl bg-secondary/60 px-3 py-2">
+                  {restrictions.map((n) => (
+                    <li key={n.id} className="flex items-start gap-2 text-xs">
+                      <NoteIcon kind={n.kind} className="mt-px size-3.5" />
+                      <span className="min-w-0 flex-1">
+                        <NoteTarget note={n} />
+                        {n.body ? <span className="line-clamp-2 text-muted-foreground">{n.body}</span> : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               <div className="relative">
                 <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                 <Input
@@ -108,7 +129,9 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
                 </div>
               ) : (
                 <ul className="divide-y">
-                  {list.map((e) => (
+                  {list.map((e) => {
+                    const flag = restrictions.length ? noteFlag(restrictions, e) : null
+                    return (
                     <li key={e.id} className="flex items-center gap-1">
                       <button
                         type="button"
@@ -122,6 +145,16 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
                             {t(`equipment.${e.equipment}`)} · {t(`muscle.${e.muscle}`)}
                           </span>
                         </span>
+                        {flag ? (
+                          <span
+                            className={cn(
+                              'rounded-full px-2 py-0.5 text-[11px] font-medium',
+                              flag.kind === 'avoid' ? 'bg-danger-muted text-danger-text' : 'bg-lime-muted text-lime-text',
+                            )}
+                          >
+                            {t(`notes.kind.${flag.kind}`)}
+                          </span>
+                        ) : null}
                         {e.ownerId ? (
                           <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
                             {t('picker.custom')}
@@ -131,7 +164,8 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
                       </button>
                       <ExerciseHintButton exercise={e} className="-mr-2" />
                     </li>
-                  ))}
+                    )
+                  })}
                 </ul>
               )}
               {!isPending && list.length === 0 ? (

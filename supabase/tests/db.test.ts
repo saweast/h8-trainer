@@ -1375,3 +1375,76 @@ describe('merging clients', () => {
     expect(await rows(db, `select used_by from public.invites where code = $1`, [code])).toEqual([{ used_by: oleh.userId }])
   })
 })
+
+describe('client notes', () => {
+  const asTrainer = <T>(fn: (tx: Transaction) => Promise<T>) => asUser(trainer.userId, fn)
+  let client: { userId: string; athleteId: string }
+  let coach2: { userId: string; athleteId: string } // another trainer of the same client
+
+  beforeAll(async () => {
+    client = await createUser('Notes')
+    coach2 = await createUser('Coach2')
+    await db.query(`update public.profiles set can_be_trainer = true where id in ($1, $2)`, [trainer.userId, coach2.userId])
+    await db.query(`insert into public.trainer_athletes (trainer_id, athlete_id) values ($1, $3), ($2, $3)`, [
+      trainer.userId,
+      coach2.userId,
+      client.athleteId,
+    ])
+  })
+
+  it("keeps the trainer's notes private to that trainer", async () => {
+    await asTrainer(async (tx) => {
+      await tx.query(`insert into public.client_notes (athlete_id, body) values ($1, 'Хоче схуднути до літа')`, [client.athleteId])
+      await tx.query(`insert into public.client_notes (athlete_id, kind, exercise_id, body) values ($1, 'avoid', $2, 'Плече')`, [
+        client.athleteId,
+        benchId,
+      ])
+      await tx.query(`insert into public.client_notes (athlete_id, kind, muscle_group) values ($1, 'prefer', 'glutes')`, [client.athleteId])
+    })
+    expect(await asTrainer((tx) => rows(tx, `select kind from public.client_notes where athlete_id = $1 order by kind`, [client.athleteId]))).toEqual([
+      { kind: 'avoid' },
+      { kind: 'note' },
+      { kind: 'prefer' },
+    ])
+    expect(await asUser(client.userId, (tx) => rows(tx, `select id from public.client_notes`))).toEqual([])
+    expect(await asUser(coach2.userId, (tx) => rows(tx, `select id from public.client_notes`))).toEqual([])
+    // another trainer can't change or remove them either
+    await asUser(coach2.userId, (tx) => tx.query(`update public.client_notes set body = 'x'`))
+    await asUser(coach2.userId, (tx) => tx.query(`delete from public.client_notes`))
+    expect(await asTrainer((tx) => rows(tx, `select id from public.client_notes where athlete_id = $1`, [client.athleteId]))).toHaveLength(3)
+  })
+
+  it('only takes notes about own clients, signed as yourself, and well-formed', async () => {
+    const stranger = await createUser('NotesStranger')
+    await expect(asUser(client.userId, (tx) => tx.query(`insert into public.client_notes (athlete_id, body) values ($1, 'x')`, [client.athleteId]))).rejects.toThrow(
+      /row-level security/,
+    )
+    await expect(asTrainer((tx) => tx.query(`insert into public.client_notes (athlete_id, body) values ($1, 'x')`, [stranger.athleteId]))).rejects.toThrow(
+      /row-level security/,
+    )
+    await expect(
+      asTrainer((tx) => tx.query(`insert into public.client_notes (trainer_id, athlete_id, body) values ($1, $2, 'x')`, [coach2.userId, client.athleteId])),
+    ).rejects.toThrow(/row-level security/)
+    await expect(asTrainer((tx) => tx.query(`insert into public.client_notes (athlete_id, body) values ($1, '  ')`, [client.athleteId]))).rejects.toThrow(
+      /check constraint/,
+    )
+    await expect(
+      asTrainer((tx) =>
+        tx.query(`insert into public.client_notes (athlete_id, kind, exercise_id, muscle_group) values ($1, 'avoid', $2, 'chest')`, [client.athleteId, benchId]),
+      ),
+    ).rejects.toThrow(/check constraint/)
+    await expect(
+      asTrainer((tx) => tx.query(`update public.client_notes set trainer_id = $1 where athlete_id = $2`, [coach2.userId, client.athleteId])),
+    ).rejects.toThrow(/permission denied/)
+  })
+
+  it('moves notes on merge and drops them when the client is unlinked', async () => {
+    const offline = await asTrainer(async (tx) => (await rows<{ id: string }>(tx, `select public.create_offline_client('Нотатки офлайн') as id`))[0].id)
+    await asTrainer((tx) => tx.query(`insert into public.client_notes (athlete_id, body) values ($1, 'Болить коліно')`, [offline]))
+    await asTrainer((tx) => tx.query(`select public.merge_clients($1, $2)`, [offline, client.athleteId]))
+    expect(await asTrainer((tx) => rows(tx, `select body from public.client_notes where athlete_id = $1 and body = 'Болить коліно'`, [client.athleteId]))).toHaveLength(1)
+
+    await asTrainer((tx) => tx.query(`delete from public.trainer_athletes where trainer_id = $1 and athlete_id = $2`, [trainer.userId, client.athleteId]))
+    expect(await rows(db, `select id from public.client_notes where athlete_id = $1`, [client.athleteId])).toEqual([])
+  })
+})
