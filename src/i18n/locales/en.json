@@ -654,7 +654,7 @@
     "level1": "Easy",
     "level2": "OK",
     "level3": "Hard",
-    "addNote": "+ note",
+    "addNote": "Add note",
     "notePlaceholder": "How it felt, what was off — your trainer will see it",
     "fromClient": "Client feedback",
     "cellPlaceholder": "A question or feedback on this exercise",

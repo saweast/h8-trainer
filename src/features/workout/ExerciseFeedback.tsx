@@ -1,3 +1,4 @@
+import { MessageSquarePlus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
@@ -27,8 +28,7 @@ export function ExerciseFeedback({ difficulty, text, onChange, className }: Exer
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      <div className="flex items-center gap-1.5">
-        <span className="mr-1 text-xs text-muted-foreground">{t('feedback.howWasIt')}</span>
+      <div role="group" aria-label={t('feedback.howWasIt')} className="flex items-center gap-1.5">
         {LEVELS.map((level) => (
           <button
             key={level}
@@ -48,8 +48,14 @@ export function ExerciseFeedback({ difficulty, text, onChange, className }: Exer
           </button>
         ))}
         {showNote ? null : (
-          <button type="button" onClick={() => setWriting(true)} className="ml-auto text-xs text-muted-foreground underline-offset-2 hover:underline">
-            {t('feedback.addNote')}
+          <button
+            type="button"
+            onClick={() => setWriting(true)}
+            aria-label={t('feedback.addNote')}
+            title={t('feedback.addNote')}
+            className="ml-auto grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <MessageSquarePlus className="size-4" aria-hidden />
           </button>
         )}
       </div>
