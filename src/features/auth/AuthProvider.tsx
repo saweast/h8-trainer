@@ -58,6 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }, [])
 
+  const signInWithGoogleIdToken = useCallback(async (token: string, nonce: string) => {
+    if (!supabase) return
+    const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token, nonce })
+    if (error) throw error
+  }, [])
+
   const enterDemo = useCallback(() => {
     try {
       window.sessionStorage.setItem(DEMO_KEY, '1')
@@ -87,10 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isDemo: !isSupabaseConfigured,
       signInWithGoogle,
+      signInWithGoogleIdToken,
       enterDemo,
       signOut,
     }
-  }, [session, loading, demo, signInWithGoogle, enterDemo, signOut])
+  }, [session, loading, demo, signInWithGoogle, signInWithGoogleIdToken, enterDemo, signOut])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -7,6 +7,8 @@ import { GoogleIcon } from '@/components/common/GoogleIcon'
 import { Logo } from '@/components/common/Logo'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/authContext'
+import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton'
+import { googleClientId } from '@/features/auth/googleIdentity'
 
 export function LoginPage() {
   const { t } = useTranslation()
@@ -29,6 +31,18 @@ export function LoginPage() {
     }
   }
 
+  const redirectButton = (
+    <Button
+      size="xl"
+      onClick={() => void google()}
+      disabled={pending}
+      className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-white dark:hover:bg-zinc-200"
+    >
+      <GoogleIcon className="size-5" />
+      {t('login.google')}
+    </Button>
+  )
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-safe pb-[calc(2rem+env(safe-area-inset-bottom))]">
       <div className="flex flex-1 flex-col justify-center">
@@ -47,16 +61,10 @@ export function LoginPage() {
               {t('login.demoEnter')}
             </Button>
           </>
+        ) : googleClientId ? (
+          <GoogleSignInButton clientId={googleClientId} fallback={redirectButton} />
         ) : (
-          <Button
-            size="xl"
-            onClick={() => void google()}
-            disabled={pending}
-            className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-white dark:hover:bg-zinc-200"
-          >
-            <GoogleIcon className="size-5" />
-            {t('login.google')}
-          </Button>
+          redirectButton
         )}
         <p className="text-center text-xs text-muted-foreground">
           <Trans

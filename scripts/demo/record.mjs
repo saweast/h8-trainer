@@ -13,7 +13,7 @@ import { chromium } from 'playwright'
 import { DEMO_PASSWORD, localEnv, root, writeViteEnv } from './env.mjs'
 
 const PREVIEW_PORT = 5176
-export const BASE = `http://localhost:${PREVIEW_PORT}/h8-trainer`
+export const BASE = `http://localhost:${PREVIEW_PORT}`
 const DEMO = join(root, 'demo')
 const BUILD = join(DEMO, '.build')
 const FONT_BOLD = '/System/Library/Fonts/Supplemental/Arial Bold.ttf'
