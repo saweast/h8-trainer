@@ -1093,6 +1093,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           finished_at: string | null
+          group_id: string | null
           id: string
           last_activity_at: string
           membership_id: string | null
@@ -1111,6 +1112,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           finished_at?: string | null
+          group_id?: string | null
           id?: string
           last_activity_at?: string
           membership_id?: string | null
@@ -1129,6 +1131,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           finished_at?: string | null
+          group_id?: string | null
           id?: string
           last_activity_at?: string
           membership_id?: string | null
@@ -1430,6 +1433,14 @@ export type Database = {
           workouts_count: number
         }[]
       }
+      finish_group_workout: {
+        Args: { p_group: string; p_titles?: Json }
+        Returns: {
+          athlete_id: string
+          completed_sets: number
+          workout_id: string
+        }[]
+      }
       finish_workout: {
         Args: { p_title?: string; p_workout: string }
         Returns: {
@@ -1516,6 +1527,14 @@ export type Database = {
           p_membership?: string
           p_plan: string
           p_week: number
+        }
+        Returns: string
+      }
+      start_group_workout: {
+        Args: {
+          p_athletes: string[]
+          p_memberships?: string[]
+          p_template?: string
         }
         Returns: string
       }

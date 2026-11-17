@@ -15,6 +15,7 @@ import { FeedbackFeedCard } from '@/features/feedback/FeedbackFeed'
 import { useMemberships, type Membership } from '@/features/memberships/api'
 import { useMode } from '@/features/mode/modeContext'
 import { AddClientDrawer } from '@/features/trainer/AddClientDrawer'
+import { GroupEntry } from '@/features/workout/GroupEntry'
 import { useTrainerClients } from '@/features/trainer/api'
 import { currentLanguage } from '@/i18n'
 import { clientFlags, currentMembership, daysSince } from '@/lib/clients'
@@ -100,6 +101,7 @@ export function TrainerClientsPage() {
         </EmptyState>
       ) : (
         <>
+          <GroupEntry canStart={rows.length >= 2} />
           <FeedbackFeedCard />
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />

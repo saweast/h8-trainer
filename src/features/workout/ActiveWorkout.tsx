@@ -1,6 +1,6 @@
 import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Dumbbell, Eye, Plus, UserStar } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
@@ -23,7 +23,6 @@ import { prefillSets } from '@/lib/templatePrefill'
 import { autoTitle } from '@/lib/workoutStats'
 import {
   fetchLastPerformance,
-  pendingWrites,
   useExerciseRecords,
   useLastPerformance,
   useWorkoutActions,
@@ -36,6 +35,7 @@ import { ExerciseCard } from './ExerciseCard'
 import { FinishDrawer } from './FinishDrawer'
 import { RestTimerBar } from './RestTimerBar'
 import { useRestTimer } from './useRestTimer'
+import { useFlushOnLeave } from './useFlushOnLeave'
 import { useWakeLock } from './useWakeLock'
 
 type Actions = ReturnType<typeof useWorkoutActions>
@@ -66,7 +66,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
   const saving = useIsMutating({ predicate: (m) => m.options.scope?.id === `workout:${workout.id}` }) > 0
 
   useWakeLock(true)
-  useFlushOnLeave(workout.id)
+  useFlushOnLeave([workout.id])
 
   const addExercise = async (exercise: Exercise) => {
     let previous = [] as Awaited<ReturnType<typeof fetchLastPerformance>>
@@ -256,37 +256,6 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
       />
     </div>
   )
-}
-
-/**
- * Leaving the page must not lose the last change: a field still being typed in is committed when
- * the tab is hidden, and closing the tab asks first while changes are still on their way.
- */
-function useFlushOnLeave(workoutId: string) {
-  const queryClient = useQueryClient()
-  useEffect(() => {
-    const flush = () => {
-      if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
-    }
-    const onHidden = () => {
-      if (document.visibilityState === 'hidden') flush()
-    }
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      flush()
-      if (pendingWrites(queryClient, workoutId) > 0) {
-        e.preventDefault()
-        e.returnValue = ''
-      }
-    }
-    document.addEventListener('visibilitychange', onHidden)
-    window.addEventListener('pagehide', flush)
-    window.addEventListener('beforeunload', onBeforeUnload)
-    return () => {
-      document.removeEventListener('visibilitychange', onHidden)
-      window.removeEventListener('pagehide', flush)
-      window.removeEventListener('beforeunload', onBeforeUnload)
-    }
-  }, [queryClient, workoutId])
 }
 
 interface ContainerProps {

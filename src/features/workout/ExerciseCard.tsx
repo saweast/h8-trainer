@@ -59,8 +59,6 @@ export function ExerciseCard({
   const [editingSetup, setEditingSetup] = useState(false)
   const [setupDraft, setSetupDraft] = useState(setupNotes ?? '')
 
-  const rows = labelSets(item.sets, lastTime, t('workout.warmupShort'))
-
   const saveSetup = () => {
     setEditingSetup(false)
     if ((setupNotes ?? '') !== setupDraft.trim()) onSaveSetup(setupDraft)
@@ -124,6 +122,56 @@ export function ExerciseCard({
         </button>
       ) : null}
 
+      <SetsTable
+        sets={item.sets}
+        lastTime={lastTime}
+        records={records}
+        readOnly={readOnly}
+        onSetChange={onSetChange}
+        onSetCompleted={onSetCompleted}
+        onSetDelete={onSetDelete}
+        onAddSet={onAddSet}
+      />
+
+      {item.sets.some((s) => s.completedAt !== null) || item.difficulty !== null ? (
+        <ExerciseFeedback
+          difficulty={item.difficulty}
+          text={item.athleteFeedback}
+          onChange={onFeedback}
+          className="mt-3 border-t pt-3"
+        />
+      ) : null}
+    </section>
+  )
+}
+
+interface SetsTableProps {
+  sets: WorkoutSet[]
+  lastTime: PreviousSet[]
+  records: ExerciseRecords | null
+  readOnly?: boolean
+  onSetChange: (setId: string, patch: SetPatch) => void
+  onSetCompleted: (set: WorkoutSet, isPr: boolean) => void
+  onSetDelete: (setId: string) => void
+  onAddSet: () => void
+}
+
+/** Set rows (set · last time · kg · reps · done) with "add set" — one person's sets of an exercise. */
+export function SetsTable({
+  sets,
+  lastTime,
+  records,
+  readOnly = false,
+  onSetChange,
+  onSetCompleted,
+  onSetDelete,
+  onAddSet,
+}: SetsTableProps) {
+  const { t } = useTranslation()
+  const rows = labelSets(sets, lastTime, t('workout.warmupShort'))
+
+  return (
+    <>
       <div className={`${SET_GRID} mb-1 text-[11px] text-muted-foreground`}>
         <span className="text-center">{t('workout.set')}</span>
         <span>{t('workout.lastTime')}</span>
@@ -161,16 +209,7 @@ export function ExerciseCard({
           {t('workout.addSet')}
         </Button>
       )}
-
-      {item.sets.some((s) => s.completedAt !== null) || item.difficulty !== null ? (
-        <ExerciseFeedback
-          difficulty={item.difficulty}
-          text={item.athleteFeedback}
-          onChange={onFeedback}
-          className="mt-3 border-t pt-3"
-        />
-      ) : null}
-    </section>
+    </>
   )
 }
 

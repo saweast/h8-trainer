@@ -38,6 +38,9 @@ const AdminTrainerPage = lazy(() => import('@/features/admin/AdminTrainerPage').
 const AdminAthletePage = lazy(() => import('@/features/admin/AdminAthletePage').then((m) => ({ default: m.AdminAthletePage })))
 const AdminWorkoutPage = lazy(() => import('@/features/admin/AdminWorkoutPage').then((m) => ({ default: m.AdminWorkoutPage })))
 const RequireAdmin = lazy(() => import('@/features/admin/RequireAdmin').then((m) => ({ default: m.RequireAdmin })))
+const GroupWorkoutPage = lazy(() =>
+  import('@/features/workout/GroupWorkoutPage').then((m) => ({ default: m.GroupWorkoutPage })),
+)
 const WorkoutPage = lazy(() => import('@/features/workout/WorkoutPage').then((m) => ({ default: m.WorkoutPage })))
 
 // "/h8-trainer/" → "/h8-trainer"
@@ -56,6 +59,7 @@ export default function App() {
                 <Route element={<RequireAuth />}>
                   {/* Full-screen: no app header or bottom navigation while training */}
                   <Route path="workout/:workoutId" element={<WorkoutPage />} />
+                  <Route path="group/:groupId" element={<GroupWorkoutPage />} />
                   <Route path="templates/:templateId" element={<TemplateEditorPage />} />
                   <Route path="programs/:programId" element={<ProgramEditorPage />} />
                   <Route path="plans/:planId" element={<PlanEditorPage />} />
