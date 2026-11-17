@@ -19,7 +19,7 @@ export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
     })
   : null
 
-/** Where Google sends the user back: the app root, including the GitHub Pages sub-path. */
+/** Where Google sends the user back after the redirect sign-in: the app root. */
 export function authRedirectUrl(): string {
   return new URL(import.meta.env.BASE_URL, window.location.origin).toString()
 }

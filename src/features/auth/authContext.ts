@@ -13,7 +13,10 @@ export interface AuthContextValue {
   user: AuthUser | null
   /** True when Supabase isn't configured and the UI runs on placeholder data. */
   isDemo: boolean
+  /** Redirect flow through Supabase; used when no Google client ID is configured. */
   signInWithGoogle: () => Promise<void>
+  /** Exchanges an ID token from Google Identity Services for a session. */
+  signInWithGoogleIdToken: (token: string, nonce: string) => Promise<void>
   enterDemo: () => void
   signOut: () => Promise<void>
 }

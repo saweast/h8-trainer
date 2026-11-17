@@ -9,7 +9,7 @@ Mobile-first журнал тренувань для залу і тренерів
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173/h8-trainer/
+npm run dev        # http://localhost:5173/
 ```
 
 Без `.env.local` застосунок відкривається в **демо-режимі** (інтерфейс без бази даних).
@@ -85,4 +85,8 @@ npm run demo:guide              # сторінка-гайд demo/guide/index.htm
 
 `.github/workflows/deploy.yml` на кожен push у `main`: lint → test → build → GitHub Pages.
 У репозиторії: Settings → Pages → Source: **GitHub Actions**; Settings → Secrets → Actions:
-`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`; Settings → Variables → Actions: `VITE_GOOGLE_CLIENT_ID`
+(необовʼязково, вмикає кнопку Google Identity Services замість редиректу через Supabase).
+
+Сайт живе в корені власного домену **h8-trainer.com** (Settings → Pages → Custom domain), тому `base` у
+`vite.config.ts` — `/`. Старі адреси `saweast.github.io/h8-trainer/…` GitHub перенаправляє на домен.

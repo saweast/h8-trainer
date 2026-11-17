@@ -43,7 +43,7 @@ const GroupWorkoutPage = lazy(() =>
 )
 const WorkoutPage = lazy(() => import('@/features/workout/WorkoutPage').then((m) => ({ default: m.WorkoutPage })))
 
-// "/h8-trainer/" → "/h8-trainer"
+// "/" → "" (the app is served from the domain root)
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 
 export default function App() {

@@ -6,7 +6,8 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/h8-trainer/',
+  // Served from the root of h8-trainer.com (GitHub Pages custom domain).
+  base: '/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

@@ -32,4 +32,4 @@ export function writeViteEnv() {
 
 export const DEMO_PASSWORD = 'demo-pass-12345'
 export const DEMO_PORT = 5175
-export const APP_URL = `http://localhost:${DEMO_PORT}/h8-trainer`
+export const APP_URL = `http://localhost:${DEMO_PORT}`
