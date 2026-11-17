@@ -1,6 +1,6 @@
 import { Info } from 'lucide-react'
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { Navigate, useLocation } from 'react-router'
 import { toast } from 'sonner'
 import { GoogleIcon } from '@/components/common/GoogleIcon'
@@ -58,7 +58,15 @@ export function LoginPage() {
             {t('login.google')}
           </Button>
         )}
-        <p className="text-center text-xs text-muted-foreground">{t('login.privacy')}</p>
+        <p className="text-center text-xs text-muted-foreground">
+          <Trans
+            i18nKey="login.privacy"
+            components={{
+              terms: <a href={`${import.meta.env.BASE_URL}terms.html`} className="underline underline-offset-2" />,
+              privacy: <a href={`${import.meta.env.BASE_URL}privacy.html`} className="underline underline-offset-2" />,
+            }}
+          />
+        </p>
       </div>
     </div>
   )

@@ -28,7 +28,7 @@
   "login": {
     "tagline": "Log workouts. See progress. Coach clients.",
     "google": "Continue with Google",
-    "privacy": "We only keep your name and photo from Google.",
+    "privacy": "By continuing, you agree to the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.",
     "demoNotice": "The database isn't connected yet, so Google sign-in is unavailable. You can explore the interface in demo mode.",
     "demoEnter": "Open demo",
     "error": "Couldn't sign in. Try again."
