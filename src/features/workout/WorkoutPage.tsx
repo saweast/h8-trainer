@@ -1,11 +1,12 @@
 import { SearchX } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams } from 'react-router'
+import { Link, Navigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/features/auth/authContext'
 import { ActiveWorkout } from './ActiveWorkout'
 import { finishedHere, useWorkout, WorkoutGoneError } from './api'
 import { WorkoutSummary } from './WorkoutSummary'
@@ -13,6 +14,7 @@ import { WorkoutSummary } from './WorkoutSummary'
 export function WorkoutPage() {
   const { t } = useTranslation()
   const { workoutId } = useParams()
+  const { user } = useAuth()
   const { data: workout, isPending, error } = useWorkout(workoutId)
   const wasActive = useRef(false)
 
@@ -47,6 +49,10 @@ export function WorkoutPage() {
         </EmptyState>
       </div>
     )
+  }
+  // My split session in progress: it is run from the group screen, with every client together.
+  if (workout.groupId && !workout.finishedAt && user && workout.createdBy === user.id) {
+    return <Navigate to={`/group/${workout.groupId}`} replace />
   }
   return workout.finishedAt ? <WorkoutSummary workout={workout} /> : <ActiveWorkout workout={workout} />
 }

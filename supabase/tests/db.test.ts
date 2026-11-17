@@ -101,6 +101,7 @@ describe('hardening', () => {
       'create_plan_from_templates',
       'decline_link_request',
       'exercise_records',
+      'finish_group_workout',
       'finish_workout',
       'get_invite',
       'last_performance',
@@ -112,6 +113,7 @@ describe('hardening', () => {
       'save_plan',
       'save_program',
       'save_template',
+      'start_group_workout',
       'start_workout_from_plan',
       'start_workout_from_template',
       'trainer_clients_overview',
@@ -1446,5 +1448,171 @@ describe('client notes', () => {
 
     await asTrainer((tx) => tx.query(`delete from public.trainer_athletes where trainer_id = $1 and athlete_id = $2`, [trainer.userId, client.athleteId]))
     expect(await rows(db, `select id from public.client_notes where athlete_id = $1`, [client.athleteId])).toEqual([])
+  })
+})
+
+describe('split sessions', () => {
+  const asTrainer = <T>(fn: (tx: Transaction) => Promise<T>) => asUser(trainer.userId, fn)
+  let olia: { userId: string; athleteId: string } // client with an account
+  let maks: string // offline client
+  let maksPackage: string
+
+  const start = (athletes: string[], memberships: (string | null)[] | null = null, template: string | null = null) =>
+    asTrainer(async (tx) => (await rows<{ id: string }>(tx, `select public.start_group_workout($1::uuid[], $2::uuid[], $3) as id`, [athletes, memberships, template]))[0].id)
+
+  const groupWorkouts = (groupId: string) =>
+    rows<{ id: string; athlete_id: string; membership_id: string | null; finished_at: string | null; title: string }>(
+      db,
+      `select id, athlete_id, membership_id, finished_at, title from public.workouts where group_id = $1 order by athlete_id`,
+      [groupId],
+    )
+
+  /** One bench exercise for the workout, sets [weight, reps, done?]. */
+  const addBench = (workoutId: string, sets: [number, number, boolean][]) =>
+    asTrainer(async (tx) => {
+      const [we] = await rows<{ id: string }>(
+        tx,
+        `insert into public.workout_exercises (workout_id, exercise_id, position) values ($1, $2, 0) returning id`,
+        [workoutId, benchId],
+      )
+      for (const [i, [kg, reps, done]] of sets.entries()) {
+        await tx.query(`insert into public.sets (workout_exercise_id, position, weight_kg, reps, completed_at) values ($1, $2, $3, $4, $5)`, [
+          we.id,
+          i + 1,
+          kg,
+          reps,
+          done ? new Date().toISOString() : null,
+        ])
+      }
+    })
+
+  beforeAll(async () => {
+    olia = await createUser('Olia')
+    await db.query(`update public.profiles set can_be_trainer = true, is_trainer = true where id = $1`, [trainer.userId])
+    await db.query(`insert into public.trainer_athletes (trainer_id, athlete_id) values ($1, $2)`, [trainer.userId, olia.athleteId])
+    maks = await asTrainer(async (tx) => (await rows<{ id: string }>(tx, `select public.create_offline_client('Макс') as id`))[0].id)
+    maksPackage = await asTrainer(async (tx) =>
+      (
+        await rows<{ id: string }>(
+          tx,
+          `insert into public.memberships (athlete_id, kind, trainer_id, sessions_total) values ($1, 'trainer', $2, 10) returning id`,
+          [maks, trainer.userId],
+        )
+      )[0].id,
+    )
+  })
+
+  it("starts one workout per client, charged to each client's own package", async () => {
+    const groupId = await start([olia.athleteId, maks], [null, maksPackage])
+    const workouts = await groupWorkouts(groupId)
+    expect(workouts).toHaveLength(2)
+    expect(new Map(workouts.map((w) => [w.athlete_id, w.membership_id]))).toEqual(
+      new Map([
+        [olia.athleteId, null],
+        [maks, maksPackage],
+      ]),
+    )
+    // Each client sees only their own workout of the session.
+    const seen = await asUser(olia.userId, (tx) => rows(tx, `select athlete_id from public.workouts where group_id = $1`, [groupId]))
+    expect(seen).toEqual([{ athlete_id: olia.athleteId }])
+    // A client already training can't be added to another session.
+    await expect(start([olia.athleteId, maks])).rejects.toThrow(/in progress/)
+    await asTrainer((tx) => tx.query(`delete from public.workouts where group_id = $1`, [groupId]))
+  })
+
+  it('refuses fewer than two clients, duplicates, strangers and foreign packages', async () => {
+    const stranger = await createUser('Splitstranger')
+    await expect(start([maks])).rejects.toThrow(/2 to 10/)
+    await expect(start([maks, maks])).rejects.toThrow(/once/)
+    await expect(start([maks, olia.athleteId], [maksPackage])).rejects.toThrow(/one package/)
+    await expect(start([maks, stranger.athleteId])).rejects.toThrow(/not your client/)
+    await expect(start([olia.athleteId, maks], [maksPackage, null])).rejects.toThrow(/own package/)
+    // Nothing was left behind by the refused starts.
+    expect(await rows(db, `select id from public.workouts where athlete_id = any($1) and finished_at is null`, [[maks, olia.athleteId]])).toEqual([])
+  })
+
+  it("prefills a template for each client from their own last time", async () => {
+    const prev = await start([olia.athleteId, maks])
+    const [a, b] = await groupWorkouts(prev)
+    const kgOf = (athleteId: string) => (athleteId === maks ? 80 : 40)
+    await addBench(a.id, [[kgOf(a.athlete_id), 8, true]])
+    await addBench(b.id, [[kgOf(b.athlete_id), 8, true]])
+    await asTrainer((tx) => tx.query(`select * from public.finish_group_workout($1)`, [prev]))
+
+    const templateId = await asTrainer(async (tx) => {
+      const [tpl] = await rows<{ id: string }>(tx, `insert into public.templates (owner_id, name) values ($1, 'Спліт груди') returning id`, [
+        trainer.userId,
+      ])
+      await tx.query(`insert into public.template_exercises (template_id, exercise_id, position, target_sets) values ($1, $2, 0, 2)`, [
+        tpl.id,
+        benchId,
+      ])
+      return tpl.id
+    })
+    const groupId = await start([olia.athleteId, maks], null, templateId)
+    const sets = await rows<{ athlete_id: string; title: string; weight_kg: string }>(
+      db,
+      `select w.athlete_id, w.title, s.weight_kg from public.workouts w
+       join public.workout_exercises we on we.workout_id = w.id
+       join public.sets s on s.workout_exercise_id = we.id
+       where w.group_id = $1 order by w.athlete_id, s.position`,
+      [groupId],
+    )
+    expect(sets).toHaveLength(4)
+    for (const s of sets) {
+      expect(s.title).toBe('Спліт груди')
+      expect(Number(s.weight_kg)).toBe(kgOf(s.athlete_id))
+    }
+    await asTrainer((tx) => tx.query(`delete from public.workouts where group_id = $1`, [groupId]))
+  })
+
+  it('keeps the whole session open while one client trains, and the group fixed', async () => {
+    const groupId = await start([olia.athleteId, maks])
+    const [a] = await groupWorkouts(groupId)
+    await db.query(`update public.workouts set last_activity_at = now() - interval '1 hour' where group_id = $1`, [groupId])
+    await addBench(a.id, [[50, 10, true]])
+    const fresh = await rows<{ fresh: boolean }>(
+      db,
+      `select last_activity_at > now() - interval '1 minute' as fresh from public.workouts where group_id = $1`,
+      [groupId],
+    )
+    expect(fresh).toEqual([{ fresh: true }, { fresh: true }])
+
+    // Nobody moves a workout into or out of a session afterwards.
+    await asUser(olia.userId, (tx) => tx.query(`update public.workouts set group_id = null where athlete_id = $1 and group_id = $2`, [olia.athleteId, groupId]))
+    expect(await groupWorkouts(groupId)).toHaveLength(2)
+    await asTrainer((tx) => tx.query(`delete from public.workouts where group_id = $1`, [groupId]))
+  })
+
+  it('saves clients who trained, drops the ones who did nothing, and only for the trainer', async () => {
+    const groupId = await start([olia.athleteId, maks], [null, maksPackage])
+    const workouts = await groupWorkouts(groupId)
+    const oliaW = workouts.find((w) => w.athlete_id === olia.athleteId)!
+    const maksW = workouts.find((w) => w.athlete_id === maks)!
+
+    await addBench(maksW.id, [[60, 8, false]])
+    await expect(asTrainer((tx) => tx.query(`select * from public.finish_group_workout($1)`, [groupId]))).rejects.toThrow(/no completed sets/)
+
+    await addBench(oliaW.id, [[40, 10, true], [40, 10, false]])
+    await expect(asUser(olia.userId, (tx) => tx.query(`select * from public.finish_group_workout($1)`, [groupId]))).rejects.toThrow(/not found/)
+    await expect(asUser(bohdan.userId, (tx) => tx.query(`select * from public.finish_group_workout($1)`, [groupId]))).rejects.toThrow(/not found/)
+
+    const result = await asTrainer((tx) =>
+      rows<{ workout_id: string; completed_sets: number }>(tx, `select * from public.finish_group_workout($1, $2)`, [
+        groupId,
+        JSON.stringify({ [oliaW.id]: 'Груди' }),
+      ]),
+    )
+    expect(result).toEqual([
+      { workout_id: oliaW.id, athlete_id: olia.athleteId, completed_sets: 1 },
+      { workout_id: maksW.id, athlete_id: maks, completed_sets: 0 },
+    ])
+    const left = await groupWorkouts(groupId)
+    expect(left).toHaveLength(1)
+    expect(left[0]).toMatchObject({ id: oliaW.id, title: 'Груди' })
+    expect(left[0].finished_at).not.toBeNull()
+    // Maks didn't train: no workout, no session charged.
+    const [usage] = await rows(db, `select sessions_used from public.membership_usage where id = $1`, [maksPackage])
+    expect(usage.sessions_used).toBe(0)
   })
 })

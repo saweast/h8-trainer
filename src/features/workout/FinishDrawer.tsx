@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -11,9 +11,22 @@ interface FinishDrawerProps {
   busy: boolean
   onFinish: () => void
   onDiscard: () => void
+  /** Extra lines under the title (a split session lists each client). */
+  details?: ReactNode
+  discardConfirmText?: string
 }
 
-export function FinishDrawer({ open, onOpenChange, doneSets, pendingSets, busy, onFinish, onDiscard }: FinishDrawerProps) {
+export function FinishDrawer({
+  open,
+  onOpenChange,
+  doneSets,
+  pendingSets,
+  busy,
+  onFinish,
+  onDiscard,
+  details,
+  discardConfirmText,
+}: FinishDrawerProps) {
   const { t } = useTranslation()
   const [confirmDiscard, setConfirmDiscard] = useState(false)
 
@@ -32,6 +45,7 @@ export function FinishDrawer({ open, onOpenChange, doneSets, pendingSets, busy, 
           </DrawerDescription>
         </DrawerHeader>
         <div className="flex flex-col gap-2 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+          {details}
           {doneSets > 0 && pendingSets > 0 ? (
             <p className="mb-2 rounded-xl bg-warning-muted px-3 py-2 text-sm text-warning-text">
               {t('workout.pendingNote', { count: pendingSets })}
@@ -41,7 +55,7 @@ export function FinishDrawer({ open, onOpenChange, doneSets, pendingSets, busy, 
           {confirmDiscard ? (
             <>
               <p className="mb-2 rounded-xl bg-danger-muted px-3 py-2 text-sm text-danger-text">
-                {t('workout.discardConfirm')}
+                {discardConfirmText ?? t('workout.discardConfirm')}
               </p>
               <Button variant="destructive" size="xl" disabled={busy} onClick={onDiscard}>
                 {t('workout.discardYes')}

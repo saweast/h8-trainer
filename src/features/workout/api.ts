@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient, type UseQueryOptions } from '@tanstack/react-query'
 import type { ExerciseRecords } from '@/lib/records'
 import type { TablesUpdate } from '@/lib/db.types'
 import { supabase } from '@/lib/supabase'
@@ -43,6 +43,8 @@ export interface Workout {
   programId: string | null
   membershipId: string | null
   createdBy: string | null
+  /** Set when the workout is one client's part of a trainer's split session. */
+  groupId: string | null
   /** Last change to the workout's exercises or sets (server time); drives auto-finish. */
   lastActivityAt: string
   exercises: WorkoutExercise[]
@@ -115,7 +117,7 @@ export function pendingWrites(queryClient: QueryClient, workoutId: string) {
   return queryClient.isMutating({ predicate: (m) => m.options.scope?.id === workoutScope(workoutId) })
 }
 
-const WORKOUT_SELECT = `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by, last_activity_at,
+const WORKOUT_SELECT = `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by, group_id, last_activity_at,
   workout_exercises (id, exercise_id, position, notes, difficulty, athlete_feedback,
     sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, completed_at))`
 
@@ -145,6 +147,7 @@ async function fetchWorkout(id: string): Promise<Workout> {
     programId: data.program_id,
     membershipId: data.membership_id,
     createdBy: data.created_by,
+    groupId: data.group_id,
     lastActivityAt: data.last_activity_at,
     exercises: data.workout_exercises
       .map((we) => ({
@@ -174,15 +177,20 @@ async function fetchWorkout(id: string): Promise<Workout> {
 
 export function useWorkout(id: string | undefined) {
   const queryClient = useQueryClient()
-  return useQuery({
+  return useQuery(workoutQueryOptions(queryClient, id))
+}
+
+/** The live, self-syncing query of one workout (also used per client of a split session). */
+export function workoutQueryOptions(queryClient: QueryClient, id: string | undefined) {
+  return {
     queryKey: workoutKey(id ?? ''),
     enabled: Boolean(supabase && id),
     // While the workout is open, keep reading the server: the trainer and the client may both have
     // it open, and each must see the other's sets (and an automatic finish) before acting on them.
     staleTime: 2_000,
     refetchOnWindowFocus: true,
-    refetchInterval: (query) => (query.state.data?.finishedAt ? false : LIVE_SYNC_MS),
-    retry: (failures, error) => !(error instanceof WorkoutGoneError) && failures < 1,
+    refetchInterval: (query: { state: { data?: Workout } }) => (query.state.data?.finishedAt ? false : LIVE_SYNC_MS),
+    retry: (failures: number, error: Error) => !(error instanceof WorkoutGoneError) && failures < 1,
     queryFn: async (): Promise<Workout> => {
       const editsBefore = localEdits.get(id!) ?? 0
       let fresh = await fetchWorkout(id!)
@@ -202,6 +210,19 @@ export function useWorkout(id: string | undefined) {
       if (cached && (pendingWrites(queryClient, id!) > 0 || (localEdits.get(id!) ?? 0) !== editsBefore)) return cached
       return fresh
     },
+  } satisfies UseQueryOptions<Workout>
+}
+
+/** Resolves once none of these workouts has a write queued or in flight. */
+export function waitForWrites(queryClient: QueryClient, workoutIds: string[]): Promise<void> {
+  const idle = () => workoutIds.every((id) => pendingWrites(queryClient, id) === 0)
+  if (idle()) return Promise.resolve()
+  return new Promise((resolve) => {
+    const unsubscribe = queryClient.getMutationCache().subscribe(() => {
+      if (!idle()) return
+      unsubscribe()
+      resolve()
+    })
   })
 }
 
@@ -452,9 +473,10 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
-  const addExercise = (exerciseId: string, planned: PlannedSet[]) => {
+  /** `at`: a split session puts the same exercise at the same position for every client. */
+  const addExercise = (exerciseId: string, planned: PlannedSet[], at?: number) => {
     const w = current()
-    const position = Math.max(-1, ...(w?.exercises.map((e) => e.position) ?? [])) + 1
+    const position = at ?? Math.max(-1, ...(w?.exercises.map((e) => e.position) ?? [])) + 1
     const weId = newId()
     const we: WorkoutExercise = {
       id: weId,
