@@ -24,6 +24,7 @@ import { useMemberships, type Membership } from '@/features/memberships/api'
 import { MembershipCard } from '@/features/memberships/MembershipCard'
 import { MembershipDrawer, type MembershipDraftTarget } from '@/features/memberships/MembershipDrawer'
 import { useMode } from '@/features/mode/modeContext'
+import { ClientNotes } from '@/features/notes/ClientNotes'
 import { ClientPlanSection } from '@/features/plans/ClientPlanSection'
 import { useIsMine, usePrograms, useTemplates } from '@/features/templates/api'
 import { useActiveWorkout, useExerciseRecords, useRecentWorkouts } from '@/features/workout/api'
@@ -134,6 +135,8 @@ export function ClientPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ClientNotes athleteId={athleteId} />
 
       <MembershipCard
         kind="trainer"

@@ -250,6 +250,64 @@ export type Database = {
           },
         ]
       }
+      client_notes: {
+        Row: {
+          athlete_id: string
+          body: string
+          created_at: string
+          exercise_id: string | null
+          id: string
+          kind: string
+          muscle_group: Database["public"]["Enums"]["muscle_group"] | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          athlete_id: string
+          body?: string
+          created_at?: string
+          exercise_id?: string | null
+          id?: string
+          kind?: string
+          muscle_group?: Database["public"]["Enums"]["muscle_group"] | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Update: {
+          athlete_id?: string
+          body?: string
+          created_at?: string
+          exercise_id?: string | null
+          id?: string
+          kind?: string
+          muscle_group?: Database["public"]["Enums"]["muscle_group"] | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notes_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_notes_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_notes_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercises: {
         Row: {
           archived_at: string | null

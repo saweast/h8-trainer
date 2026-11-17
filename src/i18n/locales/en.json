@@ -160,7 +160,7 @@
     "renamePrompt": "New client name",
     "inviteToAccount": "Invite to an account",
     "unlink": "Remove client",
-    "unlinkConfirm": "The client leaves your list. Their workouts stay in their account.",
+    "unlinkConfirm": "The client leaves your list and your notes about them are deleted. Their workouts stay in their account.",
     "deleteClient": "Delete client",
     "deleteClientConfirm": "This client without an account will be deleted with all workout history.",
     "removeError": "Couldn't do that.",
@@ -693,5 +693,31 @@
     "planPlaceholder": "A comment on the plan as a whole",
     "planTitle": "Plan discussion",
     "latestInCells": "Latest in cells"
+  },
+  "notes": {
+    "title": "Notes",
+    "add": "New note",
+    "edit": "Note",
+    "private": "Only you can see this, not the client.",
+    "empty": "Write down the client's wishes, injuries, what to do and what to avoid.",
+    "showAll": "Show all ({{count}})",
+    "showLess": "Show less",
+    "kindLabel": "Note type",
+    "kind": {
+      "note": "Note",
+      "avoid": "Avoid",
+      "prefer": "Prefer"
+    },
+    "targetHint": "About a muscle group or an exercise — optional. It's then flagged when you add exercises.",
+    "exerciseSearch": "Or find an exercise",
+    "clearExercise": "Remove exercise",
+    "bodyLabel": "Note text",
+    "placeholder": {
+      "note": "E.g. wants to lose weight by summer, trains in the morning",
+      "avoid": "E.g. shoulder hurts, no overhead pressing",
+      "prefer": "E.g. likes working with dumbbells"
+    },
+    "delete": "Delete note",
+    "saveError": "Couldn't save the note"
   }
 }
