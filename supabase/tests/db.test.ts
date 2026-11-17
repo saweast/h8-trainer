@@ -88,6 +88,7 @@ describe('hardening', () => {
        where n.nspname = 'public' order by p.proname`,
     )
     expect(exposed.map((r) => r.proname)).toEqual([
+      'accept_link_request',
       'admin_athlete_workouts',
       'admin_set_can_be_trainer',
       'admin_trainer_clients',
@@ -98,12 +99,16 @@ describe('hardening', () => {
       'copy_plan',
       'create_offline_client',
       'create_plan_from_templates',
+      'decline_link_request',
       'exercise_records',
       'finish_workout',
       'get_invite',
       'last_performance',
+      'merge_clients',
+      'my_link_requests',
       'next_plan_slot',
       'next_program_template',
+      'request_client_link',
       'save_plan',
       'save_program',
       'save_template',
@@ -1223,5 +1228,150 @@ describe('finishing a live session', () => {
     )
     const [w] = await rows<{ fresh: boolean }>(db, `select last_activity_at > now() - interval '1 minute' as fresh from public.workouts where id = $1`, [id])
     expect(w.fresh).toBe(true)
+  })
+})
+
+describe('merging clients', () => {
+  let marko: { userId: string; athleteId: string } // client with an account, linked to the trainer
+
+  const asTrainer = <T>(fn: (tx: Transaction) => Promise<T>) => asUser(trainer.userId, fn)
+  const one = async <T extends Row>(tx: Transaction | PGlite, sql: string, params: unknown[] = []) => (await rows<T>(tx, sql, params))[0]
+  const newOffline = (name: string) => asTrainer(async (tx) => (await one<{ id: string }>(tx, `select public.create_offline_client($1) as id`, [name])).id)
+  const athleteExists = async (id: string) => (await rows(db, `select id from public.athletes where id = $1`, [id])).length > 0
+
+  beforeAll(async () => {
+    marko = await createUser('Marko')
+    await db.query(`insert into public.trainer_athletes (trainer_id, athlete_id) values ($1, $2)`, [trainer.userId, marko.athleteId])
+  })
+
+  it("merges an offline client into the same person's account with everything they had", async () => {
+    const offline = await newOffline('Марко (офлайн)')
+    const pkg = await asTrainer(async (tx) => {
+      const m = await one<{ id: string }>(
+        tx,
+        `insert into public.memberships (athlete_id, kind, trainer_id, sessions_total) values ($1, 'trainer', $2, 10) returning id`,
+        [offline, trainer.userId],
+      )
+      await tx.query(`insert into public.workouts (athlete_id, title, membership_id, finished_at) values ($1, 'Офлайн', $2, now())`, [offline, m.id])
+      await tx.query(`insert into public.body_measurements (athlete_id, weight_kg) values ($1, 82)`, [offline])
+      await tx.query(`insert into public.plans (athlete_id, name) values ($1, 'План офлайн')`, [offline])
+      await tx.query(`insert into public.plans (athlete_id, name) values ($1, 'План акаунта')`, [marko.athleteId])
+      await tx.query(`insert into public.invites (athlete_id) values ($1)`, [offline])
+      return m.id
+    })
+
+    const merged = await asTrainer((tx) => one(tx, `select public.merge_clients($1, $2) as id`, [offline, marko.athleteId]))
+    expect(merged.id).toBe(marko.athleteId)
+    expect(await athleteExists(offline)).toBe(false)
+
+    await asUser(marko.userId, async (tx) => {
+      expect(await rows(tx, `select title from public.workouts`)).toEqual([{ title: 'Офлайн' }])
+      expect(await one(tx, `select athlete_id, sessions_used from public.membership_usage where id = $1`, [pkg])).toEqual({
+        athlete_id: marko.athleteId,
+        sessions_used: 1,
+      })
+      expect(await rows(tx, `select weight_kg::float as kg from public.body_measurements`)).toEqual([{ kg: 82 }])
+      // both plans are kept; the account's stays the active one
+      expect(await rows(tx, `select name, archived_at is null as active from public.plans where athlete_id is not null order by name`)).toEqual([
+        { name: 'План акаунта', active: true },
+        { name: 'План офлайн', active: false },
+      ])
+    })
+    // the offline client's open invite is gone instead of turning into a plain invite
+    expect(await rows(db, `select code from public.invites where trainer_id = $1 and used_at is null and athlete_id is null`, [trainer.userId])).toEqual([])
+    await asTrainer(async (tx) => {
+      const names = (await rows<{ display_name: string }>(tx, `select display_name from public.trainer_clients_overview()`)).map((r) => r.display_name)
+      expect(names.filter((n) => n.startsWith('Марко'))).toEqual([])
+      expect(names).toContain('Marko')
+    })
+  })
+
+  it('merges two offline clients', async () => {
+    const a = await newOffline('Ліна')
+    const b = await newOffline('Ліна К.')
+    await asTrainer((tx) => tx.query(`insert into public.workouts (athlete_id, title, finished_at) values ($1, 'Спина', now())`, [a]))
+    await asTrainer((tx) => tx.query(`select public.merge_clients($1, $2)`, [a, b]))
+    expect(await athleteExists(a)).toBe(false)
+    expect(await rows(db, `select title from public.workouts where athlete_id = $1`, [b])).toEqual([{ title: 'Спина' }])
+  })
+
+  it("refuses to merge an account away, someone else's client, or a client into itself", async () => {
+    const offline = await newOffline('Тест')
+    const stranger = await createUser('Stranger') // not the trainer's client
+    await expect(asTrainer((tx) => tx.query(`select public.merge_clients($1, $2)`, [marko.athleteId, offline]))).rejects.toThrow(
+      /without an account/,
+    )
+    await expect(asTrainer((tx) => tx.query(`select public.merge_clients($1, $2)`, [offline, stranger.athleteId]))).rejects.toThrow(
+      /client not found/,
+    )
+    await expect(asUser(stranger.userId, (tx) => tx.query(`select public.merge_clients($1, $2)`, [offline, stranger.athleteId]))).rejects.toThrow(
+      /client not found/,
+    )
+    await expect(asTrainer((tx) => tx.query(`select public.merge_clients($1, $1)`, [offline]))).rejects.toThrow(/into itself/)
+    expect(await athleteExists(offline)).toBe(true)
+  })
+
+  it('asks the owner of an email before moving the history, even before they sign up', async () => {
+    const offline = await newOffline('Іра (офлайн)')
+    await asTrainer((tx) => tx.query(`insert into public.workouts (athlete_id, title, finished_at) values ($1, 'Ноги', now())`, [offline]))
+    const requestId = await asTrainer(async (tx) => (await one<{ id: string }>(tx, `select public.request_client_link($1, ' Ira@Example.com ') as id`, [offline])).id)
+    expect(await asTrainer((tx) => rows(tx, `select email from public.client_link_requests`))).toEqual([{ email: 'ira@example.com' }])
+
+    const ira = await createUser('Ira')
+    expect(await asUser(bohdan.userId, (tx) => rows(tx, `select * from public.my_link_requests()`))).toEqual([])
+    expect(await asUser(ira.userId, (tx) => rows(tx, `select id, trainer_name, athlete_name, workouts_count from public.my_link_requests()`))).toEqual([
+      { id: requestId, trainer_name: 'Olena', athlete_name: 'Іра (офлайн)', workouts_count: 1 },
+    ])
+    // the request alone gives the trainer nothing
+    expect(await asTrainer((tx) => rows(tx, `select id from public.athletes where id = $1`, [ira.athleteId]))).toEqual([])
+    await expect(asUser(bohdan.userId, (tx) => tx.query(`select public.accept_link_request($1)`, [requestId]))).rejects.toThrow(/not found/)
+
+    const accepted = await asUser(ira.userId, (tx) => one(tx, `select public.accept_link_request($1) as id`, [requestId]))
+    expect(accepted.id).toBe(ira.athleteId)
+    expect(await athleteExists(offline)).toBe(false)
+    expect(await asUser(ira.userId, (tx) => rows(tx, `select title from public.workouts`))).toEqual([{ title: 'Ноги' }])
+    await asTrainer(async (tx) => {
+      expect(await rows(tx, `select title from public.workouts where athlete_id = $1`, [ira.athleteId])).toEqual([{ title: 'Ноги' }])
+      expect(await rows(tx, `select id from public.client_link_requests where id = $1`, [requestId])).toEqual([])
+    })
+  })
+
+  it('lets the invitee decline and the trainer cancel, and checks who and what can be requested', async () => {
+    const offline = await newOffline('Богдан (офлайн)')
+    await expect(asTrainer((tx) => tx.query(`select public.request_client_link($1, 'nope')`, [offline]))).rejects.toThrow(/invalid email/)
+    await expect(asTrainer((tx) => tx.query(`select public.request_client_link($1, 'olena@example.com')`, [offline]))).rejects.toThrow(/yourself/)
+    await expect(asTrainer((tx) => tx.query(`select public.request_client_link($1, 'x@example.com')`, [marko.athleteId]))).rejects.toThrow(/without an account/)
+    await expect(asUser(bohdan.userId, (tx) => tx.query(`select public.request_client_link($1, 'x@example.com')`, [offline]))).rejects.toThrow(/without an account/)
+    await expect(asTrainer((tx) => tx.query(`insert into public.client_link_requests (trainer_id, athlete_id, email) values ($1, $2, 'a@b.co')`, [trainer.userId, offline]))).rejects.toThrow(/permission denied/)
+
+    const id = await asTrainer(async (tx) => (await one<{ id: string }>(tx, `select public.request_client_link($1, 'bohdan@example.com') as id`, [offline])).id)
+    // an unconfirmed sign-in email doesn't match
+    await db.query(`update auth.users set email_confirmed_at = null where id = $1`, [bohdan.userId])
+    expect(await asUser(bohdan.userId, (tx) => rows(tx, `select * from public.my_link_requests()`))).toEqual([])
+    await expect(asUser(bohdan.userId, (tx) => tx.query(`select public.accept_link_request($1)`, [id]))).rejects.toThrow(/not found/)
+    await db.query(`update auth.users set email_confirmed_at = now() where id = $1`, [bohdan.userId])
+
+    await asUser(bohdan.userId, (tx) => tx.query(`select public.decline_link_request($1)`, [id]))
+    expect(await asTrainer((tx) => rows(tx, `select id from public.client_link_requests where athlete_id = $1`, [offline]))).toEqual([])
+    expect(await athleteExists(offline)).toBe(true)
+
+    // sending again, then the trainer cancels
+    await asTrainer((tx) => tx.query(`select public.request_client_link($1, 'bohdan@example.com')`, [offline]))
+    await asTrainer((tx) => tx.query(`delete from public.client_link_requests where athlete_id = $1`, [offline]))
+    expect(await asUser(bohdan.userId, (tx) => rows(tx, `select * from public.my_link_requests()`))).toEqual([])
+  })
+
+  it("keeps the offline client's plan when an invite is accepted", async () => {
+    const offline = await newOffline('Олег (офлайн)')
+    const code = await asTrainer(async (tx) => {
+      await tx.query(`insert into public.plans (athlete_id, name) values ($1, 'План Олега')`, [offline])
+      return (await one<{ code: string }>(tx, `insert into public.invites (athlete_id) values ($1) returning code`, [offline])).code
+    })
+    const oleh = await createUser('Oleh')
+    await asUser(oleh.userId, (tx) => tx.query(`select public.claim_invite($1)`, [code]))
+    expect(await asUser(oleh.userId, (tx) => rows(tx, `select name, archived_at is null as active from public.plans where athlete_id is not null`))).toEqual([
+      { name: 'План Олега', active: true },
+    ])
+    expect(await rows(db, `select used_by from public.invites where code = $1`, [code])).toEqual([{ used_by: oleh.userId }])
   })
 })

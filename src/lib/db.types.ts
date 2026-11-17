@@ -211,6 +211,45 @@ export type Database = {
           },
         ]
       }
+      client_link_requests: {
+        Row: {
+          athlete_id: string
+          created_at: string
+          email: string
+          id: string
+          trainer_id: string
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string
+          email: string
+          id?: string
+          trainer_id: string
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_link_requests_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: true
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_link_requests_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercises: {
         Row: {
           archived_at: string | null
@@ -1254,6 +1293,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_link_request: { Args: { p_id: string }; Returns: string }
       admin_athlete_workouts: {
         Args: { p_athlete: string; p_limit?: number }
         Returns: {
@@ -1319,6 +1359,7 @@ export type Database = {
         }
         Returns: string
       }
+      decline_link_request: { Args: { p_id: string }; Returns: undefined }
       exercise_records: {
         Args: { p_athlete: string; p_exclude_workout?: string }
         Returns: {
@@ -1362,6 +1403,21 @@ export type Database = {
           workout_id: string
         }[]
       }
+      merge_clients: {
+        Args: { p_from: string; p_into: string }
+        Returns: string
+      }
+      my_link_requests: {
+        Args: never
+        Returns: {
+          athlete_name: string
+          created_at: string
+          id: string
+          trainer_avatar_url: string
+          trainer_name: string
+          workouts_count: number
+        }[]
+      }
       next_plan_slot: {
         Args: { p_plan: string }
         Returns: {
@@ -1371,6 +1427,10 @@ export type Database = {
       }
       next_program_template: {
         Args: { p_athlete: string; p_program: string }
+        Returns: string
+      }
+      request_client_link: {
+        Args: { p_athlete: string; p_email: string }
         Returns: string
       }
       save_plan: {

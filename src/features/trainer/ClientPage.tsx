@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, ChevronRight, EllipsisVertical, Pencil, Play, Plus, Ruler, Send, Trash2, UserMinus } from 'lucide-react'
+import { ArrowLeft, Check, ChevronRight, EllipsisVertical, Merge, Pencil, Play, Plus, Ruler, Send, Trash2, UserMinus } from 'lucide-react'
 import { format } from 'date-fns'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -36,10 +36,11 @@ import { dateLocale } from '@/lib/dates'
 import { formatKg, formatVolume } from '@/lib/format'
 import { minutesBetween } from '@/lib/time'
 import { cn } from '@/lib/utils'
-import { useAssignments, useAthlete, useRemoveClient, useRenameAthlete, useToggleAssignment, useTrainerClients } from './api'
+import { useAssignments, useAthlete, useLinkRequest, useRemoveClient, useRenameAthlete, useToggleAssignment, useTrainerClients } from './api'
 import { InviteLink } from './InviteLink'
+import { MergeClient } from './MergeClient'
 
-type Sheet = 'rename' | 'invite' | 'remove' | null
+type Sheet = 'rename' | 'invite' | 'merge' | 'remove' | null
 
 export function ClientPage() {
   const { t } = useTranslation()
@@ -56,6 +57,7 @@ export function ClientPage() {
   const [today] = useState(() => new Date())
   const [membershipTarget, setMembershipTarget] = useState<MembershipDraftTarget | null>(null)
   const [sheet, setSheet] = useState<Sheet>(null)
+  const { data: linkRequest } = useLinkRequest(athleteId, Boolean(athlete && !athlete.userId))
 
   const client = clients?.find((c) => c.athleteId === athleteId)
   const pkg = currentMembership<Membership>(memberships ?? [], 'trainer', today, user?.id)
@@ -96,7 +98,11 @@ export function ClientPage() {
         <UserAvatar name={athlete.displayName} src={athlete.avatarUrl} />
         <div className="min-w-0 flex-1">
           <h1 className="font-heading truncate text-lg leading-tight">{athlete.displayName}</h1>
-          {hasAccount ? null : <p className="text-xs text-muted-foreground">{t('trainer.noAccount')}</p>}
+          {hasAccount ? null : (
+            <p className="truncate text-xs text-muted-foreground">
+              {linkRequest ? t('merge.pendingShort', { email: linkRequest.email }) : t('trainer.noAccount')}
+            </p>
+          )}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -114,6 +120,10 @@ export function ClientPage() {
                 <DropdownMenuItem onSelect={() => setSheet('invite')}>
                   <Send />
                   {t('trainer.inviteToAccount')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSheet('merge')}>
+                  <Merge />
+                  {t('merge.menu')}
                 </DropdownMenuItem>
               </>
             )}
@@ -349,6 +359,7 @@ function ClientSheets({
   const titles: Record<Exclude<Sheet, null>, string> = {
     rename: t('trainer.rename'),
     invite: t('trainer.inviteToAccount'),
+    merge: t('merge.title'),
     remove: hasAccount ? t('trainer.unlink') : t('trainer.deleteClient'),
   }
 
@@ -377,6 +388,8 @@ function ClientSheets({
                 </form>
               ) : sheet === 'invite' ? (
                 <InviteLink athleteId={athleteId} athleteName={name} />
+              ) : sheet === 'merge' ? (
+                <MergeClient athleteId={athleteId} name={name} onClose={onClose} />
               ) : (
                 <>
                   <p className="rounded-xl bg-danger-muted px-3 py-2 text-sm text-danger-text">

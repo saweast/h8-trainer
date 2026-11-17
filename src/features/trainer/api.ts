@@ -157,6 +157,117 @@ export function useClaimInvite() {
   })
 }
 
+// Merging clients ---------------------------------------------------------------------------
+
+/** Moves an offline client's history into another of my clients; the offline one is removed. */
+export function useMergeClients() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ fromId, intoId }: { fromId: string; intoId: string }) => {
+      const { data, error } = await supabase!.rpc('merge_clients', { p_from: fromId, p_into: intoId })
+      if (error) throw error
+      return data
+    },
+    // History, packages, plans and records of the target all changed. The merged-away client's
+    // queries are left alone: its page is still mounted until we navigate, and refetching a
+    // deleted athlete only fails.
+    onSuccess: (_d, { fromId }) =>
+      void queryClient.invalidateQueries({ predicate: (q) => !q.queryKey.includes(fromId) }),
+  })
+}
+
+export interface LinkRequest {
+  id: string
+  email: string
+  createdAt: string
+}
+
+const linkRequestKey = (athleteId: string | undefined) => ['link-request', athleteId] as const
+
+/** The open "take over this history" request sent for an offline client, if any. */
+export function useLinkRequest(athleteId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: linkRequestKey(athleteId),
+    enabled: Boolean(supabase && athleteId) && enabled,
+    queryFn: async (): Promise<LinkRequest | null> => {
+      const { data, error } = await supabase!
+        .from('client_link_requests')
+        .select('id, email, created_at')
+        .eq('athlete_id', athleteId!)
+        .maybeSingle()
+      if (error) throw error
+      return data ? { id: data.id, email: data.email, createdAt: data.created_at } : null
+    },
+  })
+}
+
+export function useRequestLink(athleteId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const { error } = await supabase!.rpc('request_client_link', { p_athlete: athleteId, p_email: email })
+      if (error) throw error
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: linkRequestKey(athleteId) }),
+  })
+}
+
+export function useCancelLinkRequest(athleteId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase!.from('client_link_requests').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: linkRequestKey(athleteId) }),
+  })
+}
+
+export interface IncomingLinkRequest {
+  id: string
+  trainerName: string
+  trainerAvatarUrl: string | null
+  athleteName: string
+  workoutsCount: number
+}
+
+const myLinkRequestsKey = ['my-link-requests'] as const
+
+/** Requests from trainers to move an offline client's history into my account (by my email). */
+export function useMyLinkRequests() {
+  return useQuery({
+    queryKey: myLinkRequestsKey,
+    enabled: Boolean(supabase),
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<IncomingLinkRequest[]> => {
+      const { data, error } = await supabase!.rpc('my_link_requests')
+      if (error) throw error
+      return data.map((r) => ({
+        id: r.id,
+        trainerName: r.trainer_name,
+        trainerAvatarUrl: r.trainer_avatar_url,
+        athleteName: r.athlete_name,
+        workoutsCount: r.workouts_count,
+      }))
+    },
+  })
+}
+
+export function useAnswerLinkRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, accept }: { id: string; accept: boolean }) => {
+      const { error } = accept
+        ? await supabase!.rpc('accept_link_request', { p_id: id })
+        : await supabase!.rpc('decline_link_request', { p_id: id })
+      if (error) throw error
+    },
+    // Accepting brings history, packages and a trainer into "me".
+    onSuccess: (_d, { accept }) =>
+      void (accept ? queryClient.invalidateQueries() : queryClient.invalidateQueries({ queryKey: myLinkRequestsKey })),
+  })
+}
+
 // Assignments -------------------------------------------------------------------------------
 
 export interface Assignment {

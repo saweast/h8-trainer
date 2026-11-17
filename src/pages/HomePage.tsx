@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/common/PageHeader'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
 import { MembershipSummary } from '@/features/memberships/MembershipSummary'
+import { LinkRequests } from '@/features/trainer/LinkRequests'
 import { RecentWorkouts, StartOrResume } from '@/features/workout/HomeWorkouts'
 import { currentLanguage } from '@/i18n'
 import { formatLongDay } from '@/lib/dates'
@@ -15,6 +16,7 @@ export function HomePage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={t('home.title')} subtitle={formatLongDay(today, currentLanguage())} />
+      <LinkRequests />
       <MembershipSummary athleteId={athleteId} />
       <StartOrResume athleteId={athleteId} />
       <section className="mt-2">
