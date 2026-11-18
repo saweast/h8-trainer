@@ -61,7 +61,17 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
           # Optional OAuth Web client ID (public). Set → Google's own button + signInWithIdToken;
           # unset → the Supabase redirect flow.
-          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || vars.VITE_GOOGLE_CLIENT_ID }}
+      - name: Report Google sign-in mode
+        if: github.event_name != 'pull_request'
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || vars.VITE_GOOGLE_CLIENT_ID }}
+        run: |
+          if [ -n "$GOOGLE_CLIENT_ID" ]; then
+            echo "VITE_GOOGLE_CLIENT_ID set: Google Identity Services button."
+          else
+            echo "::warning title=Google client ID not set::VITE_GOOGLE_CLIENT_ID is empty, so sign-in uses the Supabase redirect flow. Add it under Settings > Secrets and variables > Actions as a repository variable or secret (not an Environment one)."
+          fi
       - uses: actions/upload-pages-artifact@v4
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:
