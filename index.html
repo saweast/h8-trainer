@@ -13,7 +13,24 @@
     <title>h8 trainer</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!--
+        Shown until React mounts (it replaces everything inside #root), and to crawlers that
+        don't run JavaScript: Google's OAuth brand verification reads the app name and the
+        privacy policy link from this page, so both must be in the static HTML.
+      -->
+      <main class="mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-safe pb-8">
+        <div class="flex flex-1 flex-col justify-center">
+          <p class="font-heading text-6xl leading-none tracking-tight" aria-hidden="true">h8<span class="text-lime">.</span></p>
+          <h1 class="mt-6 font-heading text-2xl">h8 trainer</h1>
+          <p class="mt-2 max-w-xs text-lg text-muted-foreground">Записуй тренування. Бач прогрес. Веди клієнтів.</p>
+        </div>
+        <p class="text-center text-xs text-muted-foreground">
+          <a href="/terms.html" class="underline underline-offset-2">Умови використання</a> ·
+          <a href="/privacy.html" class="underline underline-offset-2">Політика конфіденційності</a>
+        </p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

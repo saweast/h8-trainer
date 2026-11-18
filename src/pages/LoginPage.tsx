@@ -47,7 +47,9 @@ export function LoginPage() {
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-safe pb-[calc(2rem+env(safe-area-inset-bottom))]">
       <div className="flex flex-1 flex-col justify-center">
         <Logo className="text-6xl" />
-        <p className="mt-4 max-w-xs text-lg text-muted-foreground">{t('login.tagline')}</p>
+        {/* The full app name must be visible text: Google's OAuth brand check matches it */}
+        <h1 className="mt-6 font-heading text-2xl">{t('common.appName')}</h1>
+        <p className="mt-2 max-w-xs text-lg text-muted-foreground">{t('login.tagline')}</p>
       </div>
 
       <div className="flex flex-col gap-3">
