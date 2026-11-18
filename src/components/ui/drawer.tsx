@@ -5,7 +5,13 @@ import { Drawer as DrawerPrimitive } from "vaul"
 function Drawer({
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />
+  // vaul 1.x turns its iOS scroll lock on for drawers opened through a trigger. That lock
+  // scrolls the page to the top on open, and every press inside the sheet briefly switches it
+  // off, scrolling the page back to where it was. iOS cancels a tap when the page scrolls under
+  // the finger, so buttons in a drawer opened on a scrolled page didn't respond. Radix's overlay
+  // already stops the page behind from scrolling, so the lock isn't needed. vaul's flag is
+  // inverted: `false` is what switches its lock off.
+  return <DrawerPrimitive.Root data-slot="drawer" disablePreventScroll={false} {...props} />
 }
 
 function DrawerTrigger({
