@@ -7,10 +7,13 @@ import {
   Copy,
   CopyPlus,
   EllipsisVertical,
+  Layers,
+  Link2,
   Play,
   Plus,
   Repeat,
   Trash2,
+  Unlink,
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -40,6 +43,7 @@ import { formatVolume } from '@/lib/format'
 import {
   addWeek,
   copyWeek,
+  dissolveLone,
   emptyDay,
   extendCycle,
   moveRow,
@@ -51,7 +55,9 @@ import {
   type PlanRowDraft,
 } from '@/lib/planGrid'
 import type { SpecSet } from '@/lib/setSpec'
+import { byId, joinNeighbour, leaveSuperset, nextSupersetNumber, supersetPlaces } from '@/lib/superset'
 import { cn } from '@/lib/utils'
+import { SupersetLabel } from '@/features/workout/ExerciseCard'
 import {
   useArchivePlan,
   useCopyPlan,
@@ -119,6 +125,7 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
   const [inline, setInline] = useState<Editing>(null)
   const [drawer, setDrawer] = useState<Editing>(null)
   const [pickerDay, setPickerDay] = useState<string | null>(null)
+  const [pickerMany, setPickerMany] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [dayId, setDayId] = useState(() => draft.days[0]?.id ?? '')
 
@@ -148,6 +155,46 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
   const update = (fn: (d: PlanDraft) => PlanDraft) => setDraft((d) => fn(d))
   const updateDay = (id: string, fn: (rows: PlanRowDraft[]) => PlanRowDraft[]) =>
     update((d) => ({ ...d, days: d.days.map((day) => (day.id === id ? { ...day, rows: fn(day.rows) } : day)) }))
+
+  const openPicker = (dayId: string, many = false) => {
+    setPickerMany(many)
+    setPickerDay(dayId)
+  }
+  /** Superset changes (by row id) for one day; a superset left with one row dissolves. */
+  const regroup = (dayId: string, changes: Map<string, number | null>) =>
+    updateDay(dayId, (rows) => dissolveLone(rows.map((r) => (changes.has(r.id) ? { ...r, superset: changes.get(r.id)! } : r))))
+  const removeRow = (dayId: string, rowId: string) => updateDay(dayId, (rows) => dissolveLone(rows.filter((r) => r.id !== rowId)))
+
+  /** A1/A2 label and the superset entries of a row's menu. */
+  const grouping = (day: (typeof draft.days)[number], row: PlanRowDraft) => {
+    const place = supersetPlaces(day.rows).get(row)
+    const index = day.rows.indexOf(row)
+    const first = !place || place.index === 0
+    const last = !place || place.index === place.size - 1
+    const items: ReactNode[] = []
+    if (index > 0 && first)
+      items.push(
+        <DropdownMenuItem key="up" onSelect={() => regroup(day.id, byId(joinNeighbour(day.rows, index, 'up')))}>
+          <Link2 />
+          {t('superset.joinUp')}
+        </DropdownMenuItem>,
+      )
+    if (index < day.rows.length - 1 && last)
+      items.push(
+        <DropdownMenuItem key="down" onSelect={() => regroup(day.id, byId(joinNeighbour(day.rows, index, 'down')))}>
+          <Link2 />
+          {t('superset.joinDown')}
+        </DropdownMenuItem>,
+      )
+    if (place && (first || last))
+      items.push(
+        <DropdownMenuItem key="leave" onSelect={() => regroup(day.id, byId(leaveSuperset(day.rows, index)))}>
+          <Unlink />
+          {t('superset.leave')}
+        </DropdownMenuItem>,
+      )
+    return { label: place ? `${place.letter}${place.index + 1}` : undefined, items }
+  }
 
   const onSave = async () => {
     if (!draft.name.trim()) {
@@ -372,19 +419,24 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
                       fallback={t('plan.dayN', { n: dayIndex + 1 })}
                       readOnly={readOnly}
                       onRename={(name) => update((d) => ({ ...d, days: d.days.map((x) => (x.id === day.id ? { ...x, name } : x)) }))}
-                      onAddExercise={() => setPickerDay(day.id)}
+                      onAddExercise={() => openPicker(day.id)}
+                      onAddSuperset={() => openPicker(day.id, true)}
                       onRemove={draft.days.length > 1 ? () => update((d) => ({ ...d, days: d.days.filter((x) => x.id !== day.id) })) : undefined}
                     />
                   </td>
                 </tr>
-                {day.rows.map((row) => (
+                {day.rows.map((row) => {
+                  const group = grouping(day, row)
+                  return (
                   <tr key={row.id} className="align-top">
-                    <td className="sticky left-0 z-10 border-b bg-card px-3 py-2">
+                    <td className={cn('sticky left-0 z-10 border-b bg-card px-3 py-2', group.label && 'border-l-4 border-l-primary/70 pl-2')}>
                       <RowLabel
                         name={nameOf(row.exerciseId)}
+                        label={group.label}
+                        extraItems={group.items}
                         readOnly={readOnly}
                         onMove={(delta) => update((d) => moveRow(d, row.id, delta))}
-                        onRemove={() => updateDay(day.id, (rows) => rows.filter((r) => r.id !== row.id))}
+                        onRemove={() => removeRow(day.id, row.id)}
                       />
                     </td>
                     {weeks.map((w) => {
@@ -424,7 +476,8 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
                     })}
                     {readOnly ? null : <td className="border-b border-l" />}
                   </tr>
-                ))}
+                  )
+                })}
                 {day.rows.length ? null : (
                   <tr>
                     <td colSpan={draft.weeks + 2} className="border-b px-3 py-3 text-sm text-muted-foreground">
@@ -473,7 +526,8 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
                   fallback={t('plan.dayN', { n: draft.days.indexOf(selectedDay) + 1 })}
                   readOnly={readOnly}
                   onRename={(name) => update((d) => ({ ...d, days: d.days.map((x) => (x.id === selectedDay.id ? { ...x, name } : x)) }))}
-                  onAddExercise={() => setPickerDay(selectedDay.id)}
+                  onAddExercise={() => openPicker(selectedDay.id)}
+                  onAddSuperset={() => openPicker(selectedDay.id, true)}
                   onRemove={
                     draft.days.length > 1
                       ? () => {
@@ -484,13 +538,17 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
                   }
                 />
               </div>
-              {selectedDay.rows.map((row) => (
-                <div key={row.id} className="rounded-2xl border bg-card p-3">
+              {selectedDay.rows.map((row) => {
+                const group = grouping(selectedDay, row)
+                return (
+                <div key={row.id} className={cn('rounded-2xl border bg-card p-3', group.label && 'border-l-4 border-l-primary/70')}>
                   <RowLabel
                     name={nameOf(row.exerciseId)}
+                    label={group.label}
+                    extraItems={group.items}
                     readOnly={readOnly}
                     onMove={(delta) => update((d) => moveRow(d, row.id, delta))}
-                    onRemove={() => updateDay(selectedDay.id, (rows) => rows.filter((r) => r.id !== row.id))}
+                    onRemove={() => removeRow(selectedDay.id, row.id)}
                   />
                   <WeekStrip currentWeek={currentWeek}>
                     {weeks.map((w) => {
@@ -518,7 +576,8 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
                     })}
                   </WeekStrip>
                 </div>
-              ))}
+                )
+              })}
               {selectedDay.rows.length ? null : (
                 <p className="rounded-2xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">{t('plan.noRows')}</p>
               )}
@@ -528,9 +587,19 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
 
         {readOnly ? null : (
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="touch" className="md:hidden" onClick={() => selectedDay && setPickerDay(selectedDay.id)}>
+            <Button variant="secondary" size="touch" className="md:hidden" onClick={() => selectedDay && openPicker(selectedDay.id)}>
               <Plus aria-hidden />
               {t('templates.addExercise')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="touch"
+              className="md:hidden"
+              onClick={() => selectedDay && openPicker(selectedDay.id, true)}
+              aria-label={t('superset.addLong')}
+            >
+              <Layers aria-hidden />
+              {t('superset.add')}
             </Button>
             <Button
               variant="secondary"
@@ -563,8 +632,17 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
       <ExercisePicker
         open={pickerDay !== null}
         onOpenChange={(open) => !open && setPickerDay(null)}
+        multiple={pickerMany}
         onPick={(exercise: Exercise) => {
           if (pickerDay) updateDay(pickerDay, (rows) => [...rows, newRow(exercise.id)])
+          setPickerDay(null)
+        }}
+        onPickMany={(list: Exercise[]) => {
+          if (pickerDay)
+            updateDay(pickerDay, (rows) => {
+              const superset = nextSupersetNumber(rows)
+              return [...rows, ...list.map((e) => newRow(e.id, null, superset))]
+            })
           setPickerDay(null)
         }}
         athleteId={athleteId ?? myAthleteId}
@@ -715,6 +793,7 @@ function DayHeader({
   readOnly,
   onRename,
   onAddExercise,
+  onAddSuperset,
   onRemove,
 }: {
   name: string
@@ -722,6 +801,7 @@ function DayHeader({
   readOnly: boolean
   onRename: (name: string) => void
   onAddExercise: () => void
+  onAddSuperset: () => void
   onRemove?: () => void
 }) {
   const { t } = useTranslation()
@@ -740,6 +820,10 @@ function DayHeader({
         <Plus aria-hidden />
         {t('templates.addExercise')}
       </Button>
+      <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={onAddSuperset}>
+        <Layers aria-hidden />
+        {t('superset.addLong')}
+      </Button>
       {onRemove ? (
         <Button variant="ghost" size="icon" onClick={onRemove} aria-label={t('plan.removeDay')}>
           <X />
@@ -751,11 +835,16 @@ function DayHeader({
 
 function RowLabel({
   name,
+  label,
+  extraItems,
   readOnly,
   onMove,
   onRemove,
 }: {
   name: string
+  /** "A1" when the row is in a superset. */
+  label?: string
+  extraItems?: ReactNode
   readOnly: boolean
   onMove: (delta: -1 | 1) => void
   onRemove: () => void
@@ -763,7 +852,10 @@ function RowLabel({
   const { t } = useTranslation()
   return (
     <div className="flex items-start gap-1">
-      <span className="min-w-0 flex-1 py-1 text-sm leading-snug font-medium">{name}</span>
+      <span className="min-w-0 flex-1 py-1 text-sm leading-snug font-medium">
+        {label ? <SupersetLabel label={label} /> : null}
+        {name}
+      </span>
       {readOnly ? null : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -780,6 +872,7 @@ function RowLabel({
               <ArrowDown />
               {t('plan.moveDown')}
             </DropdownMenuItem>
+            {extraItems}
             <DropdownMenuItem variant="destructive" onSelect={onRemove}>
               <X />
               {t('templates.removeItem')}

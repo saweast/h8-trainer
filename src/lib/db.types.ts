@@ -595,6 +595,7 @@ export type Database = {
           plan_day_id: string
           position: number
           rest_s: number | null
+          superset: number | null
         }
         Insert: {
           exercise_id: string
@@ -603,6 +604,7 @@ export type Database = {
           plan_day_id: string
           position: number
           rest_s?: number | null
+          superset?: number | null
         }
         Update: {
           exercise_id?: string
@@ -611,6 +613,7 @@ export type Database = {
           plan_day_id?: string
           position?: number
           rest_s?: number | null
+          superset?: number | null
         }
         Relationships: [
           {
@@ -849,6 +852,7 @@ export type Database = {
           position: number
           rest_s: number | null
           sets: Json | null
+          superset: number | null
           target_reps_max: number | null
           target_reps_min: number | null
           target_sets: number
@@ -862,6 +866,7 @@ export type Database = {
           position: number
           rest_s?: number | null
           sets?: Json | null
+          superset?: number | null
           target_reps_max?: number | null
           target_reps_min?: number | null
           target_sets?: number
@@ -875,6 +880,7 @@ export type Database = {
           position?: number
           rest_s?: number | null
           sets?: Json | null
+          superset?: number | null
           target_reps_max?: number | null
           target_reps_min?: number | null
           target_sets?: number
@@ -1023,6 +1029,7 @@ export type Database = {
           notes: string | null
           plan_row_id: string | null
           position: number
+          superset: number | null
           workout_id: string
         }
         Insert: {
@@ -1035,6 +1042,7 @@ export type Database = {
           notes?: string | null
           plan_row_id?: string | null
           position: number
+          superset?: number | null
           workout_id: string
         }
         Update: {
@@ -1047,6 +1055,7 @@ export type Database = {
           notes?: string | null
           plan_row_id?: string | null
           position?: number
+          superset?: number | null
           workout_id?: string
         }
         Relationships: [
