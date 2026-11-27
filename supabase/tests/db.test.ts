@@ -1257,6 +1257,10 @@ describe('merging clients', () => {
       )
       await tx.query(`insert into public.workouts (athlete_id, title, membership_id, finished_at) values ($1, 'Офлайн', $2, now())`, [offline, m.id])
       await tx.query(`insert into public.body_measurements (athlete_id, weight_kg) values ($1, 82)`, [offline])
+      await tx.query(
+        `insert into public.athlete_exercise_settings (athlete_id, exercise_id, setup_notes, drop_pct) values ($1, $2, 'Сидіння 3', 25)`,
+        [offline, benchId],
+      )
       await tx.query(`insert into public.plans (athlete_id, name) values ($1, 'План офлайн')`, [offline])
       await tx.query(`insert into public.plans (athlete_id, name) values ($1, 'План акаунта')`, [marko.athleteId])
       await tx.query(`insert into public.invites (athlete_id) values ($1)`, [offline])
@@ -1274,6 +1278,9 @@ describe('merging clients', () => {
         sessions_used: 1,
       })
       expect(await rows(tx, `select weight_kg::float as kg from public.body_measurements`)).toEqual([{ kg: 82 }])
+      expect(await rows(tx, `select setup_notes, drop_pct from public.athlete_exercise_settings`)).toEqual([
+        { setup_notes: 'Сидіння 3', drop_pct: 25 },
+      ])
       // both plans are kept; the account's stays the active one
       expect(await rows(tx, `select name, archived_at is null as active from public.plans where athlete_id is not null order by name`)).toEqual([
         { name: 'План акаунта', active: true },
@@ -1676,6 +1683,15 @@ describe('drop sets', () => {
         { weight_kg: '40.00', reps: 15, is_drop: true },
       ])
     })
+  })
+
+  it('keeps a per-exercise drop size between 5% and 50%', async () => {
+    await asDropper((tx) =>
+      tx.query(`insert into public.athlete_exercise_settings (athlete_id, exercise_id, drop_pct) values ($1, $2, 30)`, [dropper.athleteId, benchId]),
+    )
+    await expect(
+      asDropper((tx) => tx.query(`update public.athlete_exercise_settings set drop_pct = 80 where athlete_id = $1`, [dropper.athleteId])),
+    ).rejects.toThrow(/drop_pct_check/)
   })
 
   it('never marks a drop as a warm-up', async () => {

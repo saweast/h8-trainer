@@ -46,6 +46,11 @@ describe('suggestDropWeight', () => {
     expect(suggestDropWeight(22.5, 1.25)).toBe(17.5) // 18 → 17.5
   })
 
+  it("takes the person's own share for the exercise", () => {
+    expect(suggestDropWeight(80, 2.5, undefined, 30)).toBe(55) // 56 → 55
+    expect(suggestDropWeight(80, 2.5, undefined, 10)).toBe(72.5) // 72 → 72.5
+  })
+
   it('always goes at least one step lighter, never below zero', () => {
     expect(suggestDropWeight(5, 2.5)).toBe(2.5)
     expect(suggestDropWeight(2.5, 2.5)).toBe(0)

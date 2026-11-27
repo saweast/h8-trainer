@@ -1,6 +1,7 @@
-import { EllipsisVertical, Plus, SlidersHorizontal } from 'lucide-react'
+import { CornerDownRight, EllipsisVertical, Plus, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -14,7 +15,7 @@ import { ExerciseHintButton } from '@/features/exercises/guide/ExerciseHintButto
 import { ExerciseThumb } from '@/features/exercises/guide/ExerciseThumb'
 import type { Exercise } from '@/features/exercises/api'
 import { currentLanguage } from '@/i18n'
-import { chainEnd, suggestDropWeight, workingChains } from '@/lib/dropSets'
+import { chainEnd, DEFAULT_DROP_PCT, DROP_PCT_OPTIONS, suggestDropWeight, workingChains } from '@/lib/dropSets'
 import { detectPrs, type ExerciseRecords } from '@/lib/records'
 import type { PreviousSet } from '@/lib/templatePrefill'
 import type { ExerciseFeedbackPatch, WorkoutExercise, WorkoutSet } from './api'
@@ -29,6 +30,8 @@ interface ExerciseCardProps {
   lastTime: PreviousSet[]
   records: ExerciseRecords | null
   setupNotes: string | null
+  /** How much lighter a new drop is, %; null = default. */
+  dropPct: number | null
   /** Live view of someone else's session: sets and exercises can't be changed, feedback can. */
   readOnly?: boolean
   onSetChange: (setId: string, patch: SetPatch) => void
@@ -39,6 +42,7 @@ interface ExerciseCardProps {
   onAddDrop: (afterSetId: string, weightKg: number) => void
   onRemove: () => void
   onSaveSetup: (notes: string) => void
+  onSaveDropPct: (pct: number) => void
   onFeedback: (patch: ExerciseFeedbackPatch) => void
 }
 
@@ -48,6 +52,7 @@ export function ExerciseCard({
   lastTime,
   records,
   setupNotes,
+  dropPct,
   readOnly = false,
   onSetChange,
   onSetCompleted,
@@ -56,11 +61,15 @@ export function ExerciseCard({
   onAddDrop,
   onRemove,
   onSaveSetup,
+  onSaveDropPct,
   onFeedback,
 }: ExerciseCardProps) {
   const { t } = useTranslation()
   const lang = currentLanguage()
   const [editingSetup, setEditingSetup] = useState(false)
+  const [editingDrop, setEditingDrop] = useState(false)
+  const pct = dropPct ?? DEFAULT_DROP_PCT
+  const weighted = exercise?.equipment !== 'bodyweight'
   const [setupDraft, setSetupDraft] = useState(setupNotes ?? '')
 
   const saveSetup = () => {
@@ -93,6 +102,12 @@ export function ExerciseCard({
               <SlidersHorizontal />
               {t('workout.setupNotes')}
             </DropdownMenuItem>
+            {weighted ? (
+              <DropdownMenuItem onSelect={() => setEditingDrop(true)}>
+                <CornerDownRight />
+                {t('workout.dropPctMenu', { pct })}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem variant="destructive" onSelect={onRemove}>
               {t('workout.deleteExercise')}
             </DropdownMenuItem>
@@ -126,6 +141,21 @@ export function ExerciseCard({
         </button>
       ) : null}
 
+      {editingDrop ? (
+        <div className="mb-2 flex flex-col gap-1.5">
+          <p className="pl-1 text-xs text-muted-foreground">{t('workout.dropPctHint')}</p>
+          <SegmentedControl
+            value={String(pct)}
+            options={DROP_PCT_OPTIONS.map((p) => ({ value: String(p), label: `−${p}%` }))}
+            onChange={(value) => {
+              setEditingDrop(false)
+              if (Number(value) !== pct) onSaveDropPct(Number(value))
+            }}
+            ariaLabel={t('workout.dropPct')}
+          />
+        </div>
+      ) : null}
+
       <SetsTable
         sets={item.sets}
         lastTime={lastTime}
@@ -137,6 +167,7 @@ export function ExerciseCard({
         onAddSet={onAddSet}
         onAddDrop={onAddDrop}
         weightStepKg={exercise?.weightStepKg}
+        dropPct={pct}
       />
 
       {item.sets.some((s) => s.completedAt !== null) || item.difficulty !== null ? (
@@ -158,6 +189,8 @@ interface SetsTableProps {
   readOnly?: boolean
   /** The machine's weight step, for the weight of a new drop. */
   weightStepKg?: number
+  /** How much lighter a new drop is without history, %. */
+  dropPct?: number
   onSetChange: (setId: string, patch: SetPatch) => void
   /** `dropNext`: a drop follows straight away, so no rest. */
   onSetCompleted: (set: WorkoutSet, isPr: boolean, dropNext: boolean) => void
@@ -173,6 +206,7 @@ export function SetsTable({
   records,
   readOnly = false,
   weightStepKg = 2.5,
+  dropPct = DEFAULT_DROP_PCT,
   onSetChange,
   onSetCompleted,
   onSetDelete,
@@ -183,12 +217,12 @@ export function SetsTable({
   const rows = labelSets(sets, lastTime, t('workout.warmupShort'))
   const lastChains = workingChains(lastTime)
 
-  // The new drop goes after the chain's last set, at last time's weight for that drop or 20% less.
+  // The new drop goes after the chain's last set, at last time's weight for that drop or dropPct% less.
   const addDrop = (index: number) => {
     const end = chainEnd(sets, index)
     const { chain, step } = rows[end]
     const lastTimeKg = lastChains[chain]?.drops[step]?.weightKg
-    onAddDrop(sets[end].id, suggestDropWeight(sets[end].weightKg, weightStepKg, lastTimeKg))
+    onAddDrop(sets[end].id, suggestDropWeight(sets[end].weightKg, weightStepKg, lastTimeKg, dropPct))
   }
 
   return (

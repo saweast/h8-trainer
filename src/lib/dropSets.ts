@@ -58,18 +58,21 @@ export function dropsAfter<T extends ChainSet>(sets: T[], index: number): T[] {
 /** Seconds to change the weight before a drop: a short countdown instead of rest. */
 export const DROP_CHANGE_S = 10
 
-/** Share of the weight taken off for a drop when there is no history. */
-export const DROP_SHARE = 0.2
+/** How much lighter a drop is, %, unless the person set their own for the exercise. */
+export const DEFAULT_DROP_PCT = 20
+/** Choices for the per-exercise setting. */
+export const DROP_PCT_OPTIONS = [10, 15, 20, 25, 30] as const
 
 /**
  * Weight for a new drop: what this drop was last time, if that is still lighter than the set it
- * continues; otherwise 20% lighter, on the machine's step (and at least one step lighter).
+ * continues; otherwise `pct`% lighter (20 by default), on the machine's step and at least one step
+ * lighter.
  */
-export function suggestDropWeight(previousKg: number, stepKg: number, lastTimeKg?: number): number {
+export function suggestDropWeight(previousKg: number, stepKg: number, lastTimeKg?: number, pct = DEFAULT_DROP_PCT): number {
   if (previousKg <= 0) return 0
   if (lastTimeKg !== undefined && lastTimeKg > 0 && lastTimeKg < previousKg) return lastTimeKg
   const step = stepKg > 0 ? stepKg : 2.5
-  let kg = Math.round((previousKg * (1 - DROP_SHARE)) / step) * step
+  let kg = Math.round((previousKg * (1 - pct / 100)) / step) * step
   if (kg >= previousKg) kg = previousKg - step
   return Math.max(0, Math.round(kg * 100) / 100)
 }

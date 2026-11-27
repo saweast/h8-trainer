@@ -12,6 +12,7 @@ import {
   useExerciseSettings,
   useSaveExerciseSettings,
   type Exercise,
+  type ExerciseSettings,
 } from '@/features/exercises/api'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { useTemplate } from '@/features/templates/api'
@@ -99,6 +100,18 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
       celebrated.current.add(item.exerciseId)
       toast.success(t('workout.pr'))
     }
+  }
+
+  // One setting changes, the rest of the row stays as it is.
+  const saveSetting = (exerciseId: string, patch: Partial<ExerciseSettings>) => {
+    const current = settings?.get(exerciseId)
+    saveSettings.mutate({
+      exerciseId,
+      setupNotes: current?.setupNotes ?? null,
+      restS: current?.restS ?? null,
+      dropPct: current?.dropPct ?? null,
+      ...patch,
+    })
   }
 
   const allSets = workout.exercises.flatMap((e) => e.sets)
@@ -219,16 +232,12 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
                 exercise={exercises.get(item.exerciseId)}
                 records={records?.get(item.exerciseId) ?? null}
                 setupNotes={settings?.get(item.exerciseId)?.setupNotes ?? null}
+                dropPct={settings?.get(item.exerciseId)?.dropPct ?? null}
                 actions={actions}
                 readOnly={liveView}
                 onSetCompleted={(_set, isPr, dropNext) => onSetCompleted(item, isPr, dropNext)}
-                onSaveSetup={(notes) =>
-                  saveSettings.mutate({
-                    exerciseId: item.exerciseId,
-                    setupNotes: notes,
-                    restS: settings?.get(item.exerciseId)?.restS ?? null,
-                  })
-                }
+                onSaveSetup={(notes) => saveSetting(item.exerciseId, { setupNotes: notes })}
+                onSaveDropPct={(dropPct) => saveSetting(item.exerciseId, { dropPct })}
               />
             ))}
             {liveView ? null : (
@@ -267,10 +276,12 @@ interface ContainerProps {
   exercise: Exercise | undefined
   records: ExerciseRecords | null
   setupNotes: string | null
+  dropPct: number | null
   actions: Actions
   readOnly: boolean
   onSetCompleted: (set: WorkoutSet, isPr: boolean, dropNext: boolean) => void
   onSaveSetup: (notes: string) => void
+  onSaveDropPct: (pct: number) => void
 }
 
 /** Loads "last time" for one exercise and wires the card to the workout actions. */
@@ -280,10 +291,12 @@ function ExerciseCardContainer({
   exercise,
   records,
   setupNotes,
+  dropPct,
   actions,
   readOnly,
   onSetCompleted,
   onSaveSetup,
+  onSaveDropPct,
 }: ContainerProps) {
   const { data: lastTime } = useLastPerformance(workout.athleteId, item.exerciseId, workout.id)
   return (
@@ -293,6 +306,7 @@ function ExerciseCardContainer({
       lastTime={lastTime ?? []}
       records={records}
       setupNotes={setupNotes}
+      dropPct={dropPct}
       readOnly={readOnly}
       onSetChange={(setId, patch) => actions.updateSet(setId, patch)}
       onSetCompleted={onSetCompleted}
@@ -301,6 +315,7 @@ function ExerciseCardContainer({
       onAddDrop={(afterSetId, weightKg) => actions.addDrop(afterSetId, weightKg)}
       onRemove={() => actions.removeExercise(item.id)}
       onSaveSetup={onSaveSetup}
+      onSaveDropPct={onSaveDropPct}
       onFeedback={(patch) => actions.setFeedback(item.id, patch)}
     />
   )

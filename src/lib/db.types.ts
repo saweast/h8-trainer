@@ -73,6 +73,7 @@ export type Database = {
       athlete_exercise_settings: {
         Row: {
           athlete_id: string
+          drop_pct: number | null
           exercise_id: string
           rest_s: number | null
           setup_notes: string | null
@@ -80,6 +81,7 @@ export type Database = {
         }
         Insert: {
           athlete_id: string
+          drop_pct?: number | null
           exercise_id: string
           rest_s?: number | null
           setup_notes?: string | null
@@ -87,6 +89,7 @@ export type Database = {
         }
         Update: {
           athlete_id?: string
+          drop_pct?: number | null
           exercise_id?: string
           rest_s?: number | null
           setup_notes?: string | null

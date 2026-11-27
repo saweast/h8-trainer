@@ -437,6 +437,7 @@ function MemberSets({ entry, item, exercise, onSetCompleted }: MemberSetsProps) 
         readOnly={readOnly}
         onSetChange={(setId, patch) => actions.updateSet(setId, patch)}
         weightStepKg={exercise?.weightStepKg}
+        dropPct={setting?.dropPct ?? undefined}
         onSetCompleted={(_set, isPr, dropNext) =>
           onSetCompleted(dropNext ? null : (setting?.restS ?? exercise?.defaultRestS ?? 90), isPr)
         }

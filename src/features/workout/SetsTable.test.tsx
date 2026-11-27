@@ -25,7 +25,7 @@ const prev = (weightKg: number, reps: number, flags: Partial<PreviousSet> = {}):
   ...flags,
 })
 
-function renderTable(sets: WorkoutSet[], lastTime: PreviousSet[] = []) {
+function renderTable(sets: WorkoutSet[], lastTime: PreviousSet[] = [], dropPct?: number) {
   const handlers = {
     onSetChange: vi.fn(),
     onSetCompleted: vi.fn(),
@@ -33,7 +33,7 @@ function renderTable(sets: WorkoutSet[], lastTime: PreviousSet[] = []) {
     onAddSet: vi.fn(),
     onAddDrop: vi.fn(),
   }
-  render(<SetsTable sets={sets} lastTime={lastTime} records={null} weightStepKg={2.5} {...handlers} />)
+  render(<SetsTable sets={sets} lastTime={lastTime} records={null} weightStepKg={2.5} dropPct={dropPct} {...handlers} />)
   return handlers
 }
 
@@ -78,6 +78,11 @@ describe('SetsTable with drops', () => {
     const fresh = renderTable(sets)
     fireEvent.click(openMenu(0).getByRole('menuitem', { name: 'Додати дроп' }))
     expect(fresh.onAddDrop).toHaveBeenCalledWith(sets[0].id, 65)
+    cleanup()
+
+    const ownShare = renderTable(sets, [], 30)
+    fireEvent.click(openMenu(0).getByRole('menuitem', { name: 'Додати дроп' }))
+    expect(ownShare.onAddDrop).toHaveBeenCalledWith(sets[0].id, 55)
   })
 
   it('adds the next drop after the last one of the chain', () => {
