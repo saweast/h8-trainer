@@ -36,7 +36,7 @@ export function useWorkoutsInRange(athleteId: string | undefined, from: Date, to
 export interface ExerciseSession {
   workoutId: string
   startedAt: string
-  sets: (StatSet & { position: number })[]
+  sets: (StatSet & { position: number; rpe: number | null })[]
 }
 
 /** Every finished session of one exercise for one athlete, oldest first. */
@@ -49,7 +49,7 @@ export function useExerciseSessions(athleteId: string | undefined, exerciseId: s
         .from('workout_exercises')
         .select(
           `id, workout:workouts!inner (id, started_at, finished_at, athlete_id),
-           sets (position, weight_kg, reps, is_warmup, is_drop, completed_at)`,
+           sets (position, weight_kg, reps, is_warmup, is_drop, rpe, completed_at)`,
         )
         .eq('exercise_id', exerciseId!)
         .eq('workout.athlete_id', athleteId!)
@@ -68,6 +68,7 @@ export function useExerciseSessions(athleteId: string | undefined, exerciseId: s
             reps: s.reps,
             isWarmup: s.is_warmup,
             isDrop: s.is_drop,
+            rpe: s.rpe === null ? null : Number(s.rpe),
             completedAt: s.completed_at,
           })
         }

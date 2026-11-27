@@ -6,7 +6,7 @@ import type { WorkoutSet } from './api'
 import { SetsTable } from './ExerciseCard'
 
 let n = 0
-const set = (weightKg: number, reps: number, flags: Partial<Pick<WorkoutSet, 'isWarmup' | 'isDrop' | 'completedAt'>> = {}): WorkoutSet => ({
+const set = (weightKg: number, reps: number, flags: Partial<Pick<WorkoutSet, 'isWarmup' | 'isDrop' | 'rpe' | 'completedAt'>> = {}): WorkoutSet => ({
   id: `s${++n}`,
   workoutExerciseId: 'we',
   position: n,
@@ -14,6 +14,7 @@ const set = (weightKg: number, reps: number, flags: Partial<Pick<WorkoutSet, 'is
   reps,
   isWarmup: false,
   isDrop: false,
+  rpe: null,
   completedAt: null,
   ...flags,
 })
@@ -102,6 +103,25 @@ describe('SetsTable with drops', () => {
   it('offers no drops on a warm-up', () => {
     renderTable([set(40, 10, { isWarmup: true }), set(80, 10)])
     expect(openMenu(0).queryByRole('menuitem', { name: 'Додати дроп' })).toBeNull()
+  })
+
+  it('marks a working set as to failure, not a warm-up or a drop', () => {
+    const sets = [set(40, 10, { isWarmup: true }), set(80, 10), set(65, 0, { isDrop: true }), set(80, 8, { rpe: 10 })]
+    const { onSetChange } = renderTable(sets)
+    expect(screen.getByTitle('До відмови')).toHaveTextContent('В')
+    fireEvent.click(openMenu(1).getByRole('menuitem', { name: 'До відмови' }))
+    expect(onSetChange).toHaveBeenLastCalledWith(sets[1].id, { rpe: 10 })
+    cleanup()
+
+    renderTable(sets)
+    expect(openMenu(0).queryByRole('menuitem', { name: 'До відмови' })).toBeNull()
+    cleanup()
+    renderTable(sets)
+    expect(openMenu(2).queryByRole('menuitem', { name: 'До відмови' })).toBeNull()
+    cleanup()
+    const { onSetChange: change } = renderTable(sets)
+    fireEvent.click(openMenu(3).getByRole('menuitem', { name: 'Не до відмови' }))
+    expect(change).toHaveBeenLastCalledWith(sets[3].id, { rpe: null })
   })
 
   it('tells the caller to skip rest when a drop comes next', () => {

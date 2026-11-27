@@ -125,6 +125,7 @@ export interface AdminWorkoutSet {
   reps: number
   isWarmup: boolean
   isDrop: boolean
+  rpe: number | null
   completed: boolean
 }
 
@@ -161,6 +162,7 @@ interface AdminWorkoutJson {
       reps: number
       is_warmup: boolean
       is_drop: boolean
+      rpe: number | string | null
       completed: boolean
     }[]
   }[]
@@ -196,6 +198,7 @@ export function useAdminWorkout(workoutId: string | undefined, enabled = true) {
             reps: s.reps,
             isWarmup: s.is_warmup,
             isDrop: s.is_drop,
+            rpe: s.rpe === null ? null : Number(s.rpe),
             completed: s.completed,
           })),
         })),

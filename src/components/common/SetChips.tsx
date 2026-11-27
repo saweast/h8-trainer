@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { currentLanguage } from '@/i18n'
 import { groupChains } from '@/lib/dropSets'
+import { isToFailure } from '@/lib/failure'
 import { formatKg } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -9,6 +10,7 @@ export interface ChipSet {
   reps: number
   isWarmup: boolean
   isDrop?: boolean
+  rpe?: number | null
 }
 
 interface SetChipsProps<T extends ChipSet> {
@@ -40,6 +42,11 @@ export function SetChips<T extends ChipSet>({ sets, isPr, className }: SetChipsP
           )}
         >
           {text(head)}
+          {!head.isWarmup && isToFailure(head) ? (
+            <abbr title={t('workout.failure')} className="ml-1 text-destructive no-underline">
+              {t('workout.failureShort')}
+            </abbr>
+          ) : null}
           {drops.map((d, k) => (
             <span key={k} className="font-normal text-muted-foreground">
               <span aria-hidden> → </span>

@@ -22,7 +22,7 @@ import type { ExerciseFeedbackPatch, WorkoutExercise, WorkoutSet } from './api'
 import { ExerciseFeedback } from './ExerciseFeedback'
 import { SET_GRID, SetRow } from './SetRow'
 
-type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'completedAt'>>
+type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'rpe' | 'completedAt'>>
 
 interface ExerciseCardProps {
   item: WorkoutExercise

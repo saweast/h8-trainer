@@ -16,6 +16,8 @@ export interface WorkoutSet {
   isWarmup: boolean
   /** Continues the set before it at a lower weight, without rest (src/lib/dropSets.ts). */
   isDrop: boolean
+  /** RPE 1–10; the app only sets 10, "to failure" (src/lib/failure.ts). */
+  rpe: number | null
   completedAt: string | null
 }
 
@@ -122,7 +124,7 @@ export function pendingWrites(queryClient: QueryClient, workoutId: string) {
 
 const WORKOUT_SELECT = `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by, group_id, last_activity_at,
   workout_exercises (id, exercise_id, position, notes, difficulty, athlete_feedback,
-    sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, is_drop, completed_at))`
+    sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, is_drop, rpe, completed_at))`
 
 /** The workout doesn't exist (deleted) or isn't visible to me. */
 export class WorkoutGoneError extends Error {
@@ -169,6 +171,7 @@ async function fetchWorkout(id: string): Promise<Workout> {
             reps: s.reps,
             isWarmup: s.is_warmup,
             isDrop: s.is_drop,
+            rpe: s.rpe === null ? null : Number(s.rpe),
             completedAt: s.completed_at,
           }))
           .sort(byPosition),
@@ -366,7 +369,7 @@ export function useStartWorkout(athleteId: string | undefined) {
 // Every change updates the cached workout first (instant UI) and runs in one serial queue per
 // workout, so a set added and immediately edited reaches the server in order.
 
-type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'completedAt'>>
+type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'rpe' | 'completedAt'>>
 
 function updateCached(queryClient: QueryClient, workoutId: string, fn: (w: Workout) => Workout) {
   bumpLocalEdits(workoutId)
@@ -392,6 +395,7 @@ function toSetRow(s: WorkoutSet) {
     reps: s.reps,
     is_warmup: s.isWarmup,
     is_drop: s.isDrop,
+    rpe: s.rpe,
     completed_at: s.completedAt,
   }
 }
@@ -474,6 +478,7 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       if (patch.weightKg !== undefined) row.weight_kg = patch.weightKg
       if (patch.reps !== undefined) row.reps = patch.reps
       if (patch.isWarmup !== undefined) row.is_warmup = patch.isWarmup
+      if (patch.rpe !== undefined) row.rpe = patch.rpe
       if (patch.completedAt !== undefined) row.completed_at = patch.completedAt
       await expectRows(supabase!.from('sets').update(row).eq('id', setId).select('id'), 'update set')
     },
@@ -520,6 +525,7 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
         reps: p.reps,
         isWarmup: false,
         isDrop: p.isDrop ?? false,
+        rpe: null,
         completedAt: null,
       })),
     }
@@ -548,6 +554,7 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       reps: like?.reps ?? 0,
       isWarmup: false,
       isDrop: false,
+      rpe: null,
       completedAt: null,
     }
     updateCached(queryClient, workoutId, (old) => ({
@@ -588,6 +595,7 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       reps: 0,
       isWarmup: false,
       isDrop: true,
+      rpe: null,
       completedAt: null,
     }
     updateCached(queryClient, workoutId, (old) => ({

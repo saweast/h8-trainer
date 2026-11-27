@@ -11,10 +11,11 @@ import {
 import { currentLanguage } from '@/i18n'
 import { formatKg, parseWeight } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { FAILURE_RPE, isToFailure } from '@/lib/failure'
 import type { PreviousSet } from '@/lib/templatePrefill'
 import type { WorkoutSet } from './api'
 
-type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'completedAt'>>
+type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'rpe' | 'completedAt'>>
 
 interface SetRowProps {
   set: WorkoutSet
@@ -60,6 +61,7 @@ export function SetRow({
   const { t } = useTranslation()
   const lang = currentLanguage()
   const done = set.completedAt !== null
+  const failure = !drop && !set.isWarmup && isToFailure(set)
   const repsRef = useRef<HTMLInputElement>(null)
 
   // What the user typed stays authoritative for this row; untouched fields show the stored value.
@@ -120,13 +122,17 @@ export function SetRow({
           aria-label={t('workout.setMenu')}
           className={cn(
             'flex h-11 items-center justify-center rounded-lg text-sm font-medium',
-            isPr ? 'text-pr' : set.isWarmup ? 'text-warning-text' : 'text-muted-foreground',
+            isPr ? 'text-pr' : set.isWarmup ? 'text-warning-text' : failure ? 'text-destructive' : 'text-muted-foreground',
           )}
         >
           {isPr ? (
             <Trophy className="size-4" aria-label={t('workout.pr')} />
           ) : drop ? (
             <CornerDownRight className="size-4" aria-label={t('workout.drop')} />
+          ) : failure ? (
+            <abbr title={t('workout.failure')} className="no-underline">
+              {t('workout.failureShort')}
+            </abbr>
           ) : (
             label
           )}
@@ -138,8 +144,13 @@ export function SetRow({
               {t('workout.addDrop')}
             </DropdownMenuItem>
           ) : null}
+          {drop || set.isWarmup ? null : (
+            <DropdownMenuItem onSelect={() => onChange({ rpe: failure ? null : FAILURE_RPE })}>
+              {failure ? t('workout.unmarkFailure') : t('workout.markFailure')}
+            </DropdownMenuItem>
+          )}
           {drop || hasDrops ? null : (
-            <DropdownMenuItem onSelect={() => onChange({ isWarmup: !set.isWarmup })}>
+            <DropdownMenuItem onSelect={() => onChange(set.isWarmup ? { isWarmup: false } : { isWarmup: true, rpe: null })}>
               {set.isWarmup ? t('workout.markWorking') : t('workout.markWarmup')}
             </DropdownMenuItem>
           )}
