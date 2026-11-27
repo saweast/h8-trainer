@@ -111,7 +111,7 @@ export function usePlan(id: string | undefined) {
         .select(
           `id, name, notes, weeks, owner_id, athlete_id, archived_at,
            plan_days (id, position, name,
-             plan_rows (id, position, exercise_id, rest_s, notes,
+             plan_rows (id, position, exercise_id, rest_s, notes, superset,
                plan_cells (week, sets)))`,
         )
         .eq('id', id!)
@@ -137,6 +137,7 @@ export function usePlan(id: string | undefined) {
                 exerciseId: r.exercise_id,
                 restS: r.rest_s,
                 notes: r.notes,
+                superset: r.superset,
                 cells: Object.fromEntries(
                   r.plan_cells.flatMap((c): [number, SpecSet[]][] => {
                     const sets = toSpecSets(c.sets)

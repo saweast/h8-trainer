@@ -25,6 +25,30 @@ describe('templateItemsFromWorkout', () => {
   })
 })
 
+describe('supersets from a workout', () => {
+  const ex = (exerciseId: string, superset: number | null, isDone = true) => ({
+    exerciseId,
+    superset,
+    sets: [{ weightKg: 20, reps: 10, isWarmup: false, completedAt: isDone ? done : null }],
+  })
+
+  it('keeps supersets that stay together and drops broken ones', () => {
+    const items = templateItemsFromWorkout([ex('a', 4, true), ex('b', 4), ex('c', 9), ex('skipped', 9, false), ex('d', 9)])
+    expect(items.map((i) => [i.exerciseId, i.superset ?? null])).toEqual([
+      ['a', 1],
+      ['b', 1],
+      ['c', 2], // the skipped exercise is gone, c and d are still back to back
+      ['d', 2],
+    ])
+  })
+
+  it('tells a changed superset apart from the template', () => {
+    const workout = [ex('a', 3), ex('b', 3)]
+    expect(workoutMatchesTemplate([{ exerciseId: 'a', targetSets: 1, superset: 1 }, { exerciseId: 'b', targetSets: 1, superset: 1 }], workout)).toBe(true)
+    expect(workoutMatchesTemplate([{ exerciseId: 'a', targetSets: 1 }, { exerciseId: 'b', targetSets: 1 }], workout)).toBe(false)
+  })
+})
+
 describe('workoutMatchesTemplate', () => {
   it('compares order and set counts', () => {
     expect(workoutMatchesTemplate([{ exerciseId: 'bench', targetSets: 2 }, { exerciseId: 'fly', targetSets: 1 }], workout)).toBe(true)

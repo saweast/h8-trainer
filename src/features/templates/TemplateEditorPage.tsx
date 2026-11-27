@@ -1,4 +1,4 @@
-import { ArrowLeft, Copy, EllipsisVertical, GripVertical, Play, Plus, SlidersHorizontal, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Copy, EllipsisVertical, GripVertical, Link2, Play, Plus, SlidersHorizontal, Trash2, Unlink2, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router'
@@ -24,7 +24,9 @@ import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { currentLanguage } from '@/i18n'
 import { formatKg } from '@/lib/format'
 import { formatSetSpec } from '@/lib/setSpec'
+import { linkWithNext, supersetPlaces, unlinkItem, type SupersetGroup } from '@/lib/supersets'
 import { formatTargets } from '@/lib/templateFromWorkout'
+import { cn } from '@/lib/utils'
 import {
   useDeleteTemplate,
   useIsMine,
@@ -123,9 +125,20 @@ function Editor({ template }: { template: Template | undefined }) {
           restS: null,
           notes: null,
           sets: null,
+          superset: null,
         },
       ],
     }))
+
+  const regroup = (index: number, fn: (groups: SupersetGroup[], index: number) => (number | null)[]) =>
+    setDraft((d) => {
+      const groups = fn(
+        d.items.map((i) => i.superset),
+        index,
+      )
+      return { ...d, items: d.items.map((item, i) => ({ ...item, superset: groups[i] })) }
+    })
+  const places = supersetPlaces(draft.items.map((i) => i.superset))
 
   const persist = async (asCopy = false): Promise<string | null> => {
     if (!draft.name.trim()) {
@@ -257,8 +270,13 @@ function Editor({ template }: { template: Template | undefined }) {
             disabled={readOnly}
             onReorder={(items) => setDraft((d) => ({ ...d, items }))}
             className="divide-y overflow-hidden rounded-2xl border bg-card"
-            renderItem={(item, _index, handle) => (
-              <div className="flex min-h-16 items-center gap-1 py-2 pr-1 pl-1">
+            renderItem={(item, index, handle) => (
+              <div
+                className={cn(
+                  'flex min-h-16 items-center gap-1 py-2 pr-1 pl-1',
+                  places[index] && 'border-l-[3px] border-primary pl-0.5',
+                )}
+              >
                 {readOnly ? (
                   <span className="w-2" />
                 ) : (
@@ -281,7 +299,17 @@ function Editor({ template }: { template: Template | undefined }) {
                 >
                   <ExerciseThumb slug={exercises.get(item.exerciseId)?.slug ?? null} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{nameOf(item.exerciseId)}</span>
+                    <span className="block truncate text-sm font-medium">
+                      {places[index] ? (
+                        <span
+                          title={t('workout.superset')}
+                          className="tabular mr-1.5 inline-block rounded-md bg-primary px-1.5 align-[1px] text-[11px] leading-[18px] font-semibold text-primary-foreground"
+                        >
+                          {places[index].label}
+                        </span>
+                      ) : null}
+                      {nameOf(item.exerciseId)}
+                    </span>
                     <span className="tabular block text-xs text-muted-foreground">
                       {[
                         ...(item.sets?.length
@@ -310,6 +338,18 @@ function Editor({ template }: { template: Template | undefined }) {
                         <SlidersHorizontal />
                         {t('templates.editItem')}
                       </DropdownMenuItem>
+                      {index + 1 < draft.items.length && !(places[index] && !places[index].last) ? (
+                        <DropdownMenuItem onSelect={() => regroup(index, linkWithNext)}>
+                          <Link2 />
+                          {t('workout.linkNext')}
+                        </DropdownMenuItem>
+                      ) : null}
+                      {places[index] ? (
+                        <DropdownMenuItem onSelect={() => regroup(index, unlinkItem)}>
+                          <Unlink2 />
+                          {t('workout.unlinkSuperset')}
+                        </DropdownMenuItem>
+                      ) : null}
                       <DropdownMenuItem
                         variant="destructive"
                         onSelect={() => setDraft((d) => ({ ...d, items: d.items.filter((i) => i.key !== item.key) }))}

@@ -1813,3 +1813,85 @@ describe('drop sets', () => {
     })
   })
 })
+
+describe('supersets', () => {
+  let lifter: { userId: string; athleteId: string }
+  let squatId: string
+  let deadliftId: string
+  const asLifter = <T>(fn: (tx: Transaction) => Promise<T>) => asUser(lifter.userId, fn)
+  const exercisesOf = (tx: Transaction, workoutId: string) =>
+    rows<{ id: string; exercise_id: string; superset: number | null }>(
+      tx,
+      `select id, exercise_id, superset from public.workout_exercises where workout_id = $1 order by position`,
+      [workoutId],
+    )
+
+  beforeAll(async () => {
+    lifter = await createUser('Lifter')
+    ;[{ id: squatId }] = await rows<{ id: string }>(db, `select id from public.exercises where slug = 'back_squat'`)
+    ;[{ id: deadliftId }] = await rows<{ id: string }>(db, `select id from public.exercises where slug = 'deadlift'`)
+  })
+
+  it('starts a template superset, and the athlete can regroup it during the workout', async () => {
+    await asLifter(async (tx) => {
+      const [tpl] = await rows<{ id: string }>(tx, `select public.save_template(null, 'Пара', null, $1::jsonb) as id`, [
+        JSON.stringify([
+          { exercise_id: benchId, target_sets: 3, superset: 1 },
+          { exercise_id: squatId, target_sets: 3, superset: 1 },
+          { exercise_id: deadliftId, target_sets: 2 },
+        ]),
+      ])
+      const [w] = await rows<{ id: string }>(tx, `select public.start_workout_from_template($1, $2) as id`, [lifter.athleteId, tpl.id])
+      const list = await exercisesOf(tx, w.id)
+      expect(list.map((e) => e.superset)).toEqual([1, 1, null])
+      await tx.query(`update public.workout_exercises set superset = 1 where id = $1`, [list[2].id])
+      expect((await exercisesOf(tx, w.id)).map((e) => e.superset)).toEqual([1, 1, 1])
+      await tx.query(`delete from public.workouts where id = $1`, [w.id])
+    })
+  })
+
+  it('keeps supersets through plans: saving, copying, starting and building from templates', async () => {
+    const day = crypto.randomUUID()
+    const set = [{ w: 60, r: 8 }]
+    await asLifter(async (tx) => {
+      const [plan] = await rows<{ id: string }>(tx, `select public.save_plan(null, null, 'Суперсети', null, 1, $1::jsonb) as id`, [
+        JSON.stringify([
+          {
+            id: day,
+            name: 'День',
+            rows: [
+              { id: crypto.randomUUID(), exercise_id: benchId, superset: 1, cells: [{ week: 1, sets: set }] },
+              { id: crypto.randomUUID(), exercise_id: squatId, superset: 1, cells: [{ week: 1, sets: set }] },
+              { id: crypto.randomUUID(), exercise_id: deadliftId, cells: [{ week: 1, sets: set }] },
+            ],
+          },
+        ]),
+      ])
+      const rowsOf = (planId: string) =>
+        rows<{ superset: number | null }>(
+          tx,
+          `select r.superset from public.plan_rows r join public.plan_days d on d.id = r.plan_day_id
+           where d.plan_id = $1 order by d.position, r.position`,
+          [planId],
+        )
+      expect(await rowsOf(plan.id)).toEqual([{ superset: 1 }, { superset: 1 }, { superset: null }])
+
+      const [copy] = await rows<{ id: string }>(tx, `select public.copy_plan($1, $2) as id`, [plan.id, lifter.athleteId])
+      expect(await rowsOf(copy.id)).toEqual([{ superset: 1 }, { superset: 1 }, { superset: null }])
+      const [copyDay] = await rows<{ id: string }>(tx, `select id from public.plan_days where plan_id = $1`, [copy.id])
+      const [w] = await rows<{ id: string }>(tx, `select public.start_workout_from_plan($1, 1, $2) as id`, [copy.id, copyDay.id])
+      expect((await exercisesOf(tx, w.id)).map((e) => e.superset)).toEqual([1, 1, null])
+      await tx.query(`delete from public.workouts where id = $1`, [w.id])
+
+      const [tpl] = await rows<{ id: string }>(tx, `select public.save_template(null, 'Пара 2', null, $1::jsonb) as id`, [
+        JSON.stringify([
+          { exercise_id: deadliftId, target_sets: 2 },
+          { exercise_id: benchId, target_sets: 3, superset: 1 },
+          { exercise_id: squatId, target_sets: 3, superset: 1 },
+        ]),
+      ])
+      const [fromTpl] = await rows<{ id: string }>(tx, `select public.create_plan_from_templates(null, 'З шаблону', 1, $1) as id`, [[tpl.id]])
+      expect(await rowsOf(fromTpl.id)).toEqual([{ superset: null }, { superset: 1 }, { superset: 1 }])
+    })
+  })
+})

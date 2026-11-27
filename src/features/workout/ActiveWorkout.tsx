@@ -21,6 +21,7 @@ import { useAuth } from '@/features/auth/authContext'
 import { useAthlete } from '@/features/trainer/api'
 import { DROP_CHANGE_S } from '@/lib/dropSets'
 import type { ExerciseRecords } from '@/lib/records'
+import { continuesRound, supersetPlaces, type SupersetPlace } from '@/lib/supersets'
 import { prefillSets } from '@/lib/templatePrefill'
 import { autoTitle } from '@/lib/workoutStats'
 import {
@@ -92,10 +93,16 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
   const onSetCompleted = (item: WorkoutExercise, isPr: boolean, dropNext: boolean) => {
     const exercise = exercises.get(item.exerciseId)
     // Rest: template setting → my setting for this machine → exercise default. Before a drop only a
-    // short countdown to lower the weight.
+    // short countdown to lower the weight; in a superset, rest comes after the round.
     const fromTemplate = template?.items.find((i) => i.exerciseId === item.exerciseId)?.restS
     const restS = fromTemplate ?? settings?.get(item.exerciseId)?.restS ?? exercise?.defaultRestS ?? 90
-    rest.start(dropNext ? DROP_CHANGE_S : restS, dropNext ? 'drop' : 'rest')
+    const index = workout.exercises.findIndex((e) => e.id === item.id)
+    if (dropNext) rest.start(DROP_CHANGE_S, 'drop')
+    else if (continuesRound(workout.exercises, index)) {
+      rest.stop()
+      const next = workout.exercises[index + 1]
+      document.getElementById(`exercise-${next.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else rest.start(restS)
     if (isPr && !celebrated.current.has(item.exerciseId)) {
       celebrated.current.add(item.exerciseId)
       toast.success(t('workout.pr'))
@@ -112,6 +119,33 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
       dropPct: current?.dropPct ?? null,
       ...patch,
     })
+  }
+
+  const places = new Map(supersetPlaces(workout.exercises.map((e) => e.superset)).map((p, i) => [workout.exercises[i].id, p]))
+
+  const renderCard = (item: WorkoutExercise) => {
+    const index = workout.exercises.indexOf(item)
+    const place = places.get(item.id) ?? null
+    const hasNext = index + 1 < workout.exercises.length
+    return (
+      <ExerciseCardContainer
+        key={item.id}
+        workout={workout}
+        item={item}
+        exercise={exercises.get(item.exerciseId)}
+        records={records?.get(item.exerciseId) ?? null}
+        setupNotes={settings?.get(item.exerciseId)?.setupNotes ?? null}
+        dropPct={settings?.get(item.exerciseId)?.dropPct ?? null}
+        actions={actions}
+        readOnly={liveView}
+        superset={place}
+        onLinkNext={hasNext && !(place && !place.last) ? () => actions.linkSuperset(item.id) : undefined}
+        onUnlinkSuperset={() => actions.unlinkSuperset(item.id)}
+        onSetCompleted={(_set, isPr, dropNext) => onSetCompleted(item, isPr, dropNext)}
+        onSaveSetup={(notes) => saveSetting(item.exerciseId, { setupNotes: notes })}
+        onSaveDropPct={(dropPct) => saveSetting(item.exerciseId, { dropPct })}
+      />
+    )
   }
 
   const allSets = workout.exercises.flatMap((e) => e.sets)
@@ -224,22 +258,19 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
           </EmptyState>
         ) : (
           <>
-            {workout.exercises.map((item) => (
-              <ExerciseCardContainer
-                key={item.id}
-                workout={workout}
-                item={item}
-                exercise={exercises.get(item.exerciseId)}
-                records={records?.get(item.exerciseId) ?? null}
-                setupNotes={settings?.get(item.exerciseId)?.setupNotes ?? null}
-                dropPct={settings?.get(item.exerciseId)?.dropPct ?? null}
-                actions={actions}
-                readOnly={liveView}
-                onSetCompleted={(_set, isPr, dropNext) => onSetCompleted(item, isPr, dropNext)}
-                onSaveSetup={(notes) => saveSetting(item.exerciseId, { setupNotes: notes })}
-                onSaveDropPct={(dropPct) => saveSetting(item.exerciseId, { dropPct })}
-              />
-            ))}
+            {segments(workout.exercises).map((segment) =>
+              segment.length > 1 ? (
+                <div key={segment[0].id} className="relative flex flex-col gap-2 pl-3">
+                  <span className="absolute inset-y-1 left-0 w-1 rounded-full bg-primary" aria-hidden />
+                  <p className="pl-1 text-xs font-medium text-lime-text dark:text-lime">
+                    {t('workout.supersetCaption', { letter: places.get(segment[0].id)?.letter })}
+                  </p>
+                  {segment.map(renderCard)}
+                </div>
+              ) : (
+                renderCard(segment[0])
+              ),
+            )}
             {liveView ? null : (
               <Button variant="secondary" size="xl" onClick={() => setPickerOpen(true)}>
                 <Plus aria-hidden />
@@ -270,6 +301,18 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
   )
 }
 
+/** Exercises in order; the exercises of a superset come as one segment. */
+function segments(exercises: WorkoutExercise[]): WorkoutExercise[][] {
+  const places = supersetPlaces(exercises.map((e) => e.superset))
+  const out: WorkoutExercise[][] = []
+  exercises.forEach((e, i) => {
+    const last = out.at(-1)
+    if (places[i] && !places[i].first && last) last.push(e)
+    else out.push([e])
+  })
+  return out
+}
+
 interface ContainerProps {
   workout: Workout
   item: WorkoutExercise
@@ -279,6 +322,9 @@ interface ContainerProps {
   dropPct: number | null
   actions: Actions
   readOnly: boolean
+  superset: SupersetPlace | null
+  onLinkNext?: () => void
+  onUnlinkSuperset: () => void
   onSetCompleted: (set: WorkoutSet, isPr: boolean, dropNext: boolean) => void
   onSaveSetup: (notes: string) => void
   onSaveDropPct: (pct: number) => void
@@ -294,6 +340,9 @@ function ExerciseCardContainer({
   dropPct,
   actions,
   readOnly,
+  superset,
+  onLinkNext,
+  onUnlinkSuperset,
   onSetCompleted,
   onSaveSetup,
   onSaveDropPct,
@@ -301,6 +350,7 @@ function ExerciseCardContainer({
   const { data: lastTime } = useLastPerformance(workout.athleteId, item.exerciseId, workout.id)
   return (
     <ExerciseCard
+      id={`exercise-${item.id}`}
       item={item}
       exercise={exercise}
       lastTime={lastTime ?? []}
@@ -308,6 +358,9 @@ function ExerciseCardContainer({
       setupNotes={setupNotes}
       dropPct={dropPct}
       readOnly={readOnly}
+      superset={superset}
+      onLinkNext={onLinkNext}
+      onUnlinkSuperset={onUnlinkSuperset}
       onSetChange={(setId, patch) => actions.updateSet(setId, patch)}
       onSetCompleted={onSetCompleted}
       onSetDelete={(setId) => actions.removeSet(setId)}

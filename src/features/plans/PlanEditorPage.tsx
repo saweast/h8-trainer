@@ -7,10 +7,12 @@ import {
   Copy,
   CopyPlus,
   EllipsisVertical,
+  Link2,
   Play,
   Plus,
   Repeat,
   Trash2,
+  Unlink2,
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -47,10 +49,12 @@ import {
   removeWeek,
   setCell,
   weekTotals,
+  type PlanDayDraft,
   type PlanDraft,
   type PlanRowDraft,
 } from '@/lib/planGrid'
 import type { SpecSet } from '@/lib/setSpec'
+import { linkWithNext, supersetPlaces, unlinkItem, type SupersetGroup, type SupersetPlace } from '@/lib/supersets'
 import { cn } from '@/lib/utils'
 import {
   useArchivePlan,
@@ -148,6 +152,23 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
   const update = (fn: (d: PlanDraft) => PlanDraft) => setDraft((d) => fn(d))
   const updateDay = (id: string, fn: (rows: PlanRowDraft[]) => PlanRowDraft[]) =>
     update((d) => ({ ...d, days: d.days.map((day) => (day.id === id ? { ...day, rows: fn(day.rows) } : day)) }))
+  const regroup = (dayId: string, index: number, fn: (groups: SupersetGroup[], index: number) => (number | null)[]) =>
+    updateDay(dayId, (rows) => {
+      const groups = fn(
+        rows.map((r) => r.superset),
+        index,
+      )
+      return rows.map((r, i) => ({ ...r, superset: groups[i] }))
+    })
+  /** Superset menu items and badge for one row of a day. */
+  const supersetProps = (day: PlanDayDraft, index: number) => {
+    const place = supersetPlaces(day.rows.map((r) => r.superset))[index]
+    return {
+      superset: place,
+      onLinkNext: index + 1 < day.rows.length && !(place && !place.last) ? () => regroup(day.id, index, linkWithNext) : undefined,
+      onUnlink: place ? () => regroup(day.id, index, unlinkItem) : undefined,
+    }
+  }
 
   const onSave = async () => {
     if (!draft.name.trim()) {
@@ -377,12 +398,13 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
                     />
                   </td>
                 </tr>
-                {day.rows.map((row) => (
+                {day.rows.map((row, rowIndex) => (
                   <tr key={row.id} className="align-top">
                     <td className="sticky left-0 z-10 border-b bg-card px-3 py-2">
                       <RowLabel
                         name={nameOf(row.exerciseId)}
                         readOnly={readOnly}
+                        {...supersetProps(day, rowIndex)}
                         onMove={(delta) => update((d) => moveRow(d, row.id, delta))}
                         onRemove={() => updateDay(day.id, (rows) => rows.filter((r) => r.id !== row.id))}
                       />
@@ -484,11 +506,12 @@ function Editor({ plan, athleteId }: { plan: Plan | undefined; athleteId: string
                   }
                 />
               </div>
-              {selectedDay.rows.map((row) => (
+              {selectedDay.rows.map((row, rowIndex) => (
                 <div key={row.id} className="rounded-2xl border bg-card p-3">
                   <RowLabel
                     name={nameOf(row.exerciseId)}
                     readOnly={readOnly}
+                    {...supersetProps(selectedDay, rowIndex)}
                     onMove={(delta) => update((d) => moveRow(d, row.id, delta))}
                     onRemove={() => updateDay(selectedDay.id, (rows) => rows.filter((r) => r.id !== row.id))}
                   />
@@ -752,18 +775,34 @@ function DayHeader({
 function RowLabel({
   name,
   readOnly,
+  superset,
   onMove,
   onRemove,
+  onLinkNext,
+  onUnlink,
 }: {
   name: string
   readOnly: boolean
+  superset: SupersetPlace | null
   onMove: (delta: -1 | 1) => void
   onRemove: () => void
+  onLinkNext?: () => void
+  onUnlink?: () => void
 }) {
   const { t } = useTranslation()
   return (
     <div className="flex items-start gap-1">
-      <span className="min-w-0 flex-1 py-1 text-sm leading-snug font-medium">{name}</span>
+      <span className="min-w-0 flex-1 py-1 text-sm leading-snug font-medium">
+        {superset ? (
+          <span
+            title={t('workout.superset')}
+            className="tabular mr-1.5 inline-block rounded-md bg-primary px-1.5 align-[1px] text-[11px] leading-[18px] font-semibold text-primary-foreground"
+          >
+            {superset.label}
+          </span>
+        ) : null}
+        {name}
+      </span>
       {readOnly ? null : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -780,6 +819,18 @@ function RowLabel({
               <ArrowDown />
               {t('plan.moveDown')}
             </DropdownMenuItem>
+            {onLinkNext ? (
+              <DropdownMenuItem onSelect={onLinkNext}>
+                <Link2 />
+                {t('workout.linkNext')}
+              </DropdownMenuItem>
+            ) : null}
+            {onUnlink ? (
+              <DropdownMenuItem onSelect={onUnlink}>
+                <Unlink2 />
+                {t('workout.unlinkSuperset')}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem variant="destructive" onSelect={onRemove}>
               <X />
               {t('templates.removeItem')}
