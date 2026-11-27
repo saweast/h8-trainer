@@ -1408,10 +1408,7 @@ export type Database = {
       }
       admin_workout: { Args: { p_workout: string }; Returns: Json }
       claim_invite: { Args: { p_code: string }; Returns: string }
-      close_stale_workouts: {
-        Args: { p_athlete: string }
-        Returns: number
-      }
+      close_stale_workouts: { Args: { p_athlete: string }; Returns: number }
       copy_plan: {
         Args: { p_athlete: string; p_name?: string; p_source: string }
         Returns: string
@@ -1530,20 +1527,20 @@ export type Database = {
         Args: { p_id: string; p_items: Json; p_name: string; p_notes: string }
         Returns: string
       }
+      start_group_workout: {
+        Args: {
+          p_athletes: string[]
+          p_memberships?: string[]
+          p_template?: string
+        }
+        Returns: string
+      }
       start_workout_from_plan: {
         Args: {
           p_day: string
           p_membership?: string
           p_plan: string
           p_week: number
-        }
-        Returns: string
-      }
-      start_group_workout: {
-        Args: {
-          p_athletes: string[]
-          p_memberships?: string[]
-          p_template?: string
         }
         Returns: string
       }
