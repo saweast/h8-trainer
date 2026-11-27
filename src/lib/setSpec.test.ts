@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { formatSetSpec, fromSpecSets, parseSetSpec, specVolume, toSpecSets, type SpecSet } from './setSpec'
 
-const short = (sets: SpecSet[]) => sets.map((s) => `${s.weightKg}x${s.reps}${s.isWarmup ? 'w' : ''}`)
+const short = (sets: SpecSet[]) => sets.map((s) => `${s.isDrop ? '+' : ''}${s.weightKg}x${s.reps}${s.isWarmup ? 'w' : ''}`)
 
 describe('parseSetSpec', () => {
   it('reads warm-ups and a working block', () => {
@@ -71,6 +71,34 @@ describe('parseSetSpec', () => {
     expect(parseSetSpec('20x0').warnings).toEqual([{ kind: 'invalid', token: '20x0' }])
   })
 
+  it('reads drops chained with "+", with or without reps', () => {
+    const { sets, warnings } = parseSetSpec('20x10, 80x10+60+40, 80x10+60x8+40x6(пауза)')
+    expect(warnings).toEqual([])
+    expect(short(sets)).toEqual(['20x10w', '80x10', '+60x0', '+40x0', '80x10', '+60x8', '+40x6'])
+    expect(sets.at(-1)).toEqual({ weightKg: 40, reps: 6, isWarmup: false, isDrop: true, note: 'пауза' })
+  })
+
+  it('treats the set before the first chain as a warm-up, not the chain itself', () => {
+    expect(short(parseSetSpec('50x5, 80x10+60').sets)).toEqual(['50x5w', '80x10', '+60x0'])
+    expect(short(parseSetSpec('80x10+60, 80x10').sets)).toEqual(['80x10', '+60x0', '80x10'])
+  })
+
+  it('reads decimal commas in drops', () => {
+    expect(short(parseSetSpec('80x10+62,5, 70x8').sets)).toEqual(['80x10', '+62.5x0', '70x8'])
+    expect(short(parseSetSpec('80x10 + 62,5x6 + 50').sets)).toEqual(['80x10', '+62.5x6', '+50x0'])
+  })
+
+  it('refuses chains that are repeated, warm-ups, or unreadable', () => {
+    for (const token of ['80x10x3+60', '20x10р+15', '80x10+60р', '80x10+abc', '80x10+60x0', '80x10+', '+60']) {
+      expect(parseSetSpec(token).warnings).toEqual([{ kind: 'invalid', token }])
+    }
+  })
+
+  it('reads bodyweight drops as reps', () => {
+    expect(short(parseSetSpec('12+8', { bodyweight: true }).sets)).toEqual(['0x12', '+0x8'])
+    expect(parseSetSpec('12x3+8', { bodyweight: true }).warnings).toEqual([{ kind: 'invalid', token: '12x3+8' }])
+  })
+
   it('caps the number of sets', () => {
     const { sets, warnings } = parseSetSpec('20x20x20, 30x20x20')
     expect(sets).toHaveLength(30)
@@ -100,6 +128,19 @@ describe('formatSetSpec', () => {
     expect(formatSetSpec([{ weightKg: 10, reps: 8, isWarmup: false }], { bodyweight: true })).toBe('10x8x1')
   })
 
+  it('writes drops onto the set they continue', () => {
+    expect(formatSetSpec(parseSetSpec('20x10, 80x10+60+40x6').sets)).toBe('20x10, 80x10+60+40x6')
+    expect(formatSetSpec(parseSetSpec('82,5x8+62,5').sets, { locale: 'uk' })).toBe('82,5x8+62,5')
+    const working = (w: number, reps: number): SpecSet => ({ weightKg: w, reps, isWarmup: false })
+    const drop = (w: number, reps = 0): SpecSet => ({ weightKg: w, reps, isWarmup: false, isDrop: true })
+    // the chain belongs to the last set of a block
+    expect(formatSetSpec([working(80, 8), working(80, 8), drop(60)])).toBe('80x8, 80x8+60')
+    expect(formatSetSpec([working(80, 8), drop(60), working(80, 8), working(80, 8)])).toBe('80x8+60, 80x8x2')
+    // a drop with nothing to continue is a plain set
+    expect(formatSetSpec([drop(60, 8)])).toBe('60x8')
+    expect(formatSetSpec([{ weightKg: 0, reps: 12, isWarmup: false }, drop(0, 8)], { bodyweight: true })).toBe('12+8')
+  })
+
   it('round-trips', () => {
     const cases: [string, boolean][] = [
       ['20x10, 50x5, 80x3, 85x6x3', false],
@@ -110,6 +151,9 @@ describe('formatSetSpec', () => {
       ['10(с резиной), 8x3', true],
       ['12x4', true],
       ['10x8x3, 12', true],
+      ['20x10, 80x10+60+40, 80x10+60x8', false],
+      ['50x5р, 62,5x8+42,5(пауза)+30x6', false],
+      ['12+8+6, 10x3', true],
     ]
     for (const [text, bodyweight] of cases) {
       const once = parseSetSpec(text, { bodyweight }).sets
@@ -135,5 +179,12 @@ describe('storage helpers', () => {
 
   it('counts working volume only', () => {
     expect(specVolume(parseSetSpec('20x10, 80x8x3').sets)).toBe(1920)
+    expect(specVolume(parseSetSpec('80x10+60x8+40').sets)).toBe(1280) // a drop without reps adds nothing yet
+  })
+
+  it('keeps the drop flag in storage', () => {
+    const sets = parseSetSpec('80x10+60').sets
+    expect(fromSpecSets(sets)).toEqual([{ w: 80, r: 10 }, { w: 60, r: 0, drop: true }])
+    expect(toSpecSets(fromSpecSets(sets))).toEqual(sets)
   })
 })

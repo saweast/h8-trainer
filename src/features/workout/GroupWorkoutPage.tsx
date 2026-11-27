@@ -33,6 +33,7 @@ import { ExerciseThumb } from '@/features/exercises/guide/ExerciseThumb'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { currentLanguage } from '@/i18n'
 import { formatVolume } from '@/lib/format'
+import { DROP_CHANGE_S } from '@/lib/dropSets'
 import { findRowExercise, groupRows, nextGroupPosition, type GroupRow } from '@/lib/groupRows'
 import { afterSetDone, joinNeighbour, leaveSuperset, nextSupersetNumber, nextUp, roundCount, toBlocks } from '@/lib/superset'
 import { prefillSets } from '@/lib/templatePrefill'
@@ -138,7 +139,7 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
     } catch {
       // no history available — start with empty sets
     }
-    const workingCount = previous.filter((s) => !s.isWarmup).length
+    const workingCount = previous.filter((s) => !s.isWarmup && !s.isDrop).length
     const planned = prefillSets(
       { targetSets: workingCount || 3, targetRepsMin: null, targetRepsMax: null, targetWeightKg: null },
       previous,
@@ -198,11 +199,14 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
   const membersOf = (workout: Workout, members: GroupRow[]) =>
     members.flatMap((row) => findRowExercise(workout.exercises, row) ?? [])
 
-  const onSetCompleted = (entry: Entry, row: GroupRow, set: WorkoutSet, restS: number, isPr: boolean) => {
+  /** `restS` is null when a drop comes straight after: only a short countdown to lower the weight. */
+  const onSetCompleted = (entry: Entry, row: GroupRow, set: WorkoutSet, restS: number | null, isPr: boolean) => {
     const { member } = entry
     const exerciseId = row.exerciseId
     const block = toBlocks(rows).find((b) => b.kind === 'superset' && b.items.includes(row))
-    if (block?.kind === 'superset') {
+    if (restS === null) {
+      rest.start(DROP_CHANGE_S, 'drop')
+    } else if (block?.kind === 'superset') {
       // The set is already done in the cache; this render's workout may not show it yet.
       const now = queryClient.getQueryData<Workout>(workoutKey(entry.workout.id)) ?? entry.workout
       const { rest: roundClosed, next } = afterSetDone(membersOf(now, block.items), set.id)
@@ -236,7 +240,7 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
     return {
       member,
       workout,
-      done: sets.filter((s) => s.completedAt && !s.isWarmup).length,
+      done: sets.filter((s) => s.completedAt && !s.isWarmup && !s.isDrop).length,
       doneAny: sets.filter((s) => s.completedAt).length,
       pending: sets.filter((s) => !s.completedAt).length,
     }
@@ -473,7 +477,8 @@ interface GroupExerciseCardProps {
   menuItems?: ReactNode
   onRemove: () => void
   onAddFor: (entry: Entry) => void
-  onSetCompleted: (entry: Entry, set: WorkoutSet, restS: number, isPr: boolean) => void
+  /** `restS` is null before a drop: no rest. */
+  onSetCompleted: (entry: Entry, set: WorkoutSet, restS: number | null, isPr: boolean) => void
 }
 
 /** One exercise with a block per client: their last time, their sets. */
@@ -572,7 +577,8 @@ interface MemberSetsProps {
   exercise: Exercise | undefined
   embedded: boolean
   nextSetId: string | null
-  onSetCompleted: (set: WorkoutSet, restS: number, isPr: boolean) => void
+  /** `restS` is null before a drop: no rest. */
+  onSetCompleted: (set: WorkoutSet, restS: number | null, isPr: boolean) => void
 }
 
 /** One client's sets of the exercise, saved into their own workout. */
@@ -605,9 +611,14 @@ function MemberSets({ entry, item, exercise, embedded, nextSetId, onSetCompleted
         nextSetId={nextSetId}
         hideAddSet={embedded}
         onSetChange={(setId, patch) => actions.updateSet(setId, patch)}
-        onSetCompleted={(set, isPr) => onSetCompleted(set, setting?.restS ?? exercise?.defaultRestS ?? 90, isPr)}
+        weightStepKg={exercise?.weightStepKg}
+        dropPct={setting?.dropPct ?? undefined}
+        onSetCompleted={(set, isPr, dropNext) =>
+          onSetCompleted(set, dropNext ? null : (setting?.restS ?? exercise?.defaultRestS ?? 90), isPr)
+        }
         onSetDelete={(setId) => actions.removeSet(setId)}
         onAddSet={() => actions.addSet(item.id)}
+        onAddDrop={(afterSetId, weightKg) => actions.addDrop(afterSetId, weightKg)}
       />
     </>
   )

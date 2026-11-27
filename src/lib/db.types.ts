@@ -73,6 +73,7 @@ export type Database = {
       athlete_exercise_settings: {
         Row: {
           athlete_id: string
+          drop_pct: number | null
           exercise_id: string
           rest_s: number | null
           setup_notes: string | null
@@ -80,6 +81,7 @@ export type Database = {
         }
         Insert: {
           athlete_id: string
+          drop_pct?: number | null
           exercise_id: string
           rest_s?: number | null
           setup_notes?: string | null
@@ -87,6 +89,7 @@ export type Database = {
         }
         Update: {
           athlete_id?: string
+          drop_pct?: number | null
           exercise_id?: string
           rest_s?: number | null
           setup_notes?: string | null
@@ -805,6 +808,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          is_drop: boolean
           is_warmup: boolean
           position: number
           reps: number
@@ -816,6 +820,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          is_drop?: boolean
           is_warmup?: boolean
           position: number
           reps?: number
@@ -827,6 +832,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          is_drop?: boolean
           is_warmup?: boolean
           position?: number
           reps?: number
@@ -1364,6 +1370,15 @@ export type Database = {
     }
     Functions: {
       accept_link_request: { Args: { p_id: string }; Returns: string }
+      add_drop_set: {
+        Args: {
+          p_after: string
+          p_id: string
+          p_reps?: number
+          p_weight_kg: number
+        }
+        Returns: undefined
+      }
       admin_athlete_workouts: {
         Args: { p_athlete: string; p_limit?: number }
         Returns: {
@@ -1470,6 +1485,7 @@ export type Database = {
           p_exercise: string
         }
         Returns: {
+          is_drop: boolean
           is_warmup: boolean
           performed_at: string
           position: number

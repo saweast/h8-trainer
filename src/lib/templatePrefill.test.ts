@@ -18,6 +18,20 @@ describe('prefillSets', () => {
     ])
   })
 
+  it("brings last time's drops back on the same set, not on the repeats", () => {
+    const previous = [
+      { position: 1, weightKg: 80, reps: 8, isWarmup: false },
+      { position: 2, weightKg: 82.5, reps: 6, isWarmup: false },
+      { position: 3, weightKg: 60, reps: 10, isWarmup: false, isDrop: true },
+    ]
+    expect(prefillSets(targets, previous)).toEqual([
+      { position: 1, weightKg: 80, reps: 8 },
+      { position: 2, weightKg: 82.5, reps: 6 },
+      { position: 3, weightKg: 60, reps: 10, isDrop: true },
+      { position: 4, weightKg: 82.5, reps: 6 },
+    ])
+  })
+
   it('repeats the last set when last time had fewer sets', () => {
     const previous = [{ position: 1, weightKg: 70, reps: 6, isWarmup: false }]
     expect(prefillSets(targets, previous).map((s) => s.weightKg)).toEqual([70, 70, 70])

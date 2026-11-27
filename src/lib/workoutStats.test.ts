@@ -26,6 +26,19 @@ describe('workoutTotals', () => {
   it('counts only completed working sets', () => {
     expect(workoutTotals(exercises)).toEqual({ volumeKg: 640 + 510 + 360 + 168, setCount: 4, exerciseCount: 3 })
   })
+
+  it('counts a drop chain as one set with all its volume', () => {
+    const chain: StatExercise = {
+      exerciseId: 'press',
+      muscle: 'shoulders',
+      sets: [
+        { weightKg: 50, reps: 10, isWarmup: false, completedAt: done },
+        { weightKg: 40, reps: 8, isWarmup: false, isDrop: true, completedAt: done },
+        { weightKg: 30, reps: 8, isWarmup: false, isDrop: true, completedAt: done },
+      ],
+    }
+    expect(workoutTotals([chain])).toEqual({ volumeKg: 500 + 320 + 240, setCount: 1, exerciseCount: 1 })
+  })
 })
 
 describe('autoTitle', () => {

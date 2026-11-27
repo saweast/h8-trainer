@@ -8,7 +8,8 @@
 //   Ірина Бондар   client with an account: package almost used up (expiring filter)
 //   Марко Ткач     offline client of Олена with history, plus a separate fresh account that
 //                  accepts the invite in the invite flow
-//   Софія Литвин   solo user, no trainer: 4 weeks of history, body measurements
+//   Софія Литвин   solo user, no trainer: 4 weeks of history (drop sets on lateral raises last
+//                  time), body measurements
 //   Тарас Шевчук   plain user who becomes a trainer in the admin flow
 //   Адмін h8       admin
 import { createClient } from '@supabase/supabase-js'
@@ -47,13 +48,22 @@ function day(n, hh = 18, mm = 0) {
 const isoDate = (d) => d.toISOString().slice(0, 10)
 const plusMinutes = (d, m) => new Date(d.getTime() + m * 60_000)
 
-/** "20x10w, 50x5w, 80x8x3" → [{w, r, warmup}] (w = warm-up marker, bodyweight "0x12x4") */
+/**
+ * "20x10w, 50x5w, 80x8x3" → [{w, r, warmup}] (w = warm-up marker, bodyweight "0x12x4");
+ * "6x15+4x12+3x10" is a set with two drops → [{w, r}, {w, r, drop}, {w, r, drop}]
+ */
 function S(text) {
   return text.split(',').flatMap((tok) => {
-    const t = tok.trim()
-    const warmup = t.endsWith('w')
-    const [w, r, n = 1] = t.replace(/w$/, '').split('x').map(Number)
-    return Array.from({ length: n }, () => ({ w, r, ...(warmup ? { warmup: true } : {}) }))
+    const [head, ...drops] = tok.trim().split('+')
+    const warmup = head.endsWith('w')
+    const [w, r, n = 1] = head.replace(/w$/, '').split('x').map(Number)
+    return [
+      ...Array.from({ length: n }, () => ({ w, r, ...(warmup ? { warmup: true } : {}) })),
+      ...drops.map((d) => {
+        const [dw, dr] = d.split('x').map(Number)
+        return { w: dw, r: dr, drop: true }
+      }),
+    ]
   })
 }
 
@@ -104,6 +114,7 @@ async function workout(by, { athleteId, title, start, minutes = 65, membershipId
       weight_kg: s.w,
       reps: s.r,
       is_warmup: Boolean(s.warmup),
+      is_drop: Boolean(s.drop),
       completed_at: plusMinutes(start, (minute += 2)).toISOString(),
     })),
   )
@@ -147,7 +158,8 @@ export async function seed() {
       exercises: [
         { slug: 'barbell_bench_press', sets: `20x12w, ${benchW[i]}x8x3` },
         { slug: 'dumbbell_row', sets: `${12 + i * 2}x10x3` },
-        { slug: 'lateral_raise', sets: `${5 + (i > 1 ? 1 : 0)}x15x3` },
+        // the last time ends with a drop set: flow 12 picks it up
+        { slug: 'lateral_raise', sets: i === 3 ? '6x15x2, 6x15+4x12+3x10' : `${5 + (i > 1 ? 1 : 0)}x15x3` },
       ],
     })
     await workout(sofia, {

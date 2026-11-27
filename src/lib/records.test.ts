@@ -17,6 +17,10 @@ describe('detectPrs', () => {
     expect(detectPrs({ weightKg: 100, reps: 6, isWarmup: false }, previous)).toEqual([])
   })
 
+  it('never flags a drop', () => {
+    expect(detectPrs({ weightKg: 105, reps: 8, isWarmup: false, isDrop: true }, previous)).toEqual([])
+  })
+
   it('ignores warm-ups, empty sets and first-ever sessions', () => {
     expect(detectPrs({ weightKg: 200, reps: 5, isWarmup: true }, previous)).toEqual([])
     expect(detectPrs({ weightKg: 200, reps: 0, isWarmup: false }, previous)).toEqual([])

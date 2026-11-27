@@ -60,7 +60,7 @@ export function CreateExerciseForm({ initialName = '', athleteId, onCreated }: C
         videoUrl: videoId ? youtubeWatchUrl(videoId) : null,
       })
       if (setup.trim() && athleteId) {
-        saveSettings.mutate({ exerciseId: exercise.id, setupNotes: setup, restS: null })
+        saveSettings.mutate({ exerciseId: exercise.id, setupNotes: setup, restS: null, dropPct: null })
       }
       onCreated(exercise)
     } catch {

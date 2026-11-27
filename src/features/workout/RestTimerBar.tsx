@@ -9,6 +9,8 @@ export function RestTimerBar({ timer }: { timer: RestTimer }) {
   if (!timer.running && !timer.justFinished) return null
 
   const progress = timer.totalS ? Math.min(1, Math.max(0, 1 - timer.remainingS / timer.totalS)) : 1
+  const drop = timer.kind === 'drop'
+  const step = drop ? 5 : 15
 
   return (
     <div
@@ -20,20 +22,20 @@ export function RestTimerBar({ timer }: { timer: RestTimer }) {
         {timer.justFinished ? (
           <p className="flex h-12 items-center gap-2 text-sm font-medium text-lime-text dark:text-lime">
             <BellRing className="size-5" aria-hidden />
-            {t('workout.restDone')}
+            {drop ? t('workout.dropGo') : t('workout.restDone')}
           </p>
         ) : (
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-muted-foreground">{t('workout.rest')}</p>
+              <p className="text-xs text-muted-foreground">{drop ? t('workout.dropChange') : t('workout.rest')}</p>
               <p className="font-heading tabular text-2xl leading-tight">{formatClock(timer.remainingS)}</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" size="touch" onClick={() => timer.adjust(-15)} aria-label="−15 s">
-                −15
+              <Button variant="secondary" size="touch" onClick={() => timer.adjust(-step)} aria-label={`−${step} s`}>
+                −{step}
               </Button>
-              <Button variant="secondary" size="touch" onClick={() => timer.adjust(15)} aria-label="+15 s">
-                +15
+              <Button variant="secondary" size="touch" onClick={() => timer.adjust(step)} aria-label={`+${step} s`}>
+                +{step}
               </Button>
               <Button size="touch" onClick={timer.stop}>
                 {t('workout.restNext')}

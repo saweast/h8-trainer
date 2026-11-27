@@ -25,8 +25,9 @@ interface SetSpecInputProps {
 }
 
 /**
- * Text input for the spreadsheet notation ("20x10, 50x5, 80x8x3") with a live preview of the
- * sets. Tapping a set toggles warm-up; the text is then rewritten from the sets.
+ * Text input for the spreadsheet notation ("20x10, 50x5, 80x8x3", drops "80x10+60+40") with a live
+ * preview of the sets. Tapping a set toggles warm-up; the text is then rewritten from the sets.
+ * A set with drops, and the drops, stay working.
  */
 export function SetSpecInput({ initial, onChange, bodyweight = false, previous, label, autoFocus, className }: SetSpecInputProps) {
   const { t } = useTranslation()
@@ -42,7 +43,10 @@ export function SetSpecInput({ initial, onChange, bodyweight = false, previous, 
     onChange({ sets: result.sets, valid: !result.warnings.some((w) => w.kind === 'invalid') })
   }
 
+  const inChain = (index: number) => Boolean(parsed.sets[index]?.isDrop || parsed.sets[index + 1]?.isDrop)
+
   const toggle = (index: number) => {
+    if (inChain(index)) return
     const sets = parsed.sets.map((s, i) => (i === index ? { ...s, isWarmup: !s.isWarmup } : s))
     update(formatSetSpec(sets, { bodyweight, locale: lang }))
   }
@@ -73,15 +77,21 @@ export function SetSpecInput({ initial, onChange, bodyweight = false, previous, 
       />
       <p id={`${id}-hint`} className="text-xs text-muted-foreground">
         {bodyweight ? t('setSpec.hintBodyweight') : t('setSpec.hint')}
+        {bodyweight ? null : (
+          <>
+            <br />
+            {t('setSpec.dropHint')}
+          </>
+        )}
       </p>
 
       {parsed.sets.length ? (
         <div className="flex flex-col gap-1.5 rounded-xl bg-secondary/50 p-2.5">
           {warmups.length ? (
-            <SetRowPreview label={t('setSpec.warmup')} items={warmups} onToggle={toggle} lang={lang} bodyweight={bodyweight} warm />
+            <SetRowPreview label={t('setSpec.warmup')} items={warmups} onToggle={toggle} inChain={inChain} lang={lang} bodyweight={bodyweight} warm />
           ) : null}
           {working.length ? (
-            <SetRowPreview label={t('setSpec.working')} items={working} onToggle={toggle} lang={lang} bodyweight={bodyweight} />
+            <SetRowPreview label={t('setSpec.working')} items={working} onToggle={toggle} inChain={inChain} lang={lang} bodyweight={bodyweight} />
           ) : null}
           <p className="text-[11px] text-muted-foreground">
             {t('setSpec.toggleHint')}
@@ -114,6 +124,7 @@ function SetRowPreview({
   label,
   items,
   onToggle,
+  inChain,
   lang,
   bodyweight,
   warm = false,
@@ -121,10 +132,16 @@ function SetRowPreview({
   label: string
   items: { s: SpecSet; i: number }[]
   onToggle: (index: number) => void
+  inChain: (index: number) => boolean
   lang: string
   bodyweight: boolean
   warm?: boolean
 }) {
+  const { t } = useTranslation()
+  const text = (s: SpecSet) => {
+    if (bodyweight && s.weightKg === 0) return String(s.reps)
+    return `${formatKg(s.weightKg, lang)}×${s.reps || t('setSpec.maxReps')}`
+  }
   return (
     <div className="flex items-start gap-2">
       <span className="w-16 shrink-0 pt-1 text-[11px] font-medium text-muted-foreground">{label}</span>
@@ -134,13 +151,16 @@ function SetRowPreview({
             key={i}
             type="button"
             onClick={() => onToggle(i)}
-            title={s.note}
+            disabled={inChain(i)}
+            title={s.isDrop ? [t('setSpec.drop'), s.note].filter(Boolean).join(' · ') : s.note}
             className={cn(
               'tabular h-7 rounded-lg px-2 text-[13px] font-medium transition-colors',
               warm ? 'bg-warning-muted text-warning-text' : 'bg-card text-foreground shadow-xs',
+              s.isDrop && '-ml-0.5 bg-card/60 text-muted-foreground shadow-none',
             )}
           >
-            {bodyweight && s.weightKg === 0 ? s.reps : `${formatKg(s.weightKg, lang)}×${s.reps}`}
+            {s.isDrop ? '↓' : ''}
+            {text(s)}
             {s.note ? '*' : ''}
           </button>
         ))}

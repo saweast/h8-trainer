@@ -135,6 +135,37 @@ describe('rounds', () => {
     expect(roundCount(members)).toBe(2)
   })
 
+  it('keeps drops in the round of the set they continue', () => {
+    const drop = (id: string, done: boolean) => ({ ...set(id, done), isDrop: true })
+    // A1: 2 sets, the first with two drops; A2: 2 sets
+    const members = (a1: boolean, d1: boolean, d2: boolean, b1: boolean): RoundExercise[] => [
+      { id: 'A1', sets: [set('a1', a1), drop('a1d1', d1), drop('a1d2', d2), set('a2', false)] },
+      { id: 'A2', sets: [set('b1', b1), set('b2', false)] },
+    ]
+    expect(roundCount(members(false, false, false, false))).toBe(2)
+    // the last drop of A1's chain done: on to A2 round 1
+    expect(afterSetDone(members(true, true, true, false), 'a1d2')).toEqual({
+      rest: false,
+      next: { exerciseId: 'A2', setId: 'b1', round: 1 },
+    })
+    // A2 closed the round before: the last drop ends it, rest
+    expect(afterSetDone(members(true, true, true, true), 'a1d2')).toEqual({ rest: true, next: null })
+    expect(nextUp(members(true, true, true, true))).toEqual({ exerciseId: 'A1', setId: 'a2', round: 2 })
+    expect(roundsDone(members(true, true, true, true))).toBe(1)
+  })
+
+  it('points at a drop still to do before the next exercise, and keeps its round open', () => {
+    const drop = (id: string, done: boolean) => ({ ...set(id, done), isDrop: true })
+    const members: RoundExercise[] = [
+      { id: 'A1', sets: [set('a1', true), drop('a1d1', false), set('a2', false)] },
+      { id: 'A2', sets: [set('b1', true), set('b2', false)] },
+    ]
+    expect(nextUp(members)).toEqual({ exerciseId: 'A1', setId: 'a1d1', round: 1 })
+    expect(roundsDone(members)).toBe(0)
+    // A2 done while A1's drop is still open: not the end of the round yet
+    expect(afterSetDone(members, 'b1')).toEqual({ rest: false, next: { exerciseId: 'A1', setId: 'a1d1', round: 1 } })
+  })
+
   it('counts done rounds and finds the next set', () => {
     expect(roundsDone(superset([true, true, false], [true, false, false]))).toBe(1)
     expect(nextUp(superset([true, true, false], [true, false, false]))).toEqual({ exerciseId: 'A2', setId: 'b2', round: 2 })

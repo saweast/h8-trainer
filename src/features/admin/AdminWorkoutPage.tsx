@@ -3,11 +3,12 @@ import { SearchX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router'
 import { EmptyState } from '@/components/common/EmptyState'
+import { SetChips } from '@/components/common/SetChips'
 import { Skeleton } from '@/components/ui/skeleton'
 import { exerciseName } from '@/data/exercises'
 import { currentLanguage } from '@/i18n'
 import { dateLocale } from '@/lib/dates'
-import { formatKg, formatVolume } from '@/lib/format'
+import { formatVolume } from '@/lib/format'
 import { minutesBetween } from '@/lib/time'
 import { useAdminWorkout } from './api'
 import { BackHeader } from './BackHeader'
@@ -42,6 +43,7 @@ export function AdminWorkoutPage() {
 
   const done = workout.exercises.flatMap((e) => e.sets.filter((s) => s.completed && !s.isWarmup))
   const volume = done.reduce((sum, s) => sum + s.weightKg * s.reps, 0)
+  const setCount = done.filter((s) => !s.isDrop).length // a drop chain is one set
   const minutes = workout.finishedAt ? minutesBetween(workout.startedAt, workout.finishedAt) : 0
   const date = format(new Date(workout.startedAt), lang === 'en' ? 'EEEE, MMMM d · HH:mm' : 'EEEE, d MMMM · HH:mm', {
     locale: dateLocale(lang),
@@ -64,7 +66,7 @@ export function AdminWorkoutPage() {
       <div className="grid grid-cols-3 gap-2">
         <Stat label={t('workout.duration')} value={t('workout.minutes', { count: minutes })} />
         <Stat label={t('workout.volume')} value={`${formatVolume(volume, lang)} ${t('workout.kg')}`} />
-        <Stat label={t('workout.sets')} value={String(done.length)} />
+        <Stat label={t('workout.sets')} value={String(setCount)} />
       </div>
 
       {workout.notes ? <p className="rounded-2xl border bg-card px-4 py-3 text-sm whitespace-pre-wrap">{workout.notes}</p> : null}
@@ -74,22 +76,7 @@ export function AdminWorkoutPage() {
           <section key={item.id} className="rounded-2xl border bg-card px-4 py-3">
             <h2 className="text-[15px] font-medium">{exerciseName(item, lang)}</h2>
             {item.notes ? <p className="mt-0.5 text-xs text-muted-foreground">{item.notes}</p> : null}
-            <ul className="mt-1.5 flex flex-wrap gap-1.5">
-              {item.sets
-                .filter((s) => s.completed)
-                .map((s) => (
-                  <li
-                    key={s.id}
-                    className={
-                      s.isWarmup
-                        ? 'tabular rounded-lg bg-secondary/60 px-2 py-1 text-xs text-muted-foreground'
-                        : 'tabular rounded-lg bg-secondary px-2 py-1 text-xs font-medium'
-                    }
-                  >
-                    {formatKg(s.weightKg, lang)} × {s.reps}
-                  </li>
-                ))}
-            </ul>
+            <SetChips sets={item.sets.filter((s) => s.completed)} className="mt-1.5" />
           </section>
         ))}
       </div>

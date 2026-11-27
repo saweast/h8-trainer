@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
+import { SetChips } from '@/components/common/SetChips'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import {
@@ -17,7 +18,7 @@ import { useExerciseMap } from '@/features/exercises/api'
 import { useIsMine, useSaveTemplate, useTemplate } from '@/features/templates/api'
 import { currentLanguage } from '@/i18n'
 import { dateLocale } from '@/lib/dates'
-import { formatKg, formatVolume } from '@/lib/format'
+import { formatVolume } from '@/lib/format'
 import { detectPrs } from '@/lib/records'
 import { templateItemsFromWorkout, workoutMatchesTemplate } from '@/lib/templateFromWorkout'
 import { toBlocks } from '@/lib/superset'
@@ -105,25 +106,7 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
           {exercise ? exerciseName(exercise, lang) : '…'}
           {prs.has(item.exerciseId) ? <Trophy className="size-4 text-pr" aria-label={t('workout.pr')} /> : null}
         </h2>
-        <ul className="mt-1.5 flex flex-wrap gap-1.5">
-          {item.sets.map((s) => {
-            const pr = detectPrs(s, previous).length > 0
-            return (
-              <li
-                key={s.id}
-                className={
-                  s.isWarmup
-                    ? 'tabular rounded-lg bg-secondary/60 px-2 py-1 text-xs text-muted-foreground'
-                    : pr
-                      ? 'tabular rounded-lg bg-pr-muted px-2 py-1 text-xs font-medium text-pr-text'
-                      : 'tabular rounded-lg bg-secondary px-2 py-1 text-xs font-medium'
-                }
-              >
-                {formatKg(s.weightKg, lang)} × {s.reps}
-              </li>
-            )
-          })}
-        </ul>
+        <SetChips sets={item.sets} isPr={(s) => detectPrs(s, previous).length > 0} className="mt-1.5" />
         {item.sets.some((s) => s.completedAt !== null) ? (
           <ExerciseFeedback
             difficulty={item.difficulty}

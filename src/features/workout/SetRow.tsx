@@ -1,4 +1,4 @@
-import { Check, Trophy } from 'lucide-react'
+import { Check, CornerDownRight, Trophy } from 'lucide-react'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -11,15 +11,20 @@ import {
 import { currentLanguage } from '@/i18n'
 import { formatKg, parseWeight } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { FAILURE_RPE, isToFailure } from '@/lib/failure'
 import type { PreviousSet } from '@/lib/templatePrefill'
 import type { WorkoutSet } from './api'
 
-type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'completedAt'>>
+type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'rpe' | 'completedAt'>>
 
 interface SetRowProps {
   set: WorkoutSet
-  /** "1", "2"… for working sets, "Р"/"W" for warm-ups. */
+  /** "1", "2"… for working sets, "Р"/"W" for warm-ups; drops show an arrow instead. */
   label: string
+  /** Shown as a drop of the set above (a set that reads as a drop but has none above isn't). */
+  drop?: boolean
+  /** Drops continue this set: it stays working, and deleting it deletes them. */
+  hasDrops?: boolean
   last: PreviousSet | undefined
   isPr: boolean
   /** The set to do next in a superset round: highlighted, and scrolled to. */
@@ -29,6 +34,8 @@ interface SetRowProps {
   /** Called with the values just saved, so the caller can check records and start rest. */
   onCompleted: (values: { weightKg: number; reps: number }) => void
   onDelete: () => void
+  /** Adds a drop at the end of this set's chain; absent for warm-ups. */
+  onAddDrop?: () => void
 }
 
 /** Input text for a stored weight: "" for 0, decimal comma in Ukrainian. */
@@ -40,10 +47,24 @@ function weightText(kg: number, lang: string): string {
 
 export const SET_GRID = 'grid grid-cols-[2rem_minmax(0,1fr)_4.5rem_3.5rem_2.75rem] items-center gap-2'
 
-export function SetRow({ set, label, last, isPr, isNext = false, readOnly = false, onChange, onCompleted, onDelete }: SetRowProps) {
+export function SetRow({
+  set,
+  label,
+  drop = false,
+  hasDrops = false,
+  last,
+  isPr,
+  isNext = false,
+  readOnly = false,
+  onChange,
+  onCompleted,
+  onDelete,
+  onAddDrop,
+}: SetRowProps) {
   const { t } = useTranslation()
   const lang = currentLanguage()
   const done = set.completedAt !== null
+  const failure = !drop && !set.isWarmup && isToFailure(set)
   const repsRef = useRef<HTMLInputElement>(null)
 
   // What the user typed stays authoritative for this row; untouched fields show the stored value.
@@ -107,17 +128,40 @@ export function SetRow({ set, label, last, isPr, isNext = false, readOnly = fals
           aria-label={t('workout.setMenu')}
           className={cn(
             'flex h-11 items-center justify-center rounded-lg text-sm font-medium',
-            isPr ? 'text-pr' : set.isWarmup ? 'text-warning-text' : 'text-muted-foreground',
+            isPr ? 'text-pr' : set.isWarmup ? 'text-warning-text' : failure ? 'text-destructive' : 'text-muted-foreground',
           )}
         >
-          {isPr ? <Trophy className="size-4" aria-label={t('workout.pr')} /> : label}
+          {isPr ? (
+            <Trophy className="size-4" aria-label={t('workout.pr')} />
+          ) : drop ? (
+            <CornerDownRight className="size-4" aria-label={t('workout.drop')} />
+          ) : failure ? (
+            <abbr title={t('workout.failure')} className="no-underline">
+              {t('workout.failureShort')}
+            </abbr>
+          ) : (
+            label
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem onSelect={() => onChange({ isWarmup: !set.isWarmup })}>
-            {set.isWarmup ? t('workout.markWorking') : t('workout.markWarmup')}
-          </DropdownMenuItem>
+          {onAddDrop ? (
+            <DropdownMenuItem onSelect={onAddDrop}>
+              <CornerDownRight />
+              {t('workout.addDrop')}
+            </DropdownMenuItem>
+          ) : null}
+          {drop || set.isWarmup ? null : (
+            <DropdownMenuItem onSelect={() => onChange({ rpe: failure ? null : FAILURE_RPE })}>
+              {failure ? t('workout.unmarkFailure') : t('workout.markFailure')}
+            </DropdownMenuItem>
+          )}
+          {drop || hasDrops ? null : (
+            <DropdownMenuItem onSelect={() => onChange(set.isWarmup ? { isWarmup: false } : { isWarmup: true, rpe: null })}>
+              {set.isWarmup ? t('workout.markWorking') : t('workout.markWarmup')}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-            {t('workout.deleteSet')}
+            {drop ? t('workout.deleteDrop') : hasDrops ? t('workout.deleteSetWithDrops') : t('workout.deleteSet')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -144,7 +188,7 @@ export function SetRow({ set, label, last, isPr, isNext = false, readOnly = fals
         enterKeyHint="done"
         aria-label={t('workout.reps')}
         value={reps}
-        placeholder={last ? String(last.reps) : '0'}
+        placeholder={last ? String(last.reps) : drop ? t('workout.dropMax') : '0'}
         readOnly={readOnly}
         onFocus={(e) => e.currentTarget.select()}
         onChange={(e) => setRepsDraft(e.target.value.replace(/\D/g, '').slice(0, 3))}

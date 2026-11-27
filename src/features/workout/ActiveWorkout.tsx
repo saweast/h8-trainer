@@ -13,6 +13,7 @@ import {
   useExerciseSettings,
   useSaveExerciseSettings,
   type Exercise,
+  type ExerciseSettings,
 } from '@/features/exercises/api'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { useTemplate } from '@/features/templates/api'
@@ -20,6 +21,7 @@ import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
 import { useAuth } from '@/features/auth/authContext'
 import { useAthlete } from '@/features/trainer/api'
 import { currentLanguage } from '@/i18n'
+import { DROP_CHANGE_S } from '@/lib/dropSets'
 import type { ExerciseRecords } from '@/lib/records'
 import {
   afterSetDone,
@@ -96,7 +98,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
     } catch {
       // no history available — start with empty sets
     }
-    const workingCount = previous.filter((s) => !s.isWarmup).length
+    const workingCount = previous.filter((s) => !s.isWarmup && !s.isDrop).length
     return prefillSets(
       { targetSets: workingCount || 3, targetRepsMin: null, targetRepsMax: null, targetWeightKg: null },
       previous,
@@ -122,11 +124,14 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
     exercises.get(exerciseId)?.defaultRestS ??
     90
 
-  const onSetCompleted = (item: WorkoutExercise, set: WorkoutSet, isPr: boolean) => {
+  const onSetCompleted = (item: WorkoutExercise, set: WorkoutSet, isPr: boolean, dropNext: boolean) => {
     // The set is already marked done in the cache; this render's `workout` may not show it yet.
     const now = queryClient.getQueryData<Workout>(workoutKey(workout.id)) ?? workout
     const block = toBlocks(now.exercises).find((b) => b.kind === 'superset' && b.items.some((e) => e.id === item.id))
-    if (block?.kind === 'superset') {
+    if (dropNext) {
+      // A drop comes straight after: only a short countdown to lower the weight, superset or not.
+      rest.start(DROP_CHANGE_S, 'drop')
+    } else if (block?.kind === 'superset') {
       // A superset rests only after the round, as long as its longest rest.
       const { rest: roundClosed, next } = afterSetDone(block.items, set.id)
       if (roundClosed) {
@@ -151,8 +156,21 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
     }
   }
 
+  // One setting changes, the rest of the row stays as it is.
+  const saveSetting = (exerciseId: string, patch: Partial<ExerciseSettings>) => {
+    const current = settings?.get(exerciseId)
+    saveSettings.mutate({
+      exerciseId,
+      setupNotes: current?.setupNotes ?? null,
+      restS: current?.restS ?? null,
+      dropPct: current?.dropPct ?? null,
+      ...patch,
+    })
+  }
+
   const allSets = workout.exercises.flatMap((e) => e.sets)
-  const doneSets = allSets.filter((s) => s.completedAt && !s.isWarmup).length
+  // a drop chain is one set
+  const doneSets = allSets.filter((s) => s.completedAt && !s.isWarmup && !s.isDrop).length
   const pendingSets = allSets.filter((s) => !s.completedAt).length
 
   const finish = () => {
@@ -276,16 +294,12 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
                   exercise={exercises.get(item.exerciseId)}
                   records={records?.get(item.exerciseId) ?? null}
                   setupNotes={settings?.get(item.exerciseId)?.setupNotes ?? null}
+                  dropPct={settings?.get(item.exerciseId)?.dropPct ?? null}
                   actions={actions}
                   readOnly={liveView}
-                  onSetCompleted={(set, isPr) => onSetCompleted(item, set, isPr)}
-                  onSaveSetup={(notes) =>
-                    saveSettings.mutate({
-                      exerciseId: item.exerciseId,
-                      setupNotes: notes,
-                      restS: settings?.get(item.exerciseId)?.restS ?? null,
-                    })
-                  }
+                  onSetCompleted={(set, isPr, dropNext) => onSetCompleted(item, set, isPr, dropNext)}
+                  onSaveSetup={(notes) => saveSetting(item.exerciseId, { setupNotes: notes })}
+                  onSaveDropPct={(dropPct) => saveSetting(item.exerciseId, { dropPct })}
                   {...extra}
                 />
               )
@@ -389,14 +403,16 @@ interface ContainerProps {
   exercise: Exercise | undefined
   records: ExerciseRecords | null
   setupNotes: string | null
+  dropPct: number | null
   actions: Actions
   readOnly: boolean
   label?: string
   embedded?: boolean
   nextSetId?: string | null
   menuItems?: ReactNode
-  onSetCompleted: (set: WorkoutSet, isPr: boolean) => void
+  onSetCompleted: (set: WorkoutSet, isPr: boolean, dropNext: boolean) => void
   onSaveSetup: (notes: string) => void
+  onSaveDropPct: (pct: number) => void
 }
 
 /** Loads "last time" for one exercise and wires the card to the workout actions. */
@@ -406,6 +422,7 @@ function ExerciseCardContainer({
   exercise,
   records,
   setupNotes,
+  dropPct,
   actions,
   readOnly,
   label,
@@ -414,6 +431,7 @@ function ExerciseCardContainer({
   menuItems,
   onSetCompleted,
   onSaveSetup,
+  onSaveDropPct,
 }: ContainerProps) {
   const { data: lastTime } = useLastPerformance(workout.athleteId, item.exerciseId, workout.id)
   return (
@@ -423,6 +441,7 @@ function ExerciseCardContainer({
       lastTime={lastTime ?? []}
       records={records}
       setupNotes={setupNotes}
+      dropPct={dropPct}
       readOnly={readOnly}
       label={label}
       embedded={embedded}
@@ -432,8 +451,10 @@ function ExerciseCardContainer({
       onSetCompleted={onSetCompleted}
       onSetDelete={(setId) => actions.removeSet(setId)}
       onAddSet={() => actions.addSet(item.id)}
+      onAddDrop={(afterSetId, weightKg) => actions.addDrop(afterSetId, weightKg)}
       onRemove={() => actions.removeExercise(item.id)}
       onSaveSetup={onSaveSetup}
+      onSaveDropPct={onSaveDropPct}
       onFeedback={(patch) => actions.setFeedback(item.id, patch)}
     />
   )

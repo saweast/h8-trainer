@@ -127,11 +127,13 @@ export function useUpdateExerciseGuide() {
 export interface ExerciseSettings {
   setupNotes: string | null
   restS: number | null
+  /** How much lighter a drop is, %; null = the default (src/lib/dropSets.ts). */
+  dropPct: number | null
 }
 
 export const settingsKey = (athleteId: string | undefined) => ['exercise-settings', athleteId] as const
 
-/** Per-athlete machine setup notes and preferred rest, keyed by exercise id. */
+/** Per-athlete machine setup notes, preferred rest and drop size, keyed by exercise id. */
 export function useExerciseSettings(athleteId: string | undefined) {
   return useQuery({
     queryKey: settingsKey(athleteId),
@@ -139,11 +141,11 @@ export function useExerciseSettings(athleteId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase!
         .from('athlete_exercise_settings')
-        .select('exercise_id, setup_notes, rest_s')
+        .select('exercise_id, setup_notes, rest_s, drop_pct')
         .eq('athlete_id', athleteId!)
       if (error) throw error
       return new Map<string, ExerciseSettings>(
-        data.map((r) => [r.exercise_id, { setupNotes: r.setup_notes, restS: r.rest_s }]),
+        data.map((r) => [r.exercise_id, { setupNotes: r.setup_notes, restS: r.rest_s, dropPct: r.drop_pct }]),
       )
     },
   })
@@ -158,6 +160,7 @@ export function useSaveExerciseSettings(athleteId: string | undefined) {
         exercise_id: exerciseId,
         setup_notes: settings.setupNotes?.trim() || null,
         rest_s: settings.restS,
+        drop_pct: settings.dropPct,
       })
       if (error) throw error
     },

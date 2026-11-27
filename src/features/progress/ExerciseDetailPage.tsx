@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { EmptyState } from '@/components/common/EmptyState'
 import { SegmentedControl } from '@/components/common/SegmentedControl'
+import { SetChips } from '@/components/common/SetChips'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { exerciseName } from '@/data/exercises'
@@ -187,22 +188,7 @@ export function ExerciseDetailPage() {
                     <p className="text-xs text-muted-foreground first-letter:uppercase">
                       {format(new Date(r.startedAt), lang === 'en' ? 'EEE, MMM d' : 'EEEEEE, d MMMM', { locale })}
                     </p>
-                    <ul className="mt-1.5 flex flex-wrap gap-1.5">
-                      {r.sets
-                        .filter((s) => s.completedAt)
-                        .map((s, i) => (
-                          <li
-                            key={i}
-                            className={
-                              s.isWarmup
-                                ? 'tabular rounded-lg bg-secondary/60 px-2 py-1 text-xs text-muted-foreground'
-                                : 'tabular rounded-lg bg-secondary px-2 py-1 text-xs font-medium'
-                            }
-                          >
-                            {formatKg(s.weightKg, lang)} × {s.reps}
-                          </li>
-                        ))}
-                    </ul>
+                    <SetChips sets={r.sets.filter((s) => s.completedAt)} className="mt-1.5" />
                   </Link>
                 </li>
               ))}
