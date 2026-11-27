@@ -23,7 +23,8 @@ export interface DragHandleProps {
 interface SortableListProps<T> {
   items: T[]
   getId: (item: T) => string
-  onReorder: (items: T[]) => void
+  /** The new order, and the item that was moved. */
+  onReorder: (items: T[], moved: T) => void
   disabled?: boolean
   renderItem: (item: T, index: number, handle: DragHandleProps) => ReactNode
   className?: string
@@ -41,7 +42,7 @@ export function SortableList<T>({ items, getId, onReorder, disabled, renderItem,
     if (!over || active.id === over.id) return
     const from = items.findIndex((i) => getId(i) === active.id)
     const to = items.findIndex((i) => getId(i) === over.id)
-    if (from >= 0 && to >= 0) onReorder(arrayMove(items, from, to))
+    if (from >= 0 && to >= 0) onReorder(arrayMove(items, from, to), items[from])
   }
 
   return (

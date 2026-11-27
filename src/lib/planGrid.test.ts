@@ -28,8 +28,8 @@ function draft(): PlanDraft {
         id: 'd1',
         name: '1 тренування',
         rows: [
-          { id: 'squat', exerciseId: 'squat', restS: null, notes: null, cells: { 1: spec('20x10, 80x8x3'), 2: spec('20x10, 85x6x3'), 3: spec('20x10, 90x5x3') } },
-          { id: 'curl', exerciseId: 'curl', restS: null, notes: null, cells: { 1: spec('10x10, 15x10x3') } },
+          { id: 'squat', exerciseId: 'squat', restS: null, notes: null, superset: null, cells: { 1: spec('20x10, 80x8x3'), 2: spec('20x10, 85x6x3'), 3: spec('20x10, 90x5x3') } },
+          { id: 'curl', exerciseId: 'curl', restS: null, notes: null, superset: null, cells: { 1: spec('10x10, 15x10x3') } },
         ],
       },
     ],
@@ -82,6 +82,20 @@ describe('plan grid', () => {
     next = moveRow(next, 'curl', -1)
     expect(next.days[0].rows.map((r) => r.id)).toEqual(['curl', 'squat'])
     expect(moveRow(next, 'curl', -1)).toEqual(next)
+  })
+
+  it('moves supersets as one', () => {
+    const row = (id: string, superset: number | null) => ({ id, exerciseId: id, restS: null, notes: null, superset, cells: {} })
+    const plan: PlanDraft = { name: '', notes: '', weeks: 1, days: [{ id: 'd', name: '', rows: [row('x', null), row('a1', 1), row('a2', 1), row('y', null)] }] }
+    const order = (d: PlanDraft) => d.days[0].rows.map((r) => `${r.id}${r.superset ? `:${r.superset}` : ''}`)
+    // a plain row jumps over the whole superset
+    expect(order(moveRow(plan, 'x', 1))).toEqual(['a1:1', 'a2:1', 'x', 'y'])
+    expect(order(moveRow(plan, 'y', -1))).toEqual(['x', 'y', 'a1:1', 'a2:1'])
+    // inside the superset the rows swap
+    expect(order(moveRow(plan, 'a2', -1))).toEqual(['x', 'a2:1', 'a1:1', 'y'])
+    // from its edge the superset moves together
+    expect(order(moveRow(plan, 'a1', -1))).toEqual(['a1:1', 'a2:1', 'x', 'y'])
+    expect(order(moveRow(plan, 'a2', 1))).toEqual(['x', 'y', 'a1:1', 'a2:1'])
   })
 
   it('totals working volume per week', () => {

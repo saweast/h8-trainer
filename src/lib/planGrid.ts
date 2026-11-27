@@ -1,4 +1,5 @@
 import { fromSpecSets, specVolume, type SpecSet } from './setSpec'
+import { loneSupersets, toBlocks } from './superset'
 
 /** A plan as edited on the grid: days → exercise rows → one cell of planned sets per week. */
 export interface PlanRowDraft {
@@ -6,6 +7,8 @@ export interface PlanRowDraft {
   exerciseId: string
   restS: number | null
   notes: string | null
+  /** Neighbouring rows with the same number form a superset (src/lib/superset.ts). */
+  superset: number | null
   /** week (1-based) → planned sets */
   cells: Record<number, SpecSet[]>
 }
@@ -31,8 +34,14 @@ export function emptyDay(name: string): PlanDayDraft {
   return { id: newId(), name, rows: [] }
 }
 
-export function newRow(exerciseId: string, restS: number | null = null): PlanRowDraft {
-  return { id: newId(), exerciseId, restS, notes: null, cells: {} }
+export function newRow(exerciseId: string, restS: number | null = null, superset: number | null = null): PlanRowDraft {
+  return { id: newId(), exerciseId, restS, notes: null, superset, cells: {} }
+}
+
+/** Superset numbers cleared where a superset was left with a single row. */
+export function dissolveLone(rows: PlanRowDraft[]): PlanRowDraft[] {
+  const lone = new Set(loneSupersets(rows))
+  return lone.size ? rows.map((r) => (lone.has(r) ? { ...r, superset: null } : r)) : rows
 }
 
 const roundTo = (value: number, step: number) => Math.round(value / step) * step
@@ -110,16 +119,27 @@ export function setCell(draft: PlanDraft, rowId: string, week: number, sets: Spe
   })
 }
 
+/**
+ * Moves a row one place up or down within its day. Supersets move as one: a plain row jumps over
+ * a whole superset, a superset row moves inside it, and its first/last row carries the superset.
+ */
 export function moveRow(draft: PlanDraft, rowId: string, delta: -1 | 1): PlanDraft {
   return {
     ...draft,
     days: draft.days.map((d) => {
-      const i = d.rows.findIndex((r) => r.id === rowId)
-      const j = i + delta
-      if (i < 0 || j < 0 || j >= d.rows.length) return d
-      const rows = [...d.rows]
-      ;[rows[i], rows[j]] = [rows[j], rows[i]]
-      return { ...d, rows }
+      const runs = toBlocks(d.rows).map((b) => (b.kind === 'single' ? [b.item] : [...b.items]))
+      const at = runs.findIndex((run) => run.some((r) => r.id === rowId))
+      if (at < 0) return d
+      const run = runs[at]
+      const i = run.findIndex((r) => r.id === rowId)
+      if (run.length > 1 && i + delta >= 0 && i + delta < run.length) {
+        ;[run[i], run[i + delta]] = [run[i + delta], run[i]]
+      } else {
+        const other = at + delta
+        if (other < 0 || other >= runs.length) return d
+        ;[runs[at], runs[other]] = [runs[other], runs[at]]
+      }
+      return { ...d, rows: dissolveLone(runs.flat()) }
     }),
   }
 }
@@ -153,6 +173,7 @@ export function toSavePayload(draft: PlanDraft) {
       exercise_id: r.exerciseId,
       rest_s: r.restS,
       notes: r.notes,
+      superset: r.superset,
       cells: Object.entries(r.cells)
         .map(([week, sets]) => ({ week: Number(week), sets: fromSpecSets(sets) }))
         .filter((c) => c.week >= 1 && c.week <= draft.weeks && c.sets.length),

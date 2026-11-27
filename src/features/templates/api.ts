@@ -65,7 +65,7 @@ export function useTemplate(id: string | undefined) {
         .from('templates')
         .select(
           `id, name, notes, owner_id,
-           template_exercises (exercise_id, position, target_sets, target_reps_min, target_reps_max, target_weight_kg, rest_s, notes, sets)`,
+           template_exercises (exercise_id, position, target_sets, target_reps_min, target_reps_max, target_weight_kg, rest_s, notes, sets, superset)`,
         )
         .eq('id', id!)
         .single()
@@ -86,6 +86,7 @@ export function useTemplate(id: string | undefined) {
             restS: te.rest_s,
             notes: te.notes,
             sets: te.sets === null ? null : toSpecSets(te.sets),
+            superset: te.superset,
           })),
       }
     },
@@ -132,6 +133,7 @@ export function useSaveTemplate() {
           rest_s: i.restS,
           notes: i.notes,
           sets: i.sets?.length ? fromSpecSets(i.sets) : null,
+          superset: i.superset ?? null,
         })),
       })
       if (error) throw error

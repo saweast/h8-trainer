@@ -3,6 +3,7 @@ import { dropsAfter } from '@/lib/dropSets'
 import type { ExerciseRecords } from '@/lib/records'
 import type { TablesUpdate } from '@/lib/db.types'
 import { supabase } from '@/lib/supabase'
+import { loneSupersets } from '@/lib/superset'
 import type { PlannedSet, PreviousSet } from '@/lib/templatePrefill'
 
 // Types -------------------------------------------------------------------------------------
@@ -29,6 +30,8 @@ export interface WorkoutExercise {
   /** Client feedback: 1 easy · 2 ok · 3 hard. */
   difficulty: number | null
   athleteFeedback: string | null
+  /** Neighbours with the same number form a superset (src/lib/superset.ts). */
+  superset: number | null
   sets: WorkoutSet[]
 }
 
@@ -123,7 +126,7 @@ export function pendingWrites(queryClient: QueryClient, workoutId: string) {
 }
 
 const WORKOUT_SELECT = `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by, group_id, last_activity_at,
-  workout_exercises (id, exercise_id, position, notes, difficulty, athlete_feedback,
+  workout_exercises (id, exercise_id, position, notes, difficulty, athlete_feedback, superset,
     sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, is_drop, rpe, completed_at))`
 
 /** The workout doesn't exist (deleted) or isn't visible to me. */
@@ -162,6 +165,7 @@ async function fetchWorkout(id: string): Promise<Workout> {
         notes: we.notes,
         difficulty: we.difficulty,
         athleteFeedback: we.athlete_feedback,
+        superset: we.superset,
         sets: we.sets
           .map((s) => ({
             id: s.id,
@@ -421,7 +425,7 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       const { error } = await supabase!
         .from('workout_exercises')
         .upsert(
-          { id: we.id, workout_id: workoutId, exercise_id: we.exerciseId, position: we.position },
+          { id: we.id, workout_id: workoutId, exercise_id: we.exerciseId, position: we.position, superset: we.superset },
           { onConflict: 'id', ignoreDuplicates: true },
         )
       if (error) throw error
@@ -496,6 +500,15 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
+  const patchSuperset = useMutation({
+    scope,
+    retry: retryNetwork,
+    onError,
+    mutationFn: async ({ id, superset }: { id: string; superset: number | null }) => {
+      await expectRows(supabase!.from('workout_exercises').update({ superset }).eq('id', id).select('id'), 'superset')
+    },
+  })
+
   const deleteSets = useMutation({
     scope,
     retry: retryNetwork,
@@ -505,8 +518,11 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
-  /** `at`: a split session puts the same exercise at the same position for every client. */
-  const addExercise = (exerciseId: string, planned: PlannedSet[], at?: number) => {
+  /**
+   * `at`: a split session puts the same exercise at the same position for every client.
+   * `superset`: the exercise joins (or starts) the superset with that number.
+   */
+  const addExercise = (exerciseId: string, planned: PlannedSet[], at?: number, superset: number | null = null) => {
     const w = current()
     const position = at ?? Math.max(-1, ...(w?.exercises.map((e) => e.position) ?? [])) + 1
     const weId = newId()
@@ -517,6 +533,7 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       notes: null,
       difficulty: null,
       athleteFeedback: null,
+      superset,
       sets: planned.map((p) => ({
         id: newId(),
         workoutExerciseId: weId,
@@ -529,8 +546,21 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
         completedAt: null,
       })),
     }
-    updateCached(queryClient, workoutId, (old) => ({ ...old, exercises: [...old.exercises, we] }))
+    updateCached(queryClient, workoutId, (old) => ({
+      ...old,
+      exercises: [...old.exercises, we].sort(byPosition),
+    }))
     insertExercise.mutate(we)
+  }
+
+  /** New superset numbers by workout exercise id (null = plain exercise again). */
+  const setSupersets = (changes: Map<string, number | null>) => {
+    if (!changes.size) return
+    updateCached(queryClient, workoutId, (old) => ({
+      ...old,
+      exercises: old.exercises.map((e) => (changes.has(e.id) ? { ...e, superset: changes.get(e.id)! } : e)),
+    }))
+    for (const [id, superset] of changes) patchSuperset.mutate({ id, superset })
   }
 
   const removeExercise = (workoutExerciseId: string) => {
@@ -539,6 +569,9 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       exercises: old.exercises.filter((e) => e.id !== workoutExerciseId),
     }))
     deleteExercise.mutate(workoutExerciseId)
+    // The last partner of a superset gone: what's left is a plain exercise again.
+    const lone = loneSupersets(current()?.exercises ?? [])
+    setSupersets(new Map(lone.map((e) => [e.id, null])))
   }
 
   /** New set copying the previous one (not a drop of it), so the next set is one tap away. */
@@ -669,5 +702,5 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
-  return { addExercise, removeExercise, addSet, addDrop, updateSet, removeSet, setFeedback, finish, discard }
+  return { addExercise, removeExercise, setSupersets, addSet, addDrop, updateSet, removeSet, setFeedback, finish, discard }
 }

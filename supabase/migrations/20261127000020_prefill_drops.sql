@@ -30,8 +30,8 @@ begin
     select * from public.template_exercises where template_id = p_template order by position
   loop
     v_we := gen_random_uuid();
-    insert into public.workout_exercises (id, workout_id, exercise_id, position, notes)
-    values (v_we, v_workout, te.exercise_id, te.position, te.notes);
+    insert into public.workout_exercises (id, workout_id, exercise_id, position, notes, superset)
+    values (v_we, v_workout, te.exercise_id, te.position, te.notes, te.superset);
 
     if te.sets is not null then
       perform private.insert_spec_sets(v_we, te.sets);

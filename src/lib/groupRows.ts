@@ -2,11 +2,14 @@
 export interface GroupRow {
   position: number
   exerciseId: string
+  /** The superset it is in (the same for every client, as rows are grouped for all at once). */
+  superset: number | null
 }
 
 interface PositionedExercise {
   position: number
   exerciseId: string
+  superset?: number | null
 }
 
 const rowKey = (r: GroupRow) => `${r.position}:${r.exerciseId}`
@@ -16,7 +19,7 @@ export function groupRows(workouts: { exercises: PositionedExercise[] }[]): Grou
   const rows = new Map<string, GroupRow>()
   for (const w of workouts) {
     for (const e of w.exercises) {
-      const row = { position: e.position, exerciseId: e.exerciseId }
+      const row = { position: e.position, exerciseId: e.exerciseId, superset: e.superset ?? null }
       if (!rows.has(rowKey(row))) rows.set(rowKey(row), row)
     }
   }
@@ -29,6 +32,6 @@ export function nextGroupPosition(workouts: { exercises: PositionedExercise[] }[
 }
 
 /** This client's exercise for the row, if they have it. */
-export function findRowExercise<T extends PositionedExercise>(exercises: T[], row: GroupRow): T | undefined {
+export function findRowExercise<T extends PositionedExercise>(exercises: T[], row: Omit<GroupRow, 'superset'>): T | undefined {
   return exercises.find((e) => e.position === row.position && e.exerciseId === row.exerciseId)
 }

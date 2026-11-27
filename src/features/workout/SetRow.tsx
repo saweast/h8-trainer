@@ -27,6 +27,8 @@ interface SetRowProps {
   hasDrops?: boolean
   last: PreviousSet | undefined
   isPr: boolean
+  /** The set to do next in a superset round: highlighted, and scrolled to. */
+  isNext?: boolean
   readOnly?: boolean
   onChange: (patch: SetPatch) => void
   /** Called with the values just saved, so the caller can check records and start rest. */
@@ -52,6 +54,7 @@ export function SetRow({
   hasDrops = false,
   last,
   isPr,
+  isNext = false,
   readOnly = false,
   onChange,
   onCompleted,
@@ -115,7 +118,10 @@ export function SetRow({
   )
 
   return (
-    <div className={SET_GRID}>
+    <div
+      id={`set-${set.id}`}
+      className={cn(SET_GRID, 'scroll-mt-20 scroll-mb-40 rounded-xl', isNext && !done && 'bg-primary/10 ring-1 ring-primary/60 dark:bg-primary/5')}
+    >
       <DropdownMenu>
         <DropdownMenuTrigger
           disabled={readOnly}

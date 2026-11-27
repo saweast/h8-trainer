@@ -131,7 +131,7 @@ export interface ExerciseSettings {
   dropPct: number | null
 }
 
-const settingsKey = (athleteId: string | undefined) => ['exercise-settings', athleteId] as const
+export const settingsKey = (athleteId: string | undefined) => ['exercise-settings', athleteId] as const
 
 /** Per-athlete machine setup notes, preferred rest and drop size, keyed by exercise id. */
 export function useExerciseSettings(athleteId: string | undefined) {

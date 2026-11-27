@@ -1,4 +1,4 @@
-import { ArrowLeft, ClipboardList, EllipsisVertical, RefreshCw, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeft, ClipboardList, EllipsisVertical, Layers, RefreshCw, Trash2, Trophy } from 'lucide-react'
 import { format } from 'date-fns'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -21,9 +21,11 @@ import { dateLocale } from '@/lib/dates'
 import { formatVolume } from '@/lib/format'
 import { detectPrs } from '@/lib/records'
 import { templateItemsFromWorkout, workoutMatchesTemplate } from '@/lib/templateFromWorkout'
+import { toBlocks } from '@/lib/superset'
 import { minutesBetween } from '@/lib/time'
 import { exercisesWithPr, workoutTotals } from '@/lib/workoutStats'
 import { useExerciseRecords, useWorkoutActions, type Workout } from './api'
+import { SupersetLabel } from './ExerciseCard'
 import { ExerciseFeedback } from './ExerciseFeedback'
 import { WorkoutComments } from './WorkoutComments'
 
@@ -94,6 +96,29 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
     locale: dateLocale(lang),
   })
 
+  const renderExercise = (item: Workout['exercises'][number], label?: string) => {
+    const exercise = exercises.get(item.exerciseId)
+    const previous = records?.get(item.exerciseId) ?? null
+    return (
+      <section key={item.id} className={label ? undefined : 'rounded-2xl border bg-card px-4 py-3'}>
+        <h2 className="flex items-center gap-2 text-[15px] font-medium">
+          {label ? <SupersetLabel label={label} /> : null}
+          {exercise ? exerciseName(exercise, lang) : '…'}
+          {prs.has(item.exerciseId) ? <Trophy className="size-4 text-pr" aria-label={t('workout.pr')} /> : null}
+        </h2>
+        <SetChips sets={item.sets} isPr={(s) => detectPrs(s, previous).length > 0} className="mt-1.5" />
+        {item.sets.some((s) => s.completedAt !== null) ? (
+          <ExerciseFeedback
+            difficulty={item.difficulty}
+            text={item.athleteFeedback}
+            onChange={(patch) => actions.setFeedback(item.id, patch)}
+            className="mt-3 border-t pt-3"
+          />
+        ) : null}
+      </section>
+    )
+  }
+
   return (
     <div className="mx-auto min-h-dvh max-w-md px-4 pt-safe pb-[calc(2rem+env(safe-area-inset-bottom))]">
       <div className="flex h-14 items-center justify-between">
@@ -132,24 +157,18 @@ export function WorkoutSummary({ workout }: { workout: Workout }) {
       </div>
 
       <div className="mt-4 flex flex-col gap-2">
-        {workout.exercises.map((item) => {
-          const exercise = exercises.get(item.exerciseId)
-          const previous = records?.get(item.exerciseId) ?? null
+        {toBlocks(workout.exercises).map((block) => {
+          if (block.kind === 'single') return renderExercise(block.item)
           return (
-            <section key={item.id} className="rounded-2xl border bg-card px-4 py-3">
-              <h2 className="flex items-center gap-2 text-[15px] font-medium">
-                {exercise ? exerciseName(exercise, lang) : '…'}
-                {prs.has(item.exerciseId) ? <Trophy className="size-4 text-pr" aria-label={t('workout.pr')} /> : null}
+            <section key={`superset-${block.items[0].id}`} className="rounded-2xl border bg-card px-4 py-3">
+              <h2 className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Layers className="size-3.5" aria-hidden />
+                {t('superset.named', { letter: block.letter })}
               </h2>
-              <SetChips sets={item.sets} isPr={(s) => detectPrs(s, previous).length > 0} className="mt-1.5" />
-              {item.sets.some((s) => s.completedAt !== null) ? (
-                <ExerciseFeedback
-                  difficulty={item.difficulty}
-                  text={item.athleteFeedback}
-                  onChange={(patch) => actions.setFeedback(item.id, patch)}
-                  className="mt-3 border-t pt-3"
-                />
-              ) : null}
+              <div className="relative flex flex-col gap-3 pl-3">
+                <span className="absolute inset-y-1 left-0 w-1 rounded-full bg-primary/70" aria-hidden />
+                {block.items.map((item, i) => renderExercise(item, `${block.letter}${i + 1}`))}
+              </div>
             </section>
           )
         })}

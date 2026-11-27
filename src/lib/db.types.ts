@@ -598,6 +598,7 @@ export type Database = {
           plan_day_id: string
           position: number
           rest_s: number | null
+          superset: number | null
         }
         Insert: {
           exercise_id: string
@@ -606,6 +607,7 @@ export type Database = {
           plan_day_id: string
           position: number
           rest_s?: number | null
+          superset?: number | null
         }
         Update: {
           exercise_id?: string
@@ -614,6 +616,7 @@ export type Database = {
           plan_day_id?: string
           position?: number
           rest_s?: number | null
+          superset?: number | null
         }
         Relationships: [
           {
@@ -855,6 +858,7 @@ export type Database = {
           position: number
           rest_s: number | null
           sets: Json | null
+          superset: number | null
           target_reps_max: number | null
           target_reps_min: number | null
           target_sets: number
@@ -868,6 +872,7 @@ export type Database = {
           position: number
           rest_s?: number | null
           sets?: Json | null
+          superset?: number | null
           target_reps_max?: number | null
           target_reps_min?: number | null
           target_sets?: number
@@ -881,6 +886,7 @@ export type Database = {
           position?: number
           rest_s?: number | null
           sets?: Json | null
+          superset?: number | null
           target_reps_max?: number | null
           target_reps_min?: number | null
           target_sets?: number
@@ -1029,6 +1035,7 @@ export type Database = {
           notes: string | null
           plan_row_id: string | null
           position: number
+          superset: number | null
           workout_id: string
         }
         Insert: {
@@ -1041,6 +1048,7 @@ export type Database = {
           notes?: string | null
           plan_row_id?: string | null
           position: number
+          superset?: number | null
           workout_id: string
         }
         Update: {
@@ -1053,6 +1061,7 @@ export type Database = {
           notes?: string | null
           plan_row_id?: string | null
           position?: number
+          superset?: number | null
           workout_id?: string
         }
         Relationships: [
@@ -1414,10 +1423,7 @@ export type Database = {
       }
       admin_workout: { Args: { p_workout: string }; Returns: Json }
       claim_invite: { Args: { p_code: string }; Returns: string }
-      close_stale_workouts: {
-        Args: { p_athlete: string }
-        Returns: number
-      }
+      close_stale_workouts: { Args: { p_athlete: string }; Returns: number }
       copy_plan: {
         Args: { p_athlete: string; p_name?: string; p_source: string }
         Returns: string
@@ -1537,20 +1543,20 @@ export type Database = {
         Args: { p_id: string; p_items: Json; p_name: string; p_notes: string }
         Returns: string
       }
+      start_group_workout: {
+        Args: {
+          p_athletes: string[]
+          p_memberships?: string[]
+          p_template?: string
+        }
+        Returns: string
+      }
       start_workout_from_plan: {
         Args: {
           p_day: string
           p_membership?: string
           p_plan: string
           p_week: number
-        }
-        Returns: string
-      }
-      start_group_workout: {
-        Args: {
-          p_athletes: string[]
-          p_memberships?: string[]
-          p_template?: string
         }
         Returns: string
       }

@@ -8,6 +8,8 @@
 --
 -- In planned sets (templates, plan cells) a drop is {w, r, drop: true}; r = 0 means "as many as
 -- you can". The notation is "80x10+60+40" or "80x10+60x8+40x6" (src/lib/setSpec.ts).
+--
+-- Runs after the supersets migration (…017): every function redefined here keeps `superset`.
 
 alter table public.sets
   add column is_drop boolean not null default false,
@@ -106,7 +108,7 @@ begin
   delete from public.template_exercises where template_id = v_id;
 
   insert into public.template_exercises
-    (template_id, exercise_id, position, target_sets, target_reps_min, target_reps_max, target_weight_kg, rest_s, notes, sets)
+    (template_id, exercise_id, position, target_sets, target_reps_min, target_reps_max, target_weight_kg, rest_s, notes, sets, superset)
   select
     v_id,
     (i ->> 'exercise_id')::uuid,
@@ -124,7 +126,8 @@ begin
     (i ->> 'target_weight_kg')::numeric,
     (i ->> 'rest_s')::integer,
     nullif(trim(coalesce(i ->> 'notes', '')), ''),
-    case when jsonb_typeof(i -> 'sets') = 'array' then i -> 'sets' end
+    case when jsonb_typeof(i -> 'sets') = 'array' then i -> 'sets' end,
+    (i ->> 'superset')::integer
   from jsonb_array_elements(p_items) with ordinality as t(i, ord);
 
   return v_id;
@@ -259,8 +262,8 @@ begin
     select * from public.template_exercises where template_id = p_template order by position
   loop
     v_we := gen_random_uuid();
-    insert into public.workout_exercises (id, workout_id, exercise_id, position, notes)
-    values (v_we, v_workout, te.exercise_id, te.position, te.notes);
+    insert into public.workout_exercises (id, workout_id, exercise_id, position, notes, superset)
+    values (v_we, v_workout, te.exercise_id, te.position, te.notes, te.superset);
 
     if te.sets is not null then
       perform private.insert_spec_sets(v_we, te.sets);
@@ -327,8 +330,8 @@ begin
 
   for r in select * from public.plan_rows where plan_day_id = p_day order by position loop
     v_we := gen_random_uuid();
-    insert into public.workout_exercises (id, workout_id, exercise_id, position, notes, plan_row_id)
-    values (v_we, v_workout, r.exercise_id, r.position, r.notes, r.id);
+    insert into public.workout_exercises (id, workout_id, exercise_id, position, notes, plan_row_id, superset)
+    values (v_we, v_workout, r.exercise_id, r.position, r.notes, r.id, r.superset);
 
     select c.sets into v_sets from public.plan_cells c where c.plan_row_id = r.id and c.week = p_week;
     if v_sets is not null then

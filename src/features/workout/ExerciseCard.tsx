@@ -1,5 +1,5 @@
 import { CornerDownRight, EllipsisVertical, Plus, SlidersHorizontal } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { Button } from '@/components/ui/button'
@@ -34,6 +34,14 @@ interface ExerciseCardProps {
   dropPct: number | null
   /** Live view of someone else's session: sets and exercises can't be changed, feedback can. */
   readOnly?: boolean
+  /** "A1", "A2"… inside a superset. */
+  label?: string
+  /** Inside a superset card: no frame of its own, and "add set" moves into the menu. */
+  embedded?: boolean
+  /** The superset's next set to do, highlighted. */
+  nextSetId?: string | null
+  /** Extra menu entries (superset grouping). */
+  menuItems?: ReactNode
   onSetChange: (setId: string, patch: SetPatch) => void
   /** `dropNext`: a drop follows straight away, so no rest. */
   onSetCompleted: (set: WorkoutSet, isPr: boolean, dropNext: boolean) => void
@@ -54,6 +62,10 @@ export function ExerciseCard({
   setupNotes,
   dropPct,
   readOnly = false,
+  label,
+  embedded = false,
+  nextSetId = null,
+  menuItems,
   onSetChange,
   onSetCompleted,
   onSetDelete,
@@ -78,11 +90,14 @@ export function ExerciseCard({
   }
 
   return (
-    <section className="rounded-2xl border bg-card p-3">
+    <section className={embedded ? undefined : 'rounded-2xl border bg-card p-3'}>
       <div className="mb-2 flex items-start gap-2">
         {exercise ? <ExerciseThumb slug={exercise.slug} className="mt-0.5" /> : null}
         <div className="min-w-0 flex-1 pt-1">
-          <h2 className="text-[15px] leading-snug font-medium">{exercise ? exerciseName(exercise, lang) : '…'}</h2>
+          <h2 className="text-[15px] leading-snug font-medium">
+            {label ? <SupersetLabel label={label} /> : null}
+            {exercise ? exerciseName(exercise, lang) : '…'}
+          </h2>
           {exercise ? (
             <p className="text-xs text-muted-foreground">
               {t(`equipment.${exercise.equipment}`)} · {t(`muscle.${exercise.muscle}`)}
@@ -102,12 +117,19 @@ export function ExerciseCard({
               <SlidersHorizontal />
               {t('workout.setupNotes')}
             </DropdownMenuItem>
+            {embedded ? (
+              <DropdownMenuItem onSelect={onAddSet}>
+                <Plus />
+                {t('superset.addSet')}
+              </DropdownMenuItem>
+            ) : null}
             {weighted ? (
               <DropdownMenuItem onSelect={() => setEditingDrop(true)}>
                 <CornerDownRight />
                 {t('workout.dropPctMenu', { pct })}
               </DropdownMenuItem>
             ) : null}
+            {menuItems}
             <DropdownMenuItem variant="destructive" onSelect={onRemove}>
               {t('workout.deleteExercise')}
             </DropdownMenuItem>
@@ -161,6 +183,8 @@ export function ExerciseCard({
         lastTime={lastTime}
         records={records}
         readOnly={readOnly}
+        nextSetId={nextSetId}
+        hideAddSet={embedded}
         onSetChange={onSetChange}
         onSetCompleted={onSetCompleted}
         onSetDelete={onSetDelete}
@@ -187,6 +211,9 @@ interface SetsTableProps {
   lastTime: PreviousSet[]
   records: ExerciseRecords | null
   readOnly?: boolean
+  nextSetId?: string | null
+  /** In a superset the card adds whole rounds instead. */
+  hideAddSet?: boolean
   /** The machine's weight step, for the weight of a new drop. */
   weightStepKg?: number
   /** How much lighter a new drop is without history, %. */
@@ -205,6 +232,8 @@ export function SetsTable({
   lastTime,
   records,
   readOnly = false,
+  nextSetId = null,
+  hideAddSet = false,
   weightStepKg = 2.5,
   dropPct = DEFAULT_DROP_PCT,
   onSetChange,
@@ -247,6 +276,7 @@ export function SetsTable({
               hasDrops={!drop && !set.isWarmup && Boolean(sets[i + 1]?.isDrop)}
               last={last}
               isPr={isPr}
+              isNext={set.id === nextSetId}
               readOnly={readOnly}
               onChange={(patch) => onSetChange(set.id, patch)}
               onCompleted={(values) => {
@@ -262,13 +292,22 @@ export function SetsTable({
         })}
       </div>
 
-      {readOnly ? null : (
+      {readOnly || hideAddSet ? null : (
         <Button variant="ghost" size="touch" className="mt-2 w-full bg-secondary/50" onClick={onAddSet}>
           <Plus aria-hidden />
           {t('workout.addSet')}
         </Button>
       )}
     </>
+  )
+}
+
+/** "A1" before an exercise name in a superset. */
+export function SupersetLabel({ label }: { label: string }) {
+  return (
+    <span className="tabular mr-1.5 inline-flex h-5 min-w-7 -translate-y-px items-center justify-center rounded-md bg-primary px-1.5 align-middle text-[11px] font-semibold text-primary-foreground">
+      {label}
+    </span>
   )
 }
 
