@@ -4,7 +4,8 @@
  * An exercise's `superset` is a number shared by its neighbours in the same superset. Only
  * neighbours count: exercises next to each other with the same number form one superset, and a
  * number left on a single exercise means nothing (it is an ordinary exercise). Round N of a
- * superset is the N-th working set of each of its exercises; warm-ups are not part of rounds.
+ * superset is the N-th working set of each of its exercises; warm-ups are not part of rounds, and
+ * drops belong to the round of the set they continue (src/lib/dropSets.ts).
  */
 
 export interface Groupable {
@@ -118,6 +119,8 @@ export const byId = <T extends { id: string }, V>(changes: Map<T, V>) => new Map
 export interface RoundSet {
   id: string
   isWarmup: boolean
+  /** Continues the set before it: part of that set's round, not a round of its own. */
+  isDrop?: boolean
   completedAt: string | null
 }
 
@@ -126,20 +129,40 @@ export interface RoundExercise {
   sets: RoundSet[]
 }
 
-const working = (e: RoundExercise) => e.sets.filter((s) => !s.isWarmup)
+const working = (e: RoundExercise) => e.sets.filter((s) => !s.isWarmup && !s.isDrop)
+
+/** The set a drop continues (the drop itself when it has none); any other set as it is. */
+function chainHead(sets: RoundSet[], index: number): RoundSet | undefined {
+  let i = index
+  while (i > 0 && sets[i].isDrop) i--
+  return sets[i]?.isDrop ? undefined : sets[i]
+}
 
 /** Rounds in the superset: the most working sets any of its exercises has. */
 export function roundCount(members: RoundExercise[]): number {
   return Math.max(0, ...members.map((m) => working(m).length))
 }
 
-/** The next set to do: the first exercise, in order, with an open set in the earliest open round. */
+/** The first drop still to do right after this set, if drops continue it. */
+function openDrop(e: RoundExercise, set: RoundSet): RoundSet | undefined {
+  for (let i = e.sets.indexOf(set) + 1; e.sets[i]?.isDrop; i++) {
+    if (!e.sets[i].completedAt) return e.sets[i]
+  }
+  return undefined
+}
+
+/**
+ * The next set to do: the first exercise, in order, with an open set in the earliest open round
+ * (a set done but with a drop still to do: that drop).
+ */
 export function nextUp(members: RoundExercise[]): { exerciseId: string; setId: string; round: number } | null {
   const rounds = roundCount(members)
   for (let r = 0; r < rounds; r++) {
     for (const m of members) {
       const set = working(m)[r]
-      if (set && !set.completedAt) return { exerciseId: m.id, setId: set.id, round: r + 1 }
+      if (!set) continue
+      const open = set.completedAt ? openDrop(m, set) : set
+      if (open) return { exerciseId: m.id, setId: open.id, round: r + 1 }
     }
   }
   return null
@@ -153,20 +176,21 @@ export function roundsDone(members: RoundExercise[]): number {
 
 /**
  * After a set is marked done: is its round now closed (time to rest), or should the athlete go
- * straight to the next exercise? `members` already include the set as done.
+ * straight to the next exercise? `members` already include the set as done. A drop counts as its
+ * set's round (when another drop follows, the caller runs the drop countdown instead).
  */
 export function afterSetDone(
   members: RoundExercise[],
   setId: string,
 ): { rest: boolean; next: { exerciseId: string; setId: string; round: number } | null } {
   const owner = members.find((m) => m.sets.some((s) => s.id === setId))
-  const set = owner?.sets.find((s) => s.id === setId)
+  const set = owner ? chainHead(owner.sets, owner.sets.findIndex((s) => s.id === setId)) : undefined
   // Warm-ups aren't part of rounds: rest as after any set.
   if (!owner || !set || set.isWarmup) return { rest: true, next: null }
-  const round = working(owner).findIndex((s) => s.id === setId)
+  const round = working(owner).findIndex((s) => s.id === set.id)
   const closed = members.every((m) => {
     const same = working(m)[round]
-    return !same || same.completedAt !== null
+    return !same || (same.completedAt !== null && !openDrop(m, same))
   })
   const next = nextUp(members)
   return { rest: closed, next: closed ? null : next }
