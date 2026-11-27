@@ -1,4 +1,4 @@
-// Софія: дроп-сет на махах (з минулого разу) і суперсет біцепс + трицепс.
+// Софія: дроп-сет на махах (з минулого разу) і суперсет біцепс + трицепс (кнопка «Суперсет»).
 export default {
   id: '12-drops-supersets',
   title: 'Дроп-сети і суперсети',
@@ -8,7 +8,8 @@ export default {
     const page = await r.open('sofia@demo.h8', '/')
     const btn = (name, exact = false) => page.getByRole('button', { name, exact })
     const item = (name) => page.getByRole('menuitem', { name })
-    const card = (name) => page.locator('section').filter({ hasText: name })
+    // the innermost card with that exercise (a superset card holds its exercises' cards)
+    const card = (name) => page.locator('section').filter({ hasText: name }).last()
     // "Сет виконано" turns into "Скасувати виконання" once done, so .first() is the next open set
     const nextDone = (scope = page) => scope.getByRole('button', { name: 'Сет виконано' }).first()
     const addExercise = async (query, name) => {
@@ -54,21 +55,25 @@ export default {
       await r.type(raises.getByRole('textbox', { name: 'Повт' }).nth(5), '8')
       await r.tap(nextDone(raises), { pause: 300 })
     }, { hold: 1800 })
-    await r.step('Біцепс і трицепс — додаємо дві вправи', async () => {
+    await r.step('«Суперсет» — біцепс і трицепс, у порядку виконання', async () => {
       await r.tap(btn('Далі', true))
-      await addExercise('згинання рук зі штангою', /^Згинання рук зі штангою/)
-      await addExercise('розгинання рук на блоці', /^Розгинання рук на блоці/)
+      await r.tap(btn('Додати суперсет'))
+      await r.wait(500)
+      await r.type(page.getByRole('searchbox'), 'згинання рук зі штангою', { delay: 80 })
+      await r.tap(btn(/^Згинання рук зі штангою/))
+      await r.type(page.getByRole('searchbox'), 'розгинання рук на блоці', { delay: 80 })
+      await r.tap(btn(/^Розгинання рук на блоці/))
     })
-    await r.step('«Суперсет із наступною» — дві вправи по колу (A1, A2)', async () => {
-      await r.tap(curl.getByRole('button', { name: 'Дії з вправою' }))
-      await r.tap(item('Суперсет із наступною'))
+    await r.step('Одна картка «Суперсет A»: A1, A2 і лічильник кіл', async () => {
+      await r.tap(btn(/^Створити/))
+      await r.wait(1000)
     }, { hold: 2500 })
-    await r.step('Сет A1 — без відпочинку, екран переходить до A2', async () => {
+    await r.step('Сет A1 — без відпочинку: «Далі A2», екран переходить до нього', async () => {
       await r.type(curl.getByRole('textbox', { name: 'кг' }).first(), '20')
       await r.type(curl.getByRole('textbox', { name: 'Повт' }).first(), '12')
       await r.tap(nextDone(curl))
     }, { hold: 2200 })
-    await r.step('Сет A2 закриває коло — тепер відпочинок', async () => {
+    await r.step('Сет A2 закриває коло — тепер відпочинок, «коло 2 з 3»', async () => {
       await r.type(pushdown.getByRole('textbox', { name: 'кг' }).first(), '15')
       await r.type(pushdown.getByRole('textbox', { name: 'Повт' }).first(), '15')
       await r.tap(nextDone(pushdown))
