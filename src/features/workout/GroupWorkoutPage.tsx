@@ -121,7 +121,7 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
     } catch {
       // no history available — start with empty sets
     }
-    const workingCount = previous.filter((s) => !s.isWarmup).length
+    const workingCount = previous.filter((s) => !s.isWarmup && !s.isDrop).length
     const planned = prefillSets(
       { targetSets: workingCount || 3, targetRepsMin: null, targetRepsMax: null, targetWeightKg: null },
       previous,
@@ -142,8 +142,9 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
     }
   }
 
-  const onSetCompleted = (member: GroupMember, exerciseId: string, restS: number, isPr: boolean) => {
-    rest.start(restS)
+  // Before a drop that client goes on straight away; the timer keeps running for the others.
+  const onSetCompleted = (member: GroupMember, exerciseId: string, restS: number | null, isPr: boolean) => {
+    if (restS !== null) rest.start(restS)
     const key = `${member.athleteId}:${exerciseId}`
     if (isPr && !celebrated.current.has(key)) {
       celebrated.current.add(key)
@@ -156,7 +157,7 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
     return {
       member,
       workout,
-      done: sets.filter((s) => s.completedAt && !s.isWarmup).length,
+      done: sets.filter((s) => s.completedAt && !s.isWarmup && !s.isDrop).length,
       doneAny: sets.filter((s) => s.completedAt).length,
       pending: sets.filter((s) => !s.completedAt).length,
     }
@@ -322,7 +323,7 @@ interface GroupExerciseCardProps {
   entries: Entry[]
   onRemove: () => void
   onAddFor: (entry: Entry) => void
-  onSetCompleted: (member: GroupMember, restS: number, isPr: boolean) => void
+  onSetCompleted: (member: GroupMember, restS: number | null, isPr: boolean) => void
 }
 
 /** One exercise with a block per client: their last time, their sets. */
@@ -402,7 +403,8 @@ interface MemberSetsProps {
   entry: Entry
   item: WorkoutExercise
   exercise: Exercise | undefined
-  onSetCompleted: (restS: number, isPr: boolean) => void
+  /** `restS` is null before a drop: no rest. */
+  onSetCompleted: (restS: number | null, isPr: boolean) => void
 }
 
 /** One client's sets of the exercise, saved into their own workout. */
@@ -433,9 +435,13 @@ function MemberSets({ entry, item, exercise, onSetCompleted }: MemberSetsProps) 
         records={records?.get(item.exerciseId) ?? null}
         readOnly={readOnly}
         onSetChange={(setId, patch) => actions.updateSet(setId, patch)}
-        onSetCompleted={(_set, isPr) => onSetCompleted(setting?.restS ?? exercise?.defaultRestS ?? 90, isPr)}
+        weightStepKg={exercise?.weightStepKg}
+        onSetCompleted={(_set, isPr, dropNext) =>
+          onSetCompleted(dropNext ? null : (setting?.restS ?? exercise?.defaultRestS ?? 90), isPr)
+        }
         onSetDelete={(setId) => actions.removeSet(setId)}
         onAddSet={() => actions.addSet(item.id)}
+        onAddDrop={(afterSetId, weightKg) => actions.addDrop(afterSetId, weightKg)}
       />
     </>
   )

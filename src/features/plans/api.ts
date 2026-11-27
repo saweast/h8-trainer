@@ -160,7 +160,7 @@ export function usePlanFacts(planId: string | undefined, athleteId: string | nul
         .from('workouts')
         .select(
           `id, plan_week, started_at, finished_at,
-           workout_exercises (id, plan_row_id, difficulty, athlete_feedback, sets (position, weight_kg, reps, is_warmup, completed_at))`,
+           workout_exercises (id, plan_row_id, difficulty, athlete_feedback, sets (position, weight_kg, reps, is_warmup, is_drop, completed_at))`,
         )
         .eq('plan_id', planId!)
         .eq('athlete_id', athleteId!)
@@ -183,6 +183,7 @@ export function usePlanFacts(planId: string | undefined, athleteId: string | nul
                 weightKg: Number(s.weight_kg),
                 reps: s.reps,
                 isWarmup: s.is_warmup,
+                isDrop: s.is_drop,
                 completed: s.completed_at !== null,
               })),
           })

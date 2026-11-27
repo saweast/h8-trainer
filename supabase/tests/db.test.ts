@@ -89,6 +89,7 @@ describe('hardening', () => {
     )
     expect(exposed.map((r) => r.proname)).toEqual([
       'accept_link_request',
+      'add_drop_set',
       'admin_athlete_workouts',
       'admin_set_can_be_trainer',
       'admin_trainer_clients',
@@ -1614,5 +1615,184 @@ describe('split sessions', () => {
     // Maks didn't train: no workout, no session charged.
     const [usage] = await rows(db, `select sessions_used from public.membership_usage where id = $1`, [maksPackage])
     expect(usage.sessions_used).toBe(0)
+  })
+})
+
+describe('drop sets', () => {
+  let dropper: { userId: string; athleteId: string }
+  const items = (...list: Record<string, unknown>[]) => JSON.stringify(list)
+  const asDropper = <T>(fn: (tx: Transaction) => Promise<T>) => asUser(dropper.userId, fn)
+
+  /** A workout with one bench exercise and these sets: [weight, reps, done, isDrop]. */
+  async function workoutWith(sets: [number, number, boolean, boolean][], finished = true) {
+    return asDropper(async (tx) => {
+      const [w] = await rows<{ id: string }>(tx, `insert into public.workouts (athlete_id) values ($1) returning id`, [dropper.athleteId])
+      const [we] = await rows<{ id: string }>(
+        tx,
+        `insert into public.workout_exercises (workout_id, exercise_id, position) values ($1, $2, 0) returning id`,
+        [w.id, benchId],
+      )
+      for (const [i, [weight, reps, done, drop]] of sets.entries()) {
+        await tx.query(
+          `insert into public.sets (workout_exercise_id, position, weight_kg, reps, is_drop, completed_at)
+           values ($1, $2, $3, $4, $5, case when $6 then now() end)`,
+          [we.id, i + 1, weight, reps, drop, done],
+        )
+      }
+      if (finished) await tx.query(`update public.workouts set finished_at = now() where id = $1`, [w.id])
+      return { workoutId: w.id, workoutExerciseId: we.id }
+    })
+  }
+
+  const setsOf = (tx: Transaction, workoutExerciseId: string) =>
+    rows<{ id: string; position: number; weight_kg: string; reps: number; is_drop: boolean }>(
+      tx,
+      `select id, position, weight_kg, reps, is_drop from public.sets where workout_exercise_id = $1 order by position`,
+      [workoutExerciseId],
+    )
+
+  beforeAll(async () => {
+    dropper = await createUser('Dropper')
+  })
+
+  it('counts a chain as one set with its full volume, and takes records from the first set only', async () => {
+    const { workoutId } = await workoutWith([
+      [80, 6, true, false],
+      [60, 10, true, true],
+      [40, 15, true, true],
+    ])
+    await asDropper(async (tx) => {
+      const [summary] = await rows(tx, `select set_count, volume_kg from public.workout_summaries where id = $1`, [workoutId])
+      expect(summary).toEqual({ set_count: 1, volume_kg: '1680.00' }) // 480 + 600 + 600
+      const [rec] = await rows(tx, `select best_weight_kg, best_reps, best_set_volume_kg from public.exercise_records($1)`, [
+        dropper.athleteId,
+      ])
+      // with drops, 40×15 would be the best reps and 60×10 the best set volume
+      expect(rec).toEqual({ best_weight_kg: '80.00', best_reps: 6, best_set_volume_kg: '480.00' })
+      const last = await rows(tx, `select weight_kg, reps, is_drop from public.last_performance($1, $2)`, [dropper.athleteId, benchId])
+      expect(last).toEqual([
+        { weight_kg: '80.00', reps: 6, is_drop: false },
+        { weight_kg: '60.00', reps: 10, is_drop: true },
+        { weight_kg: '40.00', reps: 15, is_drop: true },
+      ])
+    })
+  })
+
+  it('never marks a drop as a warm-up', async () => {
+    await expect(workoutWith([[80, 10, true, false]]).then(({ workoutExerciseId }) =>
+      asDropper((tx) => tx.query(`update public.sets set is_warmup = true, is_drop = true where workout_exercise_id = $1`, [workoutExerciseId])),
+    )).rejects.toThrow(/sets_drop_not_warmup/)
+  })
+
+  it('adds a drop right after its chain and moves the sets below it down', async () => {
+    const { workoutExerciseId } = await workoutWith(
+      [
+        [80, 10, false, false],
+        [80, 10, false, false],
+      ],
+      false,
+    )
+    await asDropper(async (tx) => {
+      const [first, second] = await setsOf(tx, workoutExerciseId)
+      const drop1 = crypto.randomUUID()
+      const drop2 = crypto.randomUUID()
+      await tx.query(`select public.add_drop_set($1, $2, 62.5)`, [drop1, first.id])
+      await tx.query(`select public.add_drop_set($1, $2, 50, 6)`, [drop2, drop1])
+      // a retry after a lost response changes nothing
+      await tx.query(`select public.add_drop_set($1, $2, 62.5)`, [drop1, first.id])
+      expect(await setsOf(tx, workoutExerciseId)).toEqual([
+        { id: first.id, position: 1, weight_kg: '80.00', reps: 10, is_drop: false },
+        { id: drop1, position: 2, weight_kg: '62.50', reps: 0, is_drop: true },
+        { id: drop2, position: 3, weight_kg: '50.00', reps: 6, is_drop: true },
+        { id: second.id, position: 4, weight_kg: '80.00', reps: 10, is_drop: false },
+      ])
+    })
+  })
+
+  it("doesn't add drops after a warm-up or into someone else's workout", async () => {
+    const { workoutExerciseId } = await workoutWith([[20, 10, false, false]], false)
+    const [warmup] = await asDropper(async (tx) => {
+      await tx.query(`update public.sets set is_warmup = true where workout_exercise_id = $1`, [workoutExerciseId])
+      return setsOf(tx, workoutExerciseId)
+    })
+    await expect(asDropper((tx) => tx.query(`select public.add_drop_set($1, $2, 10)`, [crypto.randomUUID(), warmup.id]))).rejects.toThrow(
+      /follows a working set/,
+    )
+    await expect(asUser(bohdan.userId, (tx) => tx.query(`select public.add_drop_set($1, $2, 10)`, [crypto.randomUUID(), warmup.id]))).rejects.toThrow(
+      /not found/,
+    )
+  })
+
+  it('plans drops in a template, "as many as you can" included, and starts them as drops', async () => {
+    const plan = [
+      { w: 40, r: 10, warmup: true },
+      { w: 80, r: 10 },
+      { w: 80, r: 10 },
+      { w: 60, r: 0, drop: true },
+      { w: 40, r: 8, drop: true },
+    ]
+    await asDropper(async (tx) => {
+      const [tpl] = await rows<{ id: string }>(tx, `select public.save_template(null, 'Дропи', null, $1::jsonb) as id`, [
+        items({ exercise_id: benchId, sets: plan }),
+      ])
+      const [te] = await rows(tx, `select target_sets from public.template_exercises where template_id = $1`, [tpl.id])
+      expect(te).toEqual({ target_sets: 2 })
+      const [w] = await rows<{ id: string }>(tx, `select public.start_workout_from_template($1, $2) as id`, [dropper.athleteId, tpl.id])
+      const sets = await rows(
+        tx,
+        `select s.weight_kg, s.reps, s.is_warmup, s.is_drop from public.sets s
+         join public.workout_exercises we on we.id = s.workout_exercise_id
+         where we.workout_id = $1 order by s.position`,
+        [w.id],
+      )
+      expect(sets).toEqual([
+        { weight_kg: '40.00', reps: 10, is_warmup: true, is_drop: false },
+        { weight_kg: '80.00', reps: 10, is_warmup: false, is_drop: false },
+        { weight_kg: '80.00', reps: 10, is_warmup: false, is_drop: false },
+        { weight_kg: '60.00', reps: 0, is_warmup: false, is_drop: true },
+        { weight_kg: '40.00', reps: 8, is_warmup: false, is_drop: true },
+      ])
+      await tx.query(`delete from public.workouts where id = $1`, [w.id])
+    })
+  })
+
+  it('rejects drops that follow nothing, a warm-up, or are warm-ups themselves', async () => {
+    for (const bad of [
+      [{ w: 60, r: 0, drop: true }],
+      [{ w: 20, r: 10, warmup: true }, { w: 15, r: 0, drop: true }],
+      [{ w: 80, r: 10 }, { w: 60, r: 8, drop: true, warmup: true }],
+      [{ w: 80, r: 10 }, { w: 60, r: 8, drop: 'yes' }],
+      [{ w: 80, r: 0 }],
+    ]) {
+      await expect(
+        asDropper((tx) => tx.query(`select public.save_template(null, 'x', null, $1::jsonb)`, [items({ exercise_id: benchId, sets: bad })])),
+      ).rejects.toThrow(/template_exercises_sets_valid/)
+    }
+  })
+
+  it("numbers template sets from last time's working sets, skipping drops", async () => {
+    await workoutWith([
+      [70, 10, true, false],
+      [50, 10, true, true],
+      [75, 8, true, false],
+    ])
+    await asDropper(async (tx) => {
+      const [tpl] = await rows<{ id: string }>(tx, `select public.save_template(null, 'Просто', null, $1::jsonb) as id`, [
+        items({ exercise_id: benchId, target_sets: 2 }),
+      ])
+      const [w] = await rows<{ id: string }>(tx, `select public.start_workout_from_template($1, $2) as id`, [dropper.athleteId, tpl.id])
+      const sets = await rows(
+        tx,
+        `select s.weight_kg, s.reps, s.is_drop from public.sets s
+         join public.workout_exercises we on we.id = s.workout_exercise_id
+         where we.workout_id = $1 order by s.position`,
+        [w.id],
+      )
+      expect(sets).toEqual([
+        { weight_kg: '70.00', reps: 10, is_drop: false },
+        { weight_kg: '75.00', reps: 8, is_drop: false },
+      ])
+      await tx.query(`delete from public.workouts where id = $1`, [w.id])
+    })
   })
 })

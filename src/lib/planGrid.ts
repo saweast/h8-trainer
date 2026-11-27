@@ -137,7 +137,7 @@ export function weekTotals(draft: PlanDraft, week: number): WeekTotals {
     for (const r of d.rows) {
       const sets = r.cells[week] ?? []
       volumeKg += specVolume(sets)
-      workingSets += sets.filter((s) => !s.isWarmup).length
+      workingSets += sets.filter((s) => !s.isWarmup && !s.isDrop).length
     }
   }
   return { volumeKg, workingSets }
@@ -166,6 +166,7 @@ export interface DoneSet {
   weightKg: number
   reps: number
   isWarmup: boolean
+  isDrop?: boolean
   completed: boolean
 }
 
@@ -173,16 +174,18 @@ export type CellStatus = 'none' | 'done' | 'under' | 'extra'
 
 /**
  * How a performed exercise compares to its plan: `done` when every planned working set was
- * completed with at least the planned weight and reps, `under` otherwise, `extra` when there was
- * no plan, `none` when it wasn't performed.
+ * completed with at least the planned weight and reps (and as many drops as planned), `under`
+ * otherwise, `extra` when there was no plan, `none` when it wasn't performed.
  */
 export function cellStatus(planned: SpecSet[] | undefined, done: DoneSet[] | undefined): CellStatus {
   const completed = (done ?? []).filter((s) => s.completed)
   if (!completed.length) return 'none'
-  const plannedWorking = (planned ?? []).filter((s) => !s.isWarmup)
+  const plannedWorking = (planned ?? []).filter((s) => !s.isWarmup && !s.isDrop)
   if (!plannedWorking.length) return 'extra'
-  const doneWorking = completed.filter((s) => !s.isWarmup)
+  const doneWorking = completed.filter((s) => !s.isWarmup && !s.isDrop)
   if (doneWorking.length < plannedWorking.length) return 'under'
+  const drops = (sets: { isDrop?: boolean }[]) => sets.filter((s) => s.isDrop).length
+  if (drops(completed) < drops(planned ?? [])) return 'under'
   // compare heaviest-first so set order inside the block doesn't matter
   const byLoad = (a: { weightKg: number; reps: number }, b: { weightKg: number; reps: number }) =>
     b.weightKg - a.weightKg || b.reps - a.reps
@@ -193,5 +196,7 @@ export function cellStatus(planned: SpecSet[] | undefined, done: DoneSet[] | und
 
 /** Completed sets as planned-set shapes, ready for `formatSetSpec`. */
 export function doneAsSpec(done: DoneSet[]): SpecSet[] {
-  return done.filter((s) => s.completed).map(({ weightKg, reps, isWarmup }) => ({ weightKg, reps, isWarmup }))
+  return done
+    .filter((s) => s.completed)
+    .map(({ weightKg, reps, isWarmup, isDrop }) => ({ weightKg, reps, isWarmup, ...(isDrop ? { isDrop } : {}) }))
 }

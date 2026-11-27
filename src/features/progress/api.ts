@@ -49,7 +49,7 @@ export function useExerciseSessions(athleteId: string | undefined, exerciseId: s
         .from('workout_exercises')
         .select(
           `id, workout:workouts!inner (id, started_at, finished_at, athlete_id),
-           sets (position, weight_kg, reps, is_warmup, completed_at)`,
+           sets (position, weight_kg, reps, is_warmup, is_drop, completed_at)`,
         )
         .eq('exercise_id', exerciseId!)
         .eq('workout.athlete_id', athleteId!)
@@ -67,6 +67,7 @@ export function useExerciseSessions(athleteId: string | undefined, exerciseId: s
             weightKg: Number(s.weight_kg),
             reps: s.reps,
             isWarmup: s.is_warmup,
+            isDrop: s.is_drop,
             completedAt: s.completed_at,
           })
         }

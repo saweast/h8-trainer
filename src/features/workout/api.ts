@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient, type UseQueryOptions } from '@tanstack/react-query'
+import { dropsAfter } from '@/lib/dropSets'
 import type { ExerciseRecords } from '@/lib/records'
 import type { TablesUpdate } from '@/lib/db.types'
 import { supabase } from '@/lib/supabase'
@@ -13,6 +14,8 @@ export interface WorkoutSet {
   weightKg: number
   reps: number
   isWarmup: boolean
+  /** Continues the set before it at a lower weight, without rest (src/lib/dropSets.ts). */
+  isDrop: boolean
   completedAt: string | null
 }
 
@@ -119,7 +122,7 @@ export function pendingWrites(queryClient: QueryClient, workoutId: string) {
 
 const WORKOUT_SELECT = `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by, group_id, last_activity_at,
   workout_exercises (id, exercise_id, position, notes, difficulty, athlete_feedback,
-    sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, completed_at))`
+    sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, is_drop, completed_at))`
 
 /** The workout doesn't exist (deleted) or isn't visible to me. */
 export class WorkoutGoneError extends Error {
@@ -165,6 +168,7 @@ async function fetchWorkout(id: string): Promise<Workout> {
             weightKg: Number(s.weight_kg),
             reps: s.reps,
             isWarmup: s.is_warmup,
+            isDrop: s.is_drop,
             completedAt: s.completed_at,
           }))
           .sort(byPosition),
@@ -303,7 +307,13 @@ export async function fetchLastPerformance(
     p_exclude_workout: excludeWorkoutId,
   })
   if (error) throw error
-  return data.map((r) => ({ position: r.position, weightKg: Number(r.weight_kg), reps: r.reps, isWarmup: r.is_warmup }))
+  return data.map((r) => ({
+    position: r.position,
+    weightKg: Number(r.weight_kg),
+    reps: r.reps,
+    isWarmup: r.is_warmup,
+    isDrop: r.is_drop,
+  }))
 }
 
 /** Records before this workout, so new sets can be flagged as PRs. */
@@ -381,6 +391,7 @@ function toSetRow(s: WorkoutSet) {
     weight_kg: s.weightKg,
     reps: s.reps,
     is_warmup: s.isWarmup,
+    is_drop: s.isDrop,
     completed_at: s.completedAt,
   }
 }
@@ -438,6 +449,22 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
+  // One call: the drop goes in after its chain and the sets below move down (safe to retry).
+  const insertDrop = useMutation({
+    scope,
+    retry: retryNetwork,
+    onError,
+    mutationFn: async ({ set, afterSetId }: { set: WorkoutSet; afterSetId: string }) => {
+      const { error } = await supabase!.rpc('add_drop_set', {
+        p_id: set.id,
+        p_after: afterSetId,
+        p_weight_kg: set.weightKg,
+        p_reps: set.reps,
+      })
+      if (error) throw error
+    },
+  })
+
   const patchSet = useMutation({
     scope,
     retry: retryNetwork,
@@ -464,12 +491,12 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
-  const deleteSet = useMutation({
+  const deleteSets = useMutation({
     scope,
     retry: retryNetwork,
     onError,
-    mutationFn: async (setId: string) => {
-      await expectRows(supabase!.from('sets').delete().eq('id', setId).select('id'), 'delete set')
+    mutationFn: async (setIds: string[]) => {
+      await expectRows(supabase!.from('sets').delete().in('id', setIds).select('id'), 'delete set')
     },
   })
 
@@ -492,6 +519,7 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
         weightKg: p.weightKg,
         reps: p.reps,
         isWarmup: false,
+        isDrop: false,
         completedAt: null,
       })),
     }
@@ -507,16 +535,19 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     deleteExercise.mutate(workoutExerciseId)
   }
 
-  /** New set copying the previous one, so the next set is one tap away. */
+  /** New set copying the previous one (not a drop of it), so the next set is one tap away. */
   const addSet = (workoutExerciseId: string) => {
-    const last = current()?.exercises.find((e) => e.id === workoutExerciseId)?.sets.at(-1)
+    const sets = current()?.exercises.find((e) => e.id === workoutExerciseId)?.sets ?? []
+    const last = sets.at(-1)
+    const like = sets.findLast((s) => !s.isDrop) ?? last
     const set: WorkoutSet = {
       id: newId(),
       workoutExerciseId,
       position: (last?.position ?? 0) + 1,
-      weightKg: last?.weightKg ?? 0,
-      reps: last?.reps ?? 0,
+      weightKg: like?.weightKg ?? 0,
+      reps: like?.reps ?? 0,
       isWarmup: false,
+      isDrop: false,
       completedAt: null,
     }
     updateCached(queryClient, workoutId, (old) => ({
@@ -540,9 +571,44 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     void queryClient.invalidateQueries({ queryKey: ['plan-facts'] })
   }
 
+  /**
+   * A drop right after `afterSetId` (the last set of its chain). Reps stay empty: as many as you
+   * can, typed in once done.
+   */
+  const addDrop = (afterSetId: string, weightKg: number) => {
+    const after = current()
+      ?.exercises.flatMap((e) => e.sets)
+      .find((s) => s.id === afterSetId)
+    if (!after || after.isWarmup) return
+    const set: WorkoutSet = {
+      id: newId(),
+      workoutExerciseId: after.workoutExerciseId,
+      position: after.position + 1,
+      weightKg,
+      reps: 0,
+      isWarmup: false,
+      isDrop: true,
+      completedAt: null,
+    }
+    updateCached(queryClient, workoutId, (old) => ({
+      ...old,
+      exercises: old.exercises.map((e) => {
+        if (e.id !== after.workoutExerciseId) return e
+        const moved = e.sets.map((s) => (s.position > after.position ? { ...s, position: s.position + 1 } : s))
+        const at = moved.findIndex((s) => s.id === afterSetId) + 1
+        return { ...e, sets: [...moved.slice(0, at), set, ...moved.slice(at)] }
+      }),
+    }))
+    insertDrop.mutate({ set, afterSetId })
+  }
+
+  /** Removing a set that drops continue removes its drops too: they'd hang on the wrong set. */
   const removeSet = (setId: string) => {
-    updateCached(queryClient, workoutId, (old) => mapSets(old, (s) => (s.id === setId ? null : s)))
-    deleteSet.mutate(setId)
+    const sets = current()?.exercises.find((e) => e.sets.some((s) => s.id === setId))?.sets ?? []
+    const index = sets.findIndex((s) => s.id === setId)
+    const ids = new Set([setId, ...dropsAfter(sets, index).map((s) => s.id)])
+    updateCached(queryClient, workoutId, (old) => mapSets(old, (s) => (ids.has(s.id) ? null : s)))
+    deleteSets.mutate([...ids])
   }
 
   const finish = useMutation({
@@ -595,5 +661,5 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
-  return { addExercise, removeExercise, addSet, updateSet, removeSet, setFeedback, finish, discard }
+  return { addExercise, removeExercise, addSet, addDrop, updateSet, removeSet, setFeedback, finish, discard }
 }

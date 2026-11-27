@@ -21,6 +21,20 @@ describe('sessionStats', () => {
     })
   })
 
+  it('adds the volume of drops but takes bests and the set count from the sets they continue', () => {
+    const stats = sessionStats([
+      { weightKg: 80, reps: 6, isWarmup: false, completedAt: done },
+      { weightKg: 60, reps: 12, isWarmup: false, isDrop: true, completedAt: done },
+    ])
+    expect(stats).toEqual({
+      bestWeightKg: 80,
+      bestE1rmKg: 96, // 80 × 1.2; the drop's 60 × 1.4 = 84 doesn't count either way
+      volumeKg: 480 + 720,
+      topSet: { weightKg: 80, reps: 6 },
+      workingSets: 1,
+    })
+  })
+
   it('handles bodyweight and empty sessions', () => {
     expect(sessionStats([{ weightKg: 0, reps: 15, isWarmup: false, completedAt: done }])).toEqual({
       bestWeightKg: null,

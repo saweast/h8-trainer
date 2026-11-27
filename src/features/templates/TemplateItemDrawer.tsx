@@ -62,7 +62,7 @@ function ItemForm({
     if (exact) {
       onClose({
         ...item,
-        targetSets: Math.min(Math.max(spec.sets.filter((s) => !s.isWarmup).length, 1), 20),
+        targetSets: Math.min(Math.max(spec.sets.filter((s) => !s.isWarmup && !s.isDrop).length, 1), 20),
         sets: spec.sets,
         restS: toInt(rest, 0, 1800),
         notes: notes.trim() || null,

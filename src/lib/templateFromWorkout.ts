@@ -1,5 +1,5 @@
 import type { SpecSet } from './setSpec'
-import { isWorkingDone, type StatSet } from './workoutStats'
+import { isSetDone, type StatSet } from './workoutStats'
 
 export interface TemplateItemInput {
   exerciseId: string
@@ -20,12 +20,12 @@ interface WorkoutExerciseLike {
 
 /**
  * Template items that reproduce a finished workout: one item per exercise that had completed
- * working sets, with that many sets and the rep range actually done. Weights are left empty on
- * purpose — starting the template fills them in from last time.
+ * working sets, with that many sets and the rep range actually done (a drop chain is one set).
+ * Weights are left empty on purpose — starting the template fills them in from last time.
  */
 export function templateItemsFromWorkout(exercises: WorkoutExerciseLike[]): TemplateItemInput[] {
   return exercises.flatMap((e) => {
-    const done = e.sets.filter(isWorkingDone)
+    const done = e.sets.filter(isSetDone)
     if (!done.length) return []
     const reps = done.map((s) => s.reps)
     const min = Math.min(...reps)

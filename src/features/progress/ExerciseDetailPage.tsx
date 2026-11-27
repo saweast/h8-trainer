@@ -199,6 +199,7 @@ export function ExerciseDetailPage() {
                                 : 'tabular rounded-lg bg-secondary px-2 py-1 text-xs font-medium'
                             }
                           >
+                            {s.isDrop ? <span aria-label={t('workout.drop')}>↓ </span> : null}
                             {formatKg(s.weightKg, lang)} × {s.reps}
                           </li>
                         ))}

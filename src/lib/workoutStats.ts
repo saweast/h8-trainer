@@ -4,6 +4,8 @@ export interface StatSet {
   weightKg: number
   reps: number
   isWarmup: boolean
+  /** Continues the set before it (a drop set): volume yes, a set of its own no. */
+  isDrop?: boolean
   completedAt: string | null
 }
 
@@ -13,8 +15,14 @@ export interface StatExercise<M extends string = string> {
   sets: StatSet[]
 }
 
+/** Done and not a warm-up: counts in volume (drops too). */
 export function isWorkingDone(s: StatSet): boolean {
   return s.completedAt !== null && !s.isWarmup
+}
+
+/** Done and counts as a set: a drop chain is one set, so drops don't. */
+export function isSetDone(s: StatSet): boolean {
+  return isWorkingDone(s) && !s.isDrop
 }
 
 export interface WorkoutTotals {
@@ -23,7 +31,7 @@ export interface WorkoutTotals {
   exerciseCount: number
 }
 
-/** Volume and counts over completed working sets only. */
+/** Volume and counts over completed working sets only; a drop chain is one set. */
 export function workoutTotals(exercises: StatExercise[]): WorkoutTotals {
   let volumeKg = 0
   let setCount = 0
@@ -31,7 +39,7 @@ export function workoutTotals(exercises: StatExercise[]): WorkoutTotals {
   for (const e of exercises) {
     const done = e.sets.filter(isWorkingDone)
     if (done.length) exerciseCount++
-    setCount += done.length
+    setCount += done.filter(isSetDone).length
     for (const s of done) volumeKg += s.weightKg * s.reps
   }
   return { volumeKg, setCount, exerciseCount }
@@ -44,7 +52,7 @@ export function workoutTotals(exercises: StatExercise[]): WorkoutTotals {
 export function autoTitle<M extends string>(exercises: StatExercise<M>[], label: (m: M) => string): string {
   const counts = new Map<M, number>()
   for (const e of exercises) {
-    const n = e.sets.filter(isWorkingDone).length
+    const n = e.sets.filter(isSetDone).length
     if (n) counts.set(e.muscle, (counts.get(e.muscle) ?? 0) + n)
   }
   return [...counts.entries()]

@@ -14,6 +14,7 @@ import { ExerciseHintButton } from '@/features/exercises/guide/ExerciseHintButto
 import { ExerciseThumb } from '@/features/exercises/guide/ExerciseThumb'
 import type { Exercise } from '@/features/exercises/api'
 import { currentLanguage } from '@/i18n'
+import { chainEnd, suggestDropWeight, workingChains } from '@/lib/dropSets'
 import { detectPrs, type ExerciseRecords } from '@/lib/records'
 import type { PreviousSet } from '@/lib/templatePrefill'
 import type { ExerciseFeedbackPatch, WorkoutExercise, WorkoutSet } from './api'
@@ -31,9 +32,11 @@ interface ExerciseCardProps {
   /** Live view of someone else's session: sets and exercises can't be changed, feedback can. */
   readOnly?: boolean
   onSetChange: (setId: string, patch: SetPatch) => void
-  onSetCompleted: (set: WorkoutSet, isPr: boolean) => void
+  /** `dropNext`: a drop follows straight away, so no rest. */
+  onSetCompleted: (set: WorkoutSet, isPr: boolean, dropNext: boolean) => void
   onSetDelete: (setId: string) => void
   onAddSet: () => void
+  onAddDrop: (afterSetId: string, weightKg: number) => void
   onRemove: () => void
   onSaveSetup: (notes: string) => void
   onFeedback: (patch: ExerciseFeedbackPatch) => void
@@ -50,6 +53,7 @@ export function ExerciseCard({
   onSetCompleted,
   onSetDelete,
   onAddSet,
+  onAddDrop,
   onRemove,
   onSaveSetup,
   onFeedback,
@@ -131,6 +135,8 @@ export function ExerciseCard({
         onSetCompleted={onSetCompleted}
         onSetDelete={onSetDelete}
         onAddSet={onAddSet}
+        onAddDrop={onAddDrop}
+        weightStepKg={exercise?.weightStepKg}
       />
 
       {item.sets.some((s) => s.completedAt !== null) || item.difficulty !== null ? (
@@ -150,10 +156,14 @@ interface SetsTableProps {
   lastTime: PreviousSet[]
   records: ExerciseRecords | null
   readOnly?: boolean
+  /** The machine's weight step, for the weight of a new drop. */
+  weightStepKg?: number
   onSetChange: (setId: string, patch: SetPatch) => void
-  onSetCompleted: (set: WorkoutSet, isPr: boolean) => void
+  /** `dropNext`: a drop follows straight away, so no rest. */
+  onSetCompleted: (set: WorkoutSet, isPr: boolean, dropNext: boolean) => void
   onSetDelete: (setId: string) => void
   onAddSet: () => void
+  onAddDrop: (afterSetId: string, weightKg: number) => void
 }
 
 /** Set rows (set · last time · kg · reps · done) with "add set" — one person's sets of an exercise. */
@@ -162,13 +172,24 @@ export function SetsTable({
   lastTime,
   records,
   readOnly = false,
+  weightStepKg = 2.5,
   onSetChange,
   onSetCompleted,
   onSetDelete,
   onAddSet,
+  onAddDrop,
 }: SetsTableProps) {
   const { t } = useTranslation()
   const rows = labelSets(sets, lastTime, t('workout.warmupShort'))
+  const lastChains = workingChains(lastTime)
+
+  // The new drop goes after the chain's last set, at last time's weight for that drop or 20% less.
+  const addDrop = (index: number) => {
+    const end = chainEnd(sets, index)
+    const { chain, step } = rows[end]
+    const lastTimeKg = lastChains[chain]?.drops[step]?.weightKg
+    onAddDrop(sets[end].id, suggestDropWeight(sets[end].weightKg, weightStepKg, lastTimeKg))
+  }
 
   return (
     <>
@@ -181,23 +202,27 @@ export function SetsTable({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        {rows.map(({ set, label, last }) => {
+        {rows.map(({ set, label, last, drop }, i) => {
           const isPr = set.completedAt !== null && detectPrs(set, records).length > 0
           return (
             <SetRow
               key={set.id}
               set={set}
               label={label}
+              drop={drop}
+              hasDrops={!drop && !set.isWarmup && Boolean(sets[i + 1]?.isDrop)}
               last={last}
               isPr={isPr}
               readOnly={readOnly}
               onChange={(patch) => onSetChange(set.id, patch)}
               onCompleted={(values) => {
                 // Check records with the values being saved, not the cached row.
-                const isNewPr = detectPrs({ ...values, isWarmup: set.isWarmup }, records).length > 0
-                onSetCompleted({ ...set, ...values }, isNewPr)
+                const isNewPr = detectPrs({ ...values, isWarmup: set.isWarmup, isDrop: set.isDrop }, records).length > 0
+                const next = sets[i + 1]
+                onSetCompleted({ ...set, ...values }, isNewPr, Boolean(next?.isDrop && next.completedAt === null))
               }}
               onDelete={() => onSetDelete(set.id)}
+              onAddDrop={set.isWarmup ? undefined : () => addDrop(i)}
             />
           )
         })}
@@ -213,18 +238,39 @@ export function SetsTable({
   )
 }
 
-/** Numbers working sets 1..n, labels warm-ups, and pairs each with the same set from last time. */
-function labelSets(sets: WorkoutSet[], lastTime: PreviousSet[], warmupLabel: string) {
+interface LabeledSet {
+  set: WorkoutSet
+  label: string
+  last: PreviousSet | undefined
+  /** A drop of the set above. */
+  drop: boolean
+  /** Working set (chain) index, -1 for warm-ups. */
+  chain: number
+  /** Place in the chain: 0 for the set itself, 1… for its drops. */
+  step: number
+}
+
+/**
+ * Numbers working sets 1..n, labels warm-ups and drops, and pairs each with the same set from
+ * last time: the n-th working set with last time's n-th, its k-th drop with that set's k-th drop.
+ */
+function labelSets(sets: WorkoutSet[], lastTime: PreviousSet[], warmupLabel: string): LabeledSet[] {
   const lastWarmups = lastTime.filter((s) => s.isWarmup)
-  const lastWorking = lastTime.filter((s) => !s.isWarmup)
-  const rows: { set: WorkoutSet; label: string; last: PreviousSet | undefined }[] = []
+  const lastChains = workingChains(lastTime)
+  const rows: LabeledSet[] = []
   let warmups = 0
-  let working = 0
+  let chain = -1
+  let step = 0
   for (const set of sets) {
     if (set.isWarmup) {
-      rows.push({ set, label: warmupLabel, last: lastWarmups[warmups++] })
+      rows.push({ set, label: warmupLabel, last: lastWarmups[warmups++], drop: false, chain: -1, step: 0 })
+    } else if (set.isDrop && chain >= 0) {
+      step++
+      rows.push({ set, label: '', last: lastChains[chain]?.drops[step - 1], drop: true, chain, step })
     } else {
-      rows.push({ set, label: String(working + 1), last: lastWorking[working++] })
+      chain++
+      step = 0
+      rows.push({ set, label: String(chain + 1), last: lastChains[chain]?.head, drop: false, chain, step })
     }
   }
   return rows

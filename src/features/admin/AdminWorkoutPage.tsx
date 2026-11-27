@@ -42,6 +42,7 @@ export function AdminWorkoutPage() {
 
   const done = workout.exercises.flatMap((e) => e.sets.filter((s) => s.completed && !s.isWarmup))
   const volume = done.reduce((sum, s) => sum + s.weightKg * s.reps, 0)
+  const setCount = done.filter((s) => !s.isDrop).length // a drop chain is one set
   const minutes = workout.finishedAt ? minutesBetween(workout.startedAt, workout.finishedAt) : 0
   const date = format(new Date(workout.startedAt), lang === 'en' ? 'EEEE, MMMM d · HH:mm' : 'EEEE, d MMMM · HH:mm', {
     locale: dateLocale(lang),
@@ -64,7 +65,7 @@ export function AdminWorkoutPage() {
       <div className="grid grid-cols-3 gap-2">
         <Stat label={t('workout.duration')} value={t('workout.minutes', { count: minutes })} />
         <Stat label={t('workout.volume')} value={`${formatVolume(volume, lang)} ${t('workout.kg')}`} />
-        <Stat label={t('workout.sets')} value={String(done.length)} />
+        <Stat label={t('workout.sets')} value={String(setCount)} />
       </div>
 
       {workout.notes ? <p className="rounded-2xl border bg-card px-4 py-3 text-sm whitespace-pre-wrap">{workout.notes}</p> : null}
@@ -86,6 +87,7 @@ export function AdminWorkoutPage() {
                         : 'tabular rounded-lg bg-secondary px-2 py-1 text-xs font-medium'
                     }
                   >
+                    {s.isDrop ? <span aria-label={t('workout.drop')}>↓ </span> : null}
                     {formatKg(s.weightKg, lang)} × {s.reps}
                   </li>
                 ))}

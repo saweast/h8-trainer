@@ -79,7 +79,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
     } catch {
       // no history available — start with empty sets
     }
-    const workingCount = previous.filter((s) => !s.isWarmup).length
+    const workingCount = previous.filter((s) => !s.isWarmup && !s.isDrop).length
     const planned = prefillSets(
       { targetSets: workingCount || 3, targetRepsMin: null, targetRepsMax: null, targetWeightKg: null },
       previous,
@@ -87,12 +87,14 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
     actions.addExercise(exercise.id, planned)
   }
 
-  const onSetCompleted = (item: WorkoutExercise, isPr: boolean) => {
+  const onSetCompleted = (item: WorkoutExercise, isPr: boolean, dropNext: boolean) => {
     const exercise = exercises.get(item.exerciseId)
-    // Rest: template setting → my setting for this machine → exercise default.
+    // Rest: template setting → my setting for this machine → exercise default. None before a drop:
+    // lower the weight and go on straight away.
     const fromTemplate = template?.items.find((i) => i.exerciseId === item.exerciseId)?.restS
     const restS = fromTemplate ?? settings?.get(item.exerciseId)?.restS ?? exercise?.defaultRestS ?? 90
-    rest.start(restS)
+    if (dropNext) rest.stop()
+    else rest.start(restS)
     if (isPr && !celebrated.current.has(item.exerciseId)) {
       celebrated.current.add(item.exerciseId)
       toast.success(t('workout.pr'))
@@ -100,7 +102,8 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
   }
 
   const allSets = workout.exercises.flatMap((e) => e.sets)
-  const doneSets = allSets.filter((s) => s.completedAt && !s.isWarmup).length
+  // a drop chain is one set
+  const doneSets = allSets.filter((s) => s.completedAt && !s.isWarmup && !s.isDrop).length
   const pendingSets = allSets.filter((s) => !s.completedAt).length
 
   const finish = () => {
@@ -218,7 +221,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
                 setupNotes={settings?.get(item.exerciseId)?.setupNotes ?? null}
                 actions={actions}
                 readOnly={liveView}
-                onSetCompleted={(_set, isPr) => onSetCompleted(item, isPr)}
+                onSetCompleted={(_set, isPr, dropNext) => onSetCompleted(item, isPr, dropNext)}
                 onSaveSetup={(notes) =>
                   saveSettings.mutate({
                     exerciseId: item.exerciseId,
@@ -266,7 +269,7 @@ interface ContainerProps {
   setupNotes: string | null
   actions: Actions
   readOnly: boolean
-  onSetCompleted: (set: WorkoutSet, isPr: boolean) => void
+  onSetCompleted: (set: WorkoutSet, isPr: boolean, dropNext: boolean) => void
   onSaveSetup: (notes: string) => void
 }
 
@@ -295,6 +298,7 @@ function ExerciseCardContainer({
       onSetCompleted={onSetCompleted}
       onSetDelete={(setId) => actions.removeSet(setId)}
       onAddSet={() => actions.addSet(item.id)}
+      onAddDrop={(afterSetId, weightKg) => actions.addDrop(afterSetId, weightKg)}
       onRemove={() => actions.removeExercise(item.id)}
       onSaveSetup={onSaveSetup}
       onFeedback={(patch) => actions.setFeedback(item.id, patch)}

@@ -13,14 +13,16 @@ export interface LoggedSet {
   weightKg: number
   reps: number
   isWarmup: boolean
+  isDrop?: boolean
 }
 
 /**
- * Which personal records a completed set beats. Warm-ups never count, and the very first
- * time an exercise is logged (no history) is not treated as a record to avoid badge spam.
+ * Which personal records a completed set beats. Warm-ups and drops never count (drops are done
+ * tired), and the very first time an exercise is logged (no history) is not treated as a record
+ * to avoid badge spam.
  */
 export function detectPrs(set: LoggedSet, previous: ExerciseRecords | null): PrKind[] {
-  if (set.isWarmup || set.reps <= 0 || set.weightKg <= 0 || !previous) return []
+  if (set.isWarmup || set.isDrop || set.reps <= 0 || set.weightKg <= 0 || !previous) return []
   const hasHistory =
     previous.bestWeightKg !== null || previous.bestE1rmKg !== null || previous.bestSetVolumeKg !== null
   if (!hasHistory) return []

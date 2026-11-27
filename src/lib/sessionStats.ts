@@ -1,5 +1,5 @@
 import { estimateOneRepMax } from './oneRepMax'
-import { isWorkingDone, type StatSet } from './workoutStats'
+import { isSetDone, isWorkingDone, type StatSet } from './workoutStats'
 
 export interface SessionStats {
   bestWeightKg: number | null
@@ -10,15 +10,18 @@ export interface SessionStats {
   workingSets: number
 }
 
-/** Per-session numbers for one exercise, over completed working sets. */
+/**
+ * Per-session numbers for one exercise, over completed working sets. Drops add volume; the bests
+ * and the set count come from the sets they continue.
+ */
 export function sessionStats(sets: StatSet[]): SessionStats {
-  const done = sets.filter(isWorkingDone)
+  let volumeKg = 0
+  for (const s of sets.filter(isWorkingDone)) volumeKg += s.weightKg * s.reps
+  const done = sets.filter(isSetDone)
   let bestWeightKg: number | null = null
   let bestE1rmKg: number | null = null
-  let volumeKg = 0
   let topSet: SessionStats['topSet'] = null
   for (const s of done) {
-    volumeKg += s.weightKg * s.reps
     if (s.weightKg > 0 && (bestWeightKg === null || s.weightKg > bestWeightKg)) bestWeightKg = s.weightKg
     const e1rm = estimateOneRepMax(s.weightKg, s.reps)
     if (e1rm !== null && (bestE1rmKg === null || e1rm > bestE1rmKg)) bestE1rmKg = e1rm

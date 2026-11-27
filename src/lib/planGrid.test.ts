@@ -3,6 +3,7 @@ import {
   addWeek,
   cellStatus,
   copyWeek,
+  doneAsSpec,
   extendCycle,
   moveRow,
   removeWeek,
@@ -109,5 +110,17 @@ describe('cellStatus', () => {
     expect(cellStatus(planned, done('20x10, 80x8x2'))).toBe('under')
     expect(cellStatus(planned, done('20x10, 75x8x3'))).toBe('under')
     expect(cellStatus(undefined, done('20x10'))).toBe('extra')
+  })
+
+  it('wants the planned drops done too, at any weight and reps', () => {
+    const withDrops = spec('80x10, 80x10+60+40')
+    expect(cellStatus(withDrops, done('80x10, 80x10+55x6+35x5'))).toBe('done')
+    expect(cellStatus(withDrops, done('80x10, 80x10+60x8'))).toBe('under')
+    // drops don't stand in for a missing set
+    expect(cellStatus(spec('80x10x2'), done('80x10+60+40'))).toBe('under')
+  })
+
+  it('keeps drops when showing what was done', () => {
+    expect(formatSetSpec(doneAsSpec(done('80x10+60x8')))).toBe('80x10+60x8')
   })
 })
