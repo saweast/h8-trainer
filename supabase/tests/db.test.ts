@@ -1786,7 +1786,7 @@ describe('drop sets', () => {
     }
   })
 
-  it("numbers template sets from last time's working sets, skipping drops", async () => {
+  it("numbers template sets by last time's working sets and brings their drops back", async () => {
     await workoutWith([
       [70, 10, true, false],
       [50, 10, true, true],
@@ -1806,6 +1806,7 @@ describe('drop sets', () => {
       )
       expect(sets).toEqual([
         { weight_kg: '70.00', reps: 10, is_drop: false },
+        { weight_kg: '50.00', reps: 10, is_drop: true },
         { weight_kg: '75.00', reps: 8, is_drop: false },
       ])
       await tx.query(`delete from public.workouts where id = $1`, [w.id])

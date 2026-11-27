@@ -519,7 +519,7 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
         weightKg: p.weightKg,
         reps: p.reps,
         isWarmup: false,
-        isDrop: false,
+        isDrop: p.isDrop ?? false,
         completedAt: null,
       })),
     }
