@@ -1,4 +1,4 @@
-import { ArrowLeft, Copy, EllipsisVertical, GripVertical, Play, Plus, SlidersHorizontal, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Copy, EllipsisVertical, GripVertical, Layers, Link2, Play, Plus, SlidersHorizontal, Trash2, Unlink, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router'
@@ -24,6 +24,9 @@ import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { currentLanguage } from '@/i18n'
 import { formatKg } from '@/lib/format'
 import { formatSetSpec } from '@/lib/setSpec'
+import { joinNeighbour, leaveSuperset, loneSupersets, nextSupersetNumber, regroupAfterMove, supersetPlaces } from '@/lib/superset'
+import { cn } from '@/lib/utils'
+import { SupersetLabel } from '@/features/workout/ExerciseCard'
 import { formatTargets } from '@/lib/templateFromWorkout'
 import {
   useDeleteTemplate,
@@ -38,6 +41,7 @@ import { TemplateItemDrawer } from './TemplateItemDrawer'
 
 interface DraftItem extends TemplateItem {
   key: string
+  superset: number | null
 }
 
 interface Draft {
@@ -50,7 +54,7 @@ function toDraft(template: Template | undefined): Draft {
   return {
     name: template?.name ?? '',
     notes: template?.notes ?? '',
-    items: (template?.items ?? []).map((i) => ({ ...i, key: crypto.randomUUID() })),
+    items: (template?.items ?? []).map((i) => ({ ...i, superset: i.superset ?? null, key: crypto.randomUUID() })),
   }
 }
 
@@ -95,7 +99,7 @@ function Editor({ template }: { template: Template | undefined }) {
   const [initial] = useState(() => toDraft(template))
   const [draft, setDraft] = useState(initial)
   const [nameError, setNameError] = useState(false)
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const [picker, setPicker] = useState<'one' | 'superset' | null>(null)
   const [editing, setEditing] = useState<DraftItem | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const dirty = !sameDraft(draft, initial)
@@ -108,24 +112,36 @@ function Editor({ template }: { template: Template | undefined }) {
 
   const isBodyweight = (exerciseId: string) => exercises.get(exerciseId)?.equipment === 'bodyweight'
 
-  const addExercise = (exercise: Exercise) =>
-    setDraft((d) => ({
-      ...d,
-      items: [
-        ...d.items,
-        {
-          key: crypto.randomUUID(),
-          exerciseId: exercise.id,
-          targetSets: 3,
-          targetRepsMin: 8,
-          targetRepsMax: 12,
-          targetWeightKg: null,
-          restS: null,
-          notes: null,
-          sets: null,
-        },
-      ],
-    }))
+  const newItem = (exercise: Exercise, superset: number | null = null): DraftItem => ({
+    key: crypto.randomUUID(),
+    exerciseId: exercise.id,
+    targetSets: 3,
+    targetRepsMin: 8,
+    targetRepsMax: 12,
+    targetWeightKg: null,
+    restS: null,
+    notes: null,
+    sets: null,
+    superset,
+  })
+
+  const addExercise = (exercise: Exercise) => setDraft((d) => ({ ...d, items: [...d.items, newItem(exercise)] }))
+
+  const addSuperset = (list: Exercise[]) =>
+    setDraft((d) => {
+      const superset = nextSupersetNumber(d.items)
+      return { ...d, items: [...d.items, ...list.map((e) => newItem(e, superset))] }
+    })
+
+  /** Applies superset changes (by item) to the draft; a superset left with one exercise dissolves. */
+  const regroup = (changes: Map<DraftItem, number | null>) =>
+    setDraft((d) => {
+      const items = d.items.map((i) => (changes.has(i) ? { ...i, superset: changes.get(i)! } : i))
+      const lone = new Set(loneSupersets(items))
+      return { ...d, items: items.map((i) => (lone.has(i) ? { ...i, superset: null } : i)) }
+    })
+
+  const places = supersetPlaces(draft.items)
 
   const persist = async (asCopy = false): Promise<string | null> => {
     if (!draft.name.trim()) {
@@ -255,10 +271,23 @@ function Editor({ template }: { template: Template | undefined }) {
             items={draft.items}
             getId={(i) => i.key}
             disabled={readOnly}
-            onReorder={(items) => setDraft((d) => ({ ...d, items }))}
+            onReorder={(items, moved) => setDraft((d) => ({ ...d, items: regroupAfterMove(items, moved) }))}
             className="divide-y overflow-hidden rounded-2xl border bg-card"
-            renderItem={(item, _index, handle) => (
-              <div className="flex min-h-16 items-center gap-1 py-2 pr-1 pl-1">
+            renderItem={(item, index, handle) => {
+              const place = places.get(item)
+              const last = index === draft.items.length - 1
+              return (
+              <div className="relative flex min-h-16 items-center gap-1 py-2 pr-1 pl-1">
+                {place ? (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'absolute left-0.5 w-1 bg-primary/70',
+                      place.index === 0 ? 'top-3 rounded-t-full' : '-top-px',
+                      place.index === place.size - 1 ? 'bottom-3 rounded-b-full' : '-bottom-px',
+                    )}
+                  />
+                ) : null}
                 {readOnly ? (
                   <span className="w-2" />
                 ) : (
@@ -281,7 +310,10 @@ function Editor({ template }: { template: Template | undefined }) {
                 >
                   <ExerciseThumb slug={exercises.get(item.exerciseId)?.slug ?? null} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{nameOf(item.exerciseId)}</span>
+                    <span className="block truncate text-sm font-medium">
+                      {place ? <SupersetLabel label={`${place.letter}${place.index + 1}`} /> : null}
+                      {nameOf(item.exerciseId)}
+                    </span>
                     <span className="tabular block text-xs text-muted-foreground">
                       {[
                         ...(item.sets?.length
@@ -310,9 +342,33 @@ function Editor({ template }: { template: Template | undefined }) {
                         <SlidersHorizontal />
                         {t('templates.editItem')}
                       </DropdownMenuItem>
+                      {index > 0 && (!place || place.index === 0) ? (
+                        <DropdownMenuItem onSelect={() => regroup(joinNeighbour(draft.items, index, 'up'))}>
+                          <Link2 />
+                          {t('superset.joinUp')}
+                        </DropdownMenuItem>
+                      ) : null}
+                      {!last && (!place || place.index === place.size - 1) ? (
+                        <DropdownMenuItem onSelect={() => regroup(joinNeighbour(draft.items, index, 'down'))}>
+                          <Link2 />
+                          {t('superset.joinDown')}
+                        </DropdownMenuItem>
+                      ) : null}
+                      {place && (place.index === 0 || place.index === place.size - 1) ? (
+                        <DropdownMenuItem onSelect={() => regroup(leaveSuperset(draft.items, index))}>
+                          <Unlink />
+                          {t('superset.leave')}
+                        </DropdownMenuItem>
+                      ) : null}
                       <DropdownMenuItem
                         variant="destructive"
-                        onSelect={() => setDraft((d) => ({ ...d, items: d.items.filter((i) => i.key !== item.key) }))}
+                        onSelect={() =>
+                          setDraft((d) => {
+                            const items = d.items.filter((i) => i.key !== item.key)
+                            const lone = new Set(loneSupersets(items))
+                            return { ...d, items: items.map((i) => (lone.has(i) ? { ...i, superset: null } : i)) }
+                          })
+                        }
                       >
                         <X />
                         {t('templates.removeItem')}
@@ -321,7 +377,8 @@ function Editor({ template }: { template: Template | undefined }) {
                   </DropdownMenu>
                 )}
               </div>
-            )}
+              )
+            }}
           />
         ) : (
           <p className="rounded-2xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
@@ -330,11 +387,18 @@ function Editor({ template }: { template: Template | undefined }) {
         )}
 
         {readOnly ? null : (
-          <Button variant="secondary" size="touch" onClick={() => setPickerOpen(true)}>
-            <Plus aria-hidden />
-            {t('templates.addExercise')}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="touch" className="flex-1" onClick={() => setPicker('one')}>
+              <Plus aria-hidden />
+              {t('templates.addExercise')}
+            </Button>
+            <Button variant="secondary" size="touch" onClick={() => setPicker('superset')} aria-label={t('superset.addLong')}>
+              <Layers aria-hidden />
+              {t('superset.add')}
+            </Button>
+          </div>
         )}
+        {places.size ? <p className="-mt-2 px-1 text-xs text-muted-foreground">{t('superset.restHint')}</p> : null}
 
         <Textarea
           value={draft.notes}
@@ -354,14 +418,24 @@ function Editor({ template }: { template: Template | undefined }) {
         ) : null}
       </main>
 
-      <ExercisePicker open={pickerOpen} onOpenChange={setPickerOpen} onPick={addExercise} athleteId={athleteId} />
+      <ExercisePicker
+        open={picker !== null}
+        onOpenChange={(open) => setPicker(open ? picker : null)}
+        multiple={picker === 'superset'}
+        onPick={addExercise}
+        onPickMany={addSuperset}
+        athleteId={athleteId}
+      />
       <TemplateItemDrawer
         item={editing}
         title={editing ? nameOf(editing.exerciseId) : ''}
         bodyweight={editing ? isBodyweight(editing.exerciseId) : false}
         onClose={(updated) => {
           if (updated && editing) {
-            setDraft((d) => ({ ...d, items: d.items.map((i) => (i.key === editing.key ? { ...updated, key: i.key } : i)) }))
+            setDraft((d) => ({
+              ...d,
+              items: d.items.map((i) => (i.key === editing.key ? { ...updated, key: i.key, superset: i.superset } : i)),
+            }))
           }
           setEditing(null)
         }}

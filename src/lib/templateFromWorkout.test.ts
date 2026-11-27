@@ -19,9 +19,14 @@ const workout = [
 describe('templateItemsFromWorkout', () => {
   it('keeps exercises with completed working sets and their rep range', () => {
     expect(templateItemsFromWorkout(workout)).toEqual([
-      { exerciseId: 'bench', targetSets: 2, targetRepsMin: 8, targetRepsMax: 10, targetWeightKg: null, restS: null, notes: null },
-      { exerciseId: 'fly', targetSets: 1, targetRepsMin: null, targetRepsMax: 12, targetWeightKg: null, restS: null, notes: null },
+      { exerciseId: 'bench', targetSets: 2, targetRepsMin: 8, targetRepsMax: 10, targetWeightKg: null, restS: null, notes: null, superset: null },
+      { exerciseId: 'fly', targetSets: 1, targetRepsMin: null, targetRepsMax: 12, targetWeightKg: null, restS: null, notes: null, superset: null },
     ])
+  })
+
+  it('keeps supersets', () => {
+    const items = templateItemsFromWorkout(workout.map((e) => ({ ...e, superset: 7 })))
+    expect(items.map((i) => i.superset)).toEqual([7, 7])
   })
 })
 
@@ -30,6 +35,15 @@ describe('workoutMatchesTemplate', () => {
     expect(workoutMatchesTemplate([{ exerciseId: 'bench', targetSets: 2 }, { exerciseId: 'fly', targetSets: 1 }], workout)).toBe(true)
     expect(workoutMatchesTemplate([{ exerciseId: 'bench', targetSets: 3 }, { exerciseId: 'fly', targetSets: 1 }], workout)).toBe(false)
     expect(workoutMatchesTemplate([{ exerciseId: 'fly', targetSets: 1 }, { exerciseId: 'bench', targetSets: 2 }], workout)).toBe(false)
+  })
+
+  it('compares supersets by grouping, not by their numbers', () => {
+    const template = [
+      { exerciseId: 'bench', targetSets: 2, superset: 1 },
+      { exerciseId: 'fly', targetSets: 1, superset: 1 },
+    ]
+    expect(workoutMatchesTemplate(template, workout)).toBe(false)
+    expect(workoutMatchesTemplate(template, workout.map((e) => ({ ...e, superset: 4 })))).toBe(true)
   })
 })
 

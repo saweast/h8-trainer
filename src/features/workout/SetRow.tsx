@@ -22,6 +22,8 @@ interface SetRowProps {
   label: string
   last: PreviousSet | undefined
   isPr: boolean
+  /** The set to do next in a superset round: highlighted, and scrolled to. */
+  isNext?: boolean
   readOnly?: boolean
   onChange: (patch: SetPatch) => void
   /** Called with the values just saved, so the caller can check records and start rest. */
@@ -38,7 +40,7 @@ function weightText(kg: number, lang: string): string {
 
 export const SET_GRID = 'grid grid-cols-[2rem_minmax(0,1fr)_4.5rem_3.5rem_2.75rem] items-center gap-2'
 
-export function SetRow({ set, label, last, isPr, readOnly = false, onChange, onCompleted, onDelete }: SetRowProps) {
+export function SetRow({ set, label, last, isPr, isNext = false, readOnly = false, onChange, onCompleted, onDelete }: SetRowProps) {
   const { t } = useTranslation()
   const lang = currentLanguage()
   const done = set.completedAt !== null
@@ -95,7 +97,10 @@ export function SetRow({ set, label, last, isPr, readOnly = false, onChange, onC
   )
 
   return (
-    <div className={SET_GRID}>
+    <div
+      id={`set-${set.id}`}
+      className={cn(SET_GRID, 'scroll-mt-20 scroll-mb-40 rounded-xl', isNext && !done && 'bg-primary/10 ring-1 ring-primary/60 dark:bg-primary/5')}
+    >
       <DropdownMenu>
         <DropdownMenuTrigger
           disabled={readOnly}

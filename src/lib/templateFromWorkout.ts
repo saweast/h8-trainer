@@ -1,4 +1,5 @@
 import type { SpecSet } from './setSpec'
+import { toBlocks } from './superset'
 import { isWorkingDone, type StatSet } from './workoutStats'
 
 export interface TemplateItemInput {
@@ -11,10 +12,13 @@ export interface TemplateItemInput {
   notes: string | null
   /** Exact planned sets (warm-ups included); overrides the uniform targets when present. */
   sets?: SpecSet[] | null
+  /** Neighbours with the same number form a superset (src/lib/superset.ts). */
+  superset?: number | null
 }
 
 interface WorkoutExerciseLike {
   exerciseId: string
+  superset?: number | null
   sets: StatSet[]
 }
 
@@ -39,20 +43,29 @@ export function templateItemsFromWorkout(exercises: WorkoutExerciseLike[]): Temp
         targetWeightKg: null,
         restS: null,
         notes: null,
+        superset: e.superset ?? null,
       },
     ]
   })
 }
 
-/** True when the workout followed the template: same exercises, same order, same set counts. */
+/** Which superset (by order) each item is in, -1 for plain ones: compares grouping, not numbers. */
+function grouping(list: { superset?: number | null }[]): number[] {
+  return toBlocks(list.map((i) => ({ superset: i.superset ?? null }))).flatMap((b, n) =>
+    b.kind === 'single' ? [-1] : b.items.map(() => n),
+  )
+}
+
+/** True when the workout followed the template: same exercises, order, set counts and supersets. */
 export function workoutMatchesTemplate(
-  template: { exerciseId: string; targetSets: number }[],
+  template: { exerciseId: string; targetSets: number; superset?: number | null }[],
   exercises: WorkoutExerciseLike[],
 ): boolean {
   const done = templateItemsFromWorkout(exercises)
   return (
     done.length === template.length &&
-    done.every((d, i) => d.exerciseId === template[i].exerciseId && d.targetSets === template[i].targetSets)
+    done.every((d, i) => d.exerciseId === template[i].exerciseId && d.targetSets === template[i].targetSets) &&
+    grouping(done).join() === grouping(template).join()
   )
 }
 

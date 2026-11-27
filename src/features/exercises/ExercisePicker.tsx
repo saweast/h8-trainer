@@ -1,4 +1,4 @@
-import { ArrowLeft, Plus, Search } from 'lucide-react'
+import { ArrowLeft, Layers, Plus, Search, X } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Chip } from '@/components/common/Chip'
@@ -22,9 +22,15 @@ interface ExercisePickerProps {
   onOpenChange: (open: boolean) => void
   onPick: (exercise: Exercise) => void
   athleteId?: string
+  /** Several exercises at once, for a superset: numbered in the order tapped. */
+  multiple?: boolean
+  onPickMany?: (exercises: Exercise[]) => void
 }
 
-export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: ExercisePickerProps) {
+/** A superset needs at least this many exercises. */
+const MIN_MANY = 2
+
+export function ExercisePicker({ open, onOpenChange, onPick, athleteId, multiple = false, onPickMany }: ExercisePickerProps) {
   const { t } = useTranslation()
   const lang = currentLanguage()
   const { data: exercises, isPending } = useExercises()
@@ -35,6 +41,7 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
   const [query, setQuery] = useState('')
   const [muscle, setMuscle] = useState<MuscleGroup | null>(null)
   const [creating, setCreating] = useState(false)
+  const [selected, setSelected] = useState<Exercise[]>([])
   const deferredQuery = useDeferredValue(query)
 
   const list = useMemo(() => {
@@ -52,11 +59,23 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
       setCreating(false)
       setQuery('')
       setMuscle(null)
+      setSelected([])
     }
   }
 
   const pick = (exercise: Exercise) => {
+    if (multiple) {
+      setSelected((list) => (list.some((e) => e.id === exercise.id) ? list.filter((e) => e.id !== exercise.id) : [...list, exercise]))
+      setCreating(false)
+      return
+    }
     onPick(exercise)
+    close(false)
+  }
+
+  const confirmMany = () => {
+    if (selected.length < MIN_MANY) return
+    onPickMany?.(selected)
     close(false)
   }
 
@@ -71,9 +90,11 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
           ) : null}
           <div>
             <DrawerTitle className="font-heading text-lg">
-              {creating ? t('exerciseForm.title') : t('picker.title')}
+              {creating ? t('exerciseForm.title') : multiple ? t('superset.pickerTitle') : t('picker.title')}
             </DrawerTitle>
-            <DrawerDescription>{creating ? t('exerciseForm.description') : t('picker.description')}</DrawerDescription>
+            <DrawerDescription>
+              {creating ? t('exerciseForm.description') : multiple ? t('superset.pickerDescription') : t('picker.description')}
+            </DrawerDescription>
           </div>
         </DrawerHeader>
 
@@ -131,12 +152,17 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
                 <ul className="divide-y">
                   {list.map((e) => {
                     const flag = restrictions.length ? noteFlag(restrictions, e) : null
+                    const order = multiple ? selected.findIndex((s) => s.id === e.id) + 1 : 0
                     return (
                     <li key={e.id} className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => pick(e)}
-                        className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2.5 text-left transition-colors hover:bg-secondary/50"
+                        aria-pressed={multiple ? order > 0 : undefined}
+                        className={cn(
+                          'flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2.5 text-left transition-colors hover:bg-secondary/50',
+                          order > 0 && 'bg-primary/10',
+                        )}
                       >
                         <ExerciseThumb slug={e.slug} />
                         <span className="min-w-0 flex-1">
@@ -160,7 +186,13 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
                             {t('picker.custom')}
                           </span>
                         ) : null}
-                        <Plus className="size-4 text-muted-foreground" aria-hidden />
+                        {order > 0 ? (
+                          <span className="tabular flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                            {order}
+                          </span>
+                        ) : (
+                          <Plus className="size-4 text-muted-foreground" aria-hidden />
+                        )}
                       </button>
                       <ExerciseHintButton exercise={e} className="-mr-2" />
                     </li>
@@ -173,12 +205,47 @@ export function ExercisePicker({ open, onOpenChange, onPick, athleteId }: Exerci
               ) : null}
             </div>
 
-            <div className="border-t px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-              <Button variant="secondary" size="touch" className="w-full" onClick={() => setCreating(true)}>
-                <Plus aria-hidden />
-                {query.trim() ? t('exercises.createNamed', { name: query.trim() }) : t('exercises.create')}
-              </Button>
-            </div>
+            {multiple ? (
+              <div className="border-t px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+                {selected.length ? (
+                  <ol aria-label={t('superset.title')} className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]">
+                    {selected.map((e, i) => (
+                      <li key={e.id} className="shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => pick(e)}
+                          aria-label={`${t('common.remove')}: ${exerciseName(e, lang)}`}
+                          className="flex h-8 max-w-48 items-center gap-1.5 rounded-full bg-secondary pr-2 pl-1 text-xs font-medium"
+                        >
+                          <span className="tabular flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+                            {i + 1}
+                          </span>
+                          <span className="truncate">{exerciseName(e, lang)}</span>
+                          <X className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="touch" onClick={() => setCreating(true)}>
+                    <Plus aria-hidden />
+                    {t('superset.newExercise')}
+                  </Button>
+                  <Button size="touch" className="flex-1" disabled={selected.length < MIN_MANY} onClick={confirmMany}>
+                    <Layers aria-hidden />
+                    {selected.length < MIN_MANY ? t('superset.pickTwo') : t('superset.create', { count: selected.length })}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="border-t px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+                <Button variant="secondary" size="touch" className="w-full" onClick={() => setCreating(true)}>
+                  <Plus aria-hidden />
+                  {query.trim() ? t('exercises.createNamed', { name: query.trim() }) : t('exercises.create')}
+                </Button>
+              </div>
+            )}
           </>
         )}
       </DrawerContent>

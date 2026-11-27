@@ -129,7 +129,7 @@ export interface ExerciseSettings {
   restS: number | null
 }
 
-const settingsKey = (athleteId: string | undefined) => ['exercise-settings', athleteId] as const
+export const settingsKey = (athleteId: string | undefined) => ['exercise-settings', athleteId] as const
 
 /** Per-athlete machine setup notes and preferred rest, keyed by exercise id. */
 export function useExerciseSettings(athleteId: string | undefined) {

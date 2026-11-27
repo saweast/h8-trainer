@@ -1,6 +1,18 @@
 import { useIsMutating, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight, Dumbbell, EllipsisVertical, Plus, SearchX, SlidersHorizontal, Users } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  ChevronDown,
+  ChevronRight,
+  Dumbbell,
+  EllipsisVertical,
+  Layers,
+  Link2,
+  Plus,
+  SearchX,
+  SlidersHorizontal,
+  Unlink,
+  Users,
+} from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
@@ -15,13 +27,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { exerciseName, type MuscleGroup } from '@/data/exercises'
-import { useExerciseMap, useExerciseSettings, type Exercise } from '@/features/exercises/api'
+import { settingsKey, useExerciseMap, useExerciseSettings, type Exercise, type ExerciseSettings } from '@/features/exercises/api'
 import { ExerciseHintButton } from '@/features/exercises/guide/ExerciseHintButton'
 import { ExerciseThumb } from '@/features/exercises/guide/ExerciseThumb'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { currentLanguage } from '@/i18n'
 import { formatVolume } from '@/lib/format'
 import { findRowExercise, groupRows, nextGroupPosition, type GroupRow } from '@/lib/groupRows'
+import { afterSetDone, joinNeighbour, leaveSuperset, nextSupersetNumber, nextUp, roundCount, toBlocks } from '@/lib/superset'
 import { prefillSets } from '@/lib/templatePrefill'
 import { autoTitle, workoutTotals } from '@/lib/workoutStats'
 import {
@@ -29,14 +42,17 @@ import {
   useExerciseRecords,
   useLastPerformance,
   useWorkoutActions,
+  workoutKey,
   type Workout,
   type WorkoutExercise,
+  type WorkoutSet,
 } from './api'
 import { ElapsedClock } from './ElapsedClock'
-import { SetsTable } from './ExerciseCard'
+import { SetsTable, SupersetLabel } from './ExerciseCard'
 import { FinishDrawer } from './FinishDrawer'
 import { useDiscardGroup, useFinishGroup, useGroupMembers, useGroupWorkouts, type GroupMember } from './groupApi'
 import { RestTimerBar } from './RestTimerBar'
+import { SupersetCard } from './SupersetCard'
 import { useRestTimer } from './useRestTimer'
 import { useFlushOnLeave } from './useFlushOnLeave'
 import { useWakeLock } from './useWakeLock'
@@ -91,10 +107,11 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
   const rest = useRestTimer(groupId)
   const finish = useFinishGroup(groupId, members)
   const discard = useDiscardGroup(groupId, members)
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const [picker, setPicker] = useState<'one' | 'superset' | null>(null)
   const [finishOpen, setFinishOpen] = useState(false)
   const celebrated = useRef(new Set<string>())
   const saving = useIsMutating({ predicate: (m) => workoutIds.some((id) => m.options.scope?.id === `workout:${id}`) }) > 0
+  const lang = currentLanguage()
 
   useWakeLock(true)
   useFlushOnLeave(workoutIds)
@@ -109,7 +126,7 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
   const startedAt = entries.map((e) => e.workout.startedAt).sort()[0]
   const names = members.map((m) => m.name).join(', ')
 
-  const addFor = async (entry: Entry, exerciseId: string, position: number) => {
+  const addFor = async (entry: Entry, exerciseId: string, position: number, superset: number | null = null) => {
     const { athleteId, id: workoutId } = entry.workout
     let previous = [] as Awaited<ReturnType<typeof fetchLastPerformance>>
     try {
@@ -126,13 +143,21 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
       { targetSets: workingCount || 3, targetRepsMin: null, targetRepsMax: null, targetWeightKg: null },
       previous,
     )
-    registry.current.get(workoutId)?.addExercise(exerciseId, planned, position)
+    registry.current.get(workoutId)?.addExercise(exerciseId, planned, position, superset)
   }
 
   // One exercise for everyone, at the same place; each client's sets come from their own history.
   const addExercise = (exercise: Exercise) => {
     const position = nextGroupPosition(entries.map((e) => e.workout))
     for (const entry of open) void addFor(entry, exercise.id, position)
+  }
+
+  // A superset for everyone: the exercises one after another, with one new number for all clients.
+  const addSuperset = (list: Exercise[]) => {
+    const all = entries.map((e) => e.workout)
+    const position = nextGroupPosition(all)
+    const superset = nextSupersetNumber(all.flatMap((w) => w.exercises))
+    for (const entry of open) list.forEach((e, i) => void addFor(entry, e.id, position + i, superset))
   }
 
   const removeRow = (row: GroupRow) => {
@@ -142,8 +167,63 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
     }
   }
 
-  const onSetCompleted = (member: GroupMember, exerciseId: string, restS: number, isPr: boolean) => {
-    rest.start(restS)
+  /** The same superset change for every client (rows → that client's exercises). */
+  const regroup = (changes: Map<GroupRow, number | null>) => {
+    for (const { workout } of open) {
+      const byExercise = new Map<string, number | null>()
+      for (const [row, superset] of changes) {
+        const item = findRowExercise(workout.exercises, row)
+        if (item) byExercise.set(item.id, superset)
+      }
+      registry.current.get(workout.id)?.setSupersets(byExercise)
+    }
+  }
+
+  const addRound = (members: GroupRow[]) => {
+    for (const { workout } of open) {
+      for (const row of members) {
+        const item = findRowExercise(workout.exercises, row)
+        if (item) registry.current.get(workout.id)?.addSet(item.id)
+      }
+    }
+  }
+
+  /** A client's rest for an exercise: their setting for this machine → the exercise default. */
+  const restOf = (entry: Entry, exerciseId: string) =>
+    queryClient.getQueryData<Map<string, ExerciseSettings>>(settingsKey(entry.workout.athleteId))?.get(exerciseId)?.restS ??
+    exercises.get(exerciseId)?.defaultRestS ??
+    90
+
+  /** This client's exercises of a superset (only the ones they have). */
+  const membersOf = (workout: Workout, members: GroupRow[]) =>
+    members.flatMap((row) => findRowExercise(workout.exercises, row) ?? [])
+
+  const onSetCompleted = (entry: Entry, row: GroupRow, set: WorkoutSet, restS: number, isPr: boolean) => {
+    const { member } = entry
+    const exerciseId = row.exerciseId
+    const block = toBlocks(rows).find((b) => b.kind === 'superset' && b.items.includes(row))
+    if (block?.kind === 'superset') {
+      // The set is already done in the cache; this render's workout may not show it yet.
+      const now = queryClient.getQueryData<Workout>(workoutKey(entry.workout.id)) ?? entry.workout
+      const { rest: roundClosed, next } = afterSetDone(membersOf(now, block.items), set.id)
+      if (roundClosed) {
+        rest.start(Math.max(restS, ...block.items.map((r) => restOf(entry, r.exerciseId))))
+      } else if (next) {
+        // The shared timer may be someone else's rest: leave it running.
+        const at = block.items.findIndex((r) => findRowExercise(now.exercises, r)?.id === next.exerciseId)
+        const exercise = exercises.get(block.items[at]?.exerciseId ?? '')
+        toast(
+          `${member.name}: ${t('superset.next', {
+            name: `${block.letter}${at + 1} ${exercise ? exerciseName(exercise, lang) : ''}`.trim(),
+            set: next.round,
+          })}`,
+          { duration: 2500 },
+        )
+        requestAnimationFrame(() => document.getElementById(`set-${next.setId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+      }
+    } else {
+      rest.start(restS)
+    }
     const key = `${member.athleteId}:${exerciseId}`
     if (isPr && !celebrated.current.has(key)) {
       celebrated.current.add(key)
@@ -245,34 +325,98 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
       >
         {rows.length === 0 ? (
           <EmptyState icon={Dumbbell} title={t('workout.emptyTitle')} body={t('group.emptyBody')}>
-            <Button size="xl" onClick={() => setPickerOpen(true)}>
-              <Plus aria-hidden />
-              {t('workout.addExercise')}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button size="xl" onClick={() => setPicker('one')}>
+                <Plus aria-hidden />
+                {t('workout.addExercise')}
+              </Button>
+              <Button variant="secondary" size="touch" onClick={() => setPicker('superset')}>
+                <Layers aria-hidden />
+                {t('superset.addLong')}
+              </Button>
+            </div>
           </EmptyState>
         ) : (
           <>
-            {rows.map((row) => (
-              <GroupExerciseCard
-                key={`${row.position}:${row.exerciseId}`}
-                row={row}
-                exercise={exercises.get(row.exerciseId)}
-                entries={entries}
-                onRemove={() => removeRow(row)}
-                onAddFor={(entry) => void addFor(entry, row.exerciseId, row.position)}
-                onSetCompleted={(member, restS, isPr) => onSetCompleted(member, row.exerciseId, restS, isPr)}
-              />
-            ))}
-            <Button variant="secondary" size="xl" onClick={() => setPickerOpen(true)}>
-              <Plus aria-hidden />
-              {t('workout.addExercise')}
-            </Button>
+            {toBlocks(rows).map((block) => {
+              const join = (row: GroupRow, direction: 'up' | 'down') => (
+                <DropdownMenuItem key={direction} onSelect={() => regroup(joinNeighbour(rows, rows.indexOf(row), direction))}>
+                  <Link2 />
+                  {direction === 'up' ? t('superset.joinUp') : t('superset.joinDown')}
+                </DropdownMenuItem>
+              )
+              const card = (row: GroupRow, extra: Partial<GroupExerciseCardProps> = {}) => (
+                <GroupExerciseCard
+                  key={`${row.position}:${row.exerciseId}`}
+                  row={row}
+                  exercise={exercises.get(row.exerciseId)}
+                  entries={entries}
+                  onRemove={() => removeRow(row)}
+                  onAddFor={(entry) => void addFor(entry, row.exerciseId, row.position, row.superset)}
+                  onSetCompleted={(entry, set, restS, isPr) => onSetCompleted(entry, row, set, restS, isPr)}
+                  {...extra}
+                />
+              )
+              if (block.kind === 'single') {
+                const row = block.item
+                const at = rows.indexOf(row)
+                return card(row, { menuItems: [at > 0 ? join(row, 'up') : null, at < rows.length - 1 ? join(row, 'down') : null] })
+              }
+              const members = block.items
+              return (
+                <SupersetCard
+                  key={`superset-${members[0].position}:${members[0].exerciseId}`}
+                  letter={block.letter}
+                  rounds={{ total: Math.max(0, ...entries.map((e) => roundCount(membersOf(e.workout, members)))) }}
+                  deleteLabel={t('superset.deleteForAll')}
+                  onAddRound={() => addRound(members)}
+                  onUngroup={() => regroup(new Map(members.map((r) => [r, null])))}
+                  onRemove={() => members.forEach(removeRow)}
+                >
+                  {members.map((row, i) => {
+                    const at = rows.indexOf(row)
+                    const edge = i === 0 || i === members.length - 1
+                    return card(row, {
+                      embedded: true,
+                      label: `${block.letter}${i + 1}`,
+                      nextSetFor: (entry) => nextUp(membersOf(entry.workout, members))?.setId ?? null,
+                      menuItems: [
+                        i === 0 && at > 0 ? join(row, 'up') : null,
+                        i === members.length - 1 && at < rows.length - 1 ? join(row, 'down') : null,
+                        edge ? (
+                          <DropdownMenuItem key="leave" onSelect={() => regroup(leaveSuperset(rows, at))}>
+                            <Unlink />
+                            {t('superset.leave')}
+                          </DropdownMenuItem>
+                        ) : null,
+                      ],
+                    })
+                  })}
+                </SupersetCard>
+              )
+            })}
+            <div className="flex gap-2">
+              <Button variant="secondary" size="xl" className="flex-1" onClick={() => setPicker('one')}>
+                <Plus aria-hidden />
+                {t('workout.addExercise')}
+              </Button>
+              <Button variant="secondary" size="xl" onClick={() => setPicker('superset')} aria-label={t('superset.addLong')}>
+                <Layers aria-hidden />
+                {t('superset.add')}
+              </Button>
+            </div>
           </>
         )}
       </main>
 
       <RestTimerBar timer={rest} />
-      <ExercisePicker open={pickerOpen} onOpenChange={setPickerOpen} onPick={addExercise} />
+      <ExercisePicker
+        open={picker !== null}
+        onOpenChange={(isOpen) => setPicker(isOpen ? picker : null)}
+        multiple={picker === 'superset'}
+        onPick={addExercise}
+        onPickMany={addSuperset}
+      />
       <FinishDrawer
         open={finishOpen}
         onOpenChange={setFinishOpen}
@@ -320,22 +464,43 @@ interface GroupExerciseCardProps {
   row: GroupRow
   exercise: Exercise | undefined
   entries: Entry[]
+  /** "A1", "A2"… inside a superset. */
+  label?: string
+  /** Inside a superset card: no frame of its own, rounds are added for everyone at once. */
+  embedded?: boolean
+  /** Each client's next set in the superset, highlighted. */
+  nextSetFor?: (entry: Entry) => string | null
+  menuItems?: ReactNode
   onRemove: () => void
   onAddFor: (entry: Entry) => void
-  onSetCompleted: (member: GroupMember, restS: number, isPr: boolean) => void
+  onSetCompleted: (entry: Entry, set: WorkoutSet, restS: number, isPr: boolean) => void
 }
 
 /** One exercise with a block per client: their last time, their sets. */
-function GroupExerciseCard({ row, exercise, entries, onRemove, onAddFor, onSetCompleted }: GroupExerciseCardProps) {
+function GroupExerciseCard({
+  row,
+  exercise,
+  entries,
+  label,
+  embedded = false,
+  nextSetFor,
+  menuItems,
+  onRemove,
+  onAddFor,
+  onSetCompleted,
+}: GroupExerciseCardProps) {
   const { t } = useTranslation()
   const lang = currentLanguage()
 
   return (
-    <section className="rounded-2xl border bg-card p-3">
+    <section className={embedded ? undefined : 'rounded-2xl border bg-card p-3'}>
       <div className="mb-1 flex items-start gap-2">
         {exercise ? <ExerciseThumb slug={exercise.slug} className="mt-0.5" /> : null}
         <div className="min-w-0 flex-1 pt-1">
-          <h2 className="text-[15px] leading-snug font-medium">{exercise ? exerciseName(exercise, lang) : '…'}</h2>
+          <h2 className="text-[15px] leading-snug font-medium">
+            {label ? <SupersetLabel label={label} /> : null}
+            {exercise ? exerciseName(exercise, lang) : '…'}
+          </h2>
           {exercise ? (
             <p className="text-xs text-muted-foreground">
               {t(`equipment.${exercise.equipment}`)} · {t(`muscle.${exercise.muscle}`)}
@@ -350,6 +515,7 @@ function GroupExerciseCard({ row, exercise, entries, onRemove, onAddFor, onSetCo
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {menuItems}
             <DropdownMenuItem variant="destructive" onSelect={onRemove}>
               {t('group.deleteForAll')}
             </DropdownMenuItem>
@@ -367,7 +533,9 @@ function GroupExerciseCard({ row, exercise, entries, onRemove, onAddFor, onSetCo
                   entry={entry}
                   item={item}
                   exercise={exercise}
-                  onSetCompleted={(restS, isPr) => onSetCompleted(entry.member, restS, isPr)}
+                  embedded={embedded}
+                  nextSetId={nextSetFor?.(entry) ?? null}
+                  onSetCompleted={(set, restS, isPr) => onSetCompleted(entry, set, restS, isPr)}
                 />
               ) : (
                 <div className="flex items-center gap-2">
@@ -402,11 +570,13 @@ interface MemberSetsProps {
   entry: Entry
   item: WorkoutExercise
   exercise: Exercise | undefined
-  onSetCompleted: (restS: number, isPr: boolean) => void
+  embedded: boolean
+  nextSetId: string | null
+  onSetCompleted: (set: WorkoutSet, restS: number, isPr: boolean) => void
 }
 
 /** One client's sets of the exercise, saved into their own workout. */
-function MemberSets({ entry, item, exercise, onSetCompleted }: MemberSetsProps) {
+function MemberSets({ entry, item, exercise, embedded, nextSetId, onSetCompleted }: MemberSetsProps) {
   const { t } = useTranslation()
   const { workout, member } = entry
   const actions = useWorkoutActions(workout.id, () => toast.error(t('workout.saveError')))
@@ -432,8 +602,10 @@ function MemberSets({ entry, item, exercise, onSetCompleted }: MemberSetsProps) 
         lastTime={lastTime ?? []}
         records={records?.get(item.exerciseId) ?? null}
         readOnly={readOnly}
+        nextSetId={nextSetId}
+        hideAddSet={embedded}
         onSetChange={(setId, patch) => actions.updateSet(setId, patch)}
-        onSetCompleted={(_set, isPr) => onSetCompleted(setting?.restS ?? exercise?.defaultRestS ?? 90, isPr)}
+        onSetCompleted={(set, isPr) => onSetCompleted(set, setting?.restS ?? exercise?.defaultRestS ?? 90, isPr)}
         onSetDelete={(setId) => actions.removeSet(setId)}
         onAddSet={() => actions.addSet(item.id)}
       />
