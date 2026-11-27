@@ -293,6 +293,8 @@
     "drop": "Дроп",
     "dropSet": "Дроп-сет",
     "dropMax": "макс",
+    "dropChange": "Дроп: знижуй вагу",
+    "dropGo": "Дроп — поїхали!",
     "deleteExercise": "Видалити вправу",
     "setupNotes": "Налаштування тренажера",
     "setupPlaceholder": "Сидіння 4, спинка 2",

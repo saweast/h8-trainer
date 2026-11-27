@@ -5,10 +5,14 @@ import { useNow } from './useNow'
 
 const KEY = 'h8.rest'
 
+/** `drop`: the short countdown to change the weight before a drop, not a rest. */
+export type TimerKind = 'rest' | 'drop'
+
 interface RestState {
   workoutId: string
   endsAt: number
   totalS: number
+  kind?: TimerKind
 }
 
 function load(workoutId: string): RestState | null {
@@ -52,7 +56,7 @@ export function useRestTimer(workoutId: string) {
   const expired = state !== null && remainingS === 0
 
   const start = useCallback(
-    (seconds: number) => {
+    (seconds: number, kind: TimerKind = 'rest') => {
       if (seconds <= 0) return
       try {
         audio.current ??= new AudioContext()
@@ -60,7 +64,7 @@ export function useRestTimer(workoutId: string) {
       } catch {
         audio.current = null
       }
-      const next = { workoutId, endsAt: Date.now() + seconds * 1000, totalS: seconds }
+      const next: RestState = { workoutId, endsAt: Date.now() + seconds * 1000, totalS: seconds, kind }
       setState(next)
       safeStorage.set(KEY, JSON.stringify(next))
     },
@@ -96,6 +100,7 @@ export function useRestTimer(workoutId: string) {
     running: state !== null && !expired,
     remainingS,
     totalS: state?.totalS ?? 0,
+    kind: state?.kind ?? 'rest',
     justFinished: expired,
     start,
     adjust,

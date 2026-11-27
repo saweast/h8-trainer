@@ -18,6 +18,7 @@ import { useTemplate } from '@/features/templates/api'
 import { useMyAthleteId } from '@/features/athlete/useMyAthlete'
 import { useAuth } from '@/features/auth/authContext'
 import { useAthlete } from '@/features/trainer/api'
+import { DROP_CHANGE_S } from '@/lib/dropSets'
 import type { ExerciseRecords } from '@/lib/records'
 import { prefillSets } from '@/lib/templatePrefill'
 import { autoTitle } from '@/lib/workoutStats'
@@ -89,12 +90,11 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
 
   const onSetCompleted = (item: WorkoutExercise, isPr: boolean, dropNext: boolean) => {
     const exercise = exercises.get(item.exerciseId)
-    // Rest: template setting → my setting for this machine → exercise default. None before a drop:
-    // lower the weight and go on straight away.
+    // Rest: template setting → my setting for this machine → exercise default. Before a drop only a
+    // short countdown to lower the weight.
     const fromTemplate = template?.items.find((i) => i.exerciseId === item.exerciseId)?.restS
     const restS = fromTemplate ?? settings?.get(item.exerciseId)?.restS ?? exercise?.defaultRestS ?? 90
-    if (dropNext) rest.stop()
-    else rest.start(restS)
+    rest.start(dropNext ? DROP_CHANGE_S : restS, dropNext ? 'drop' : 'rest')
     if (isPr && !celebrated.current.has(item.exerciseId)) {
       celebrated.current.add(item.exerciseId)
       toast.success(t('workout.pr'))

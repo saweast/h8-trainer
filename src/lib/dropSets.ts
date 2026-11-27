@@ -55,6 +55,9 @@ export function dropsAfter<T extends ChainSet>(sets: T[], index: number): T[] {
   return sets.slice(index + 1, chainEnd(sets, index) + 1)
 }
 
+/** Seconds to change the weight before a drop: a short countdown instead of rest. */
+export const DROP_CHANGE_S = 10
+
 /** Share of the weight taken off for a drop when there is no history. */
 export const DROP_SHARE = 0.2
 

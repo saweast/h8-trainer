@@ -21,6 +21,7 @@ import { ExerciseThumb } from '@/features/exercises/guide/ExerciseThumb'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { currentLanguage } from '@/i18n'
 import { formatVolume } from '@/lib/format'
+import { DROP_CHANGE_S } from '@/lib/dropSets'
 import { findRowExercise, groupRows, nextGroupPosition, type GroupRow } from '@/lib/groupRows'
 import { prefillSets } from '@/lib/templatePrefill'
 import { autoTitle, workoutTotals } from '@/lib/workoutStats'
@@ -142,9 +143,9 @@ function ActiveGroup({ groupId, entries }: { groupId: string; entries: Entry[] }
     }
   }
 
-  // Before a drop that client goes on straight away; the timer keeps running for the others.
+  // Before a drop: only a short countdown to lower the weight.
   const onSetCompleted = (member: GroupMember, exerciseId: string, restS: number | null, isPr: boolean) => {
-    if (restS !== null) rest.start(restS)
+    rest.start(restS ?? DROP_CHANGE_S, restS === null ? 'drop' : 'rest')
     const key = `${member.athleteId}:${exerciseId}`
     if (isPr && !celebrated.current.has(key)) {
       celebrated.current.add(key)

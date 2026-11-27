@@ -279,6 +279,8 @@
     "drop": "Drop",
     "dropSet": "Drop set",
     "dropMax": "max",
+    "dropChange": "Drop: lower the weight",
+    "dropGo": "Drop — go!",
     "deleteExercise": "Remove exercise",
     "setupNotes": "Machine setup",
     "setupPlaceholder": "Seat 4, back 2",
