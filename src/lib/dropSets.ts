@@ -28,6 +28,20 @@ export function workingChains<T extends ChainSet>(sets: T[]): Chain<T>[] {
   return chains
 }
 
+/**
+ * All sets in order, each working set with the drops that continue it; warm-ups stand alone.
+ * For showing a chain as one thing: "80 × 10 → 60 × 8 → 40 × 6".
+ */
+export function groupChains<T extends ChainSet>(sets: T[]): Chain<T>[] {
+  const groups: Chain<T>[] = []
+  for (const s of sets) {
+    const last = groups.at(-1)
+    if (s.isDrop && last && !last.head.isWarmup) last.drops.push(s)
+    else groups.push({ head: s, drops: [] })
+  }
+  return groups
+}
+
 /** Index of the last set of the chain that `index` starts or belongs to: a new drop goes after it. */
 export function chainEnd(sets: ChainSet[], index: number): number {
   let end = index

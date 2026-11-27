@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chainEnd, dropsAfter, suggestDropWeight, workingChains } from './dropSets'
+import { chainEnd, dropsAfter, groupChains, suggestDropWeight, workingChains } from './dropSets'
 
 const set = (kg: number, flags: { warm?: boolean; drop?: boolean } = {}) => ({
   kg,
@@ -55,5 +55,17 @@ describe('suggestDropWeight', () => {
   it("repeats last time's drop while it is lighter than the set before", () => {
     expect(suggestDropWeight(80, 2.5, 55)).toBe(55)
     expect(suggestDropWeight(60, 2.5, 70)).toBe(47.5) // last time started heavier: 48 → 47.5
+  })
+})
+
+describe('groupChains', () => {
+  it('keeps the order, warm-ups alone, drops on their set', () => {
+    const sets = [set(40, { warm: true }), set(30, { drop: true }), set(80), set(60, { drop: true }), set(80)]
+    expect(groupChains(sets).map((g) => [g.head.kg, g.drops.map((d) => d.kg)])).toEqual([
+      [40, []],
+      [30, []], // nothing to continue: a warm-up has no drops
+      [80, [60]],
+      [80, []],
+    ])
   })
 })

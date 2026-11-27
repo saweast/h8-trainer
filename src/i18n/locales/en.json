@@ -277,6 +277,7 @@
     "deleteDrop": "Delete drop",
     "deleteSetWithDrops": "Delete set and its drops",
     "drop": "Drop",
+    "dropSet": "Drop set",
     "dropMax": "max",
     "deleteExercise": "Remove exercise",
     "setupNotes": "Machine setup",
