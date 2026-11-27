@@ -1,4 +1,4 @@
-import { CornerDownRight, EllipsisVertical, Link2, Plus, SlidersHorizontal, Unlink2 } from 'lucide-react'
+import { CornerDownRight, EllipsisVertical, Plus, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SegmentedControl } from '@/components/common/SegmentedControl'
@@ -17,7 +17,6 @@ import type { Exercise } from '@/features/exercises/api'
 import { currentLanguage } from '@/i18n'
 import { chainEnd, DEFAULT_DROP_PCT, DROP_PCT_OPTIONS, suggestDropWeight, workingChains } from '@/lib/dropSets'
 import { detectPrs, type ExerciseRecords } from '@/lib/records'
-import type { SupersetPlace } from '@/lib/supersets'
 import type { PreviousSet } from '@/lib/templatePrefill'
 import type { ExerciseFeedbackPatch, WorkoutExercise, WorkoutSet } from './api'
 import { ExerciseFeedback } from './ExerciseFeedback'
@@ -26,8 +25,6 @@ import { SET_GRID, SetRow } from './SetRow'
 type SetPatch = Partial<Pick<WorkoutSet, 'weightKg' | 'reps' | 'isWarmup' | 'rpe' | 'completedAt'>>
 
 interface ExerciseCardProps {
-  /** For scrolling to the card (the next exercise of a superset). */
-  id?: string
   item: WorkoutExercise
   exercise: Exercise | undefined
   lastTime: PreviousSet[]
@@ -37,11 +34,6 @@ interface ExerciseCardProps {
   dropPct: number | null
   /** Live view of someone else's session: sets and exercises can't be changed, feedback can. */
   readOnly?: boolean
-  /** Its place in a superset ("A1"), if it's in one. */
-  superset?: SupersetPlace | null
-  /** Offered when there is a next exercise not already in the same superset. */
-  onLinkNext?: () => void
-  onUnlinkSuperset?: () => void
   onSetChange: (setId: string, patch: SetPatch) => void
   /** `dropNext`: a drop follows straight away, so no rest. */
   onSetCompleted: (set: WorkoutSet, isPr: boolean, dropNext: boolean) => void
@@ -55,7 +47,6 @@ interface ExerciseCardProps {
 }
 
 export function ExerciseCard({
-  id,
   item,
   exercise,
   lastTime,
@@ -63,9 +54,6 @@ export function ExerciseCard({
   setupNotes,
   dropPct,
   readOnly = false,
-  superset = null,
-  onLinkNext,
-  onUnlinkSuperset,
   onSetChange,
   onSetCompleted,
   onSetDelete,
@@ -90,21 +78,11 @@ export function ExerciseCard({
   }
 
   return (
-    <section id={id} className="scroll-mt-20 rounded-2xl border bg-card p-3">
+    <section className="rounded-2xl border bg-card p-3">
       <div className="mb-2 flex items-start gap-2">
         {exercise ? <ExerciseThumb slug={exercise.slug} className="mt-0.5" /> : null}
         <div className="min-w-0 flex-1 pt-1">
-          <h2 className="text-[15px] leading-snug font-medium">
-            {superset ? (
-              <span
-                title={t('workout.superset')}
-                className="tabular mr-1.5 inline-block rounded-md bg-primary px-1.5 align-[1px] text-[11px] leading-[18px] font-semibold text-primary-foreground"
-              >
-                {superset.label}
-              </span>
-            ) : null}
-            {exercise ? exerciseName(exercise, lang) : '…'}
-          </h2>
+          <h2 className="text-[15px] leading-snug font-medium">{exercise ? exerciseName(exercise, lang) : '…'}</h2>
           {exercise ? (
             <p className="text-xs text-muted-foreground">
               {t(`equipment.${exercise.equipment}`)} · {t(`muscle.${exercise.muscle}`)}
@@ -124,18 +102,6 @@ export function ExerciseCard({
               <SlidersHorizontal />
               {t('workout.setupNotes')}
             </DropdownMenuItem>
-            {onLinkNext ? (
-              <DropdownMenuItem onSelect={onLinkNext}>
-                <Link2 />
-                {t('workout.linkNext')}
-              </DropdownMenuItem>
-            ) : null}
-            {superset && onUnlinkSuperset ? (
-              <DropdownMenuItem onSelect={onUnlinkSuperset}>
-                <Unlink2 />
-                {t('workout.unlinkSuperset')}
-              </DropdownMenuItem>
-            ) : null}
             {weighted ? (
               <DropdownMenuItem onSelect={() => setEditingDrop(true)}>
                 <CornerDownRight />

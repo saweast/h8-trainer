@@ -1,5 +1,4 @@
 import { fromSpecSets, specVolume, type SpecSet } from './setSpec'
-import { normalizeSupersets } from './supersets'
 
 /** A plan as edited on the grid: days → exercise rows → one cell of planned sets per week. */
 export interface PlanRowDraft {
@@ -7,8 +6,6 @@ export interface PlanRowDraft {
   exerciseId: string
   restS: number | null
   notes: string | null
-  /** Consecutive rows of a day with the same number are a superset (src/lib/supersets.ts). */
-  superset?: number | null
   /** week (1-based) → planned sets */
   cells: Record<number, SpecSet[]>
 }
@@ -35,7 +32,7 @@ export function emptyDay(name: string): PlanDayDraft {
 }
 
 export function newRow(exerciseId: string, restS: number | null = null): PlanRowDraft {
-  return { id: newId(), exerciseId, restS, notes: null, superset: null, cells: {} }
+  return { id: newId(), exerciseId, restS, notes: null, cells: {} }
 }
 
 const roundTo = (value: number, step: number) => Math.round(value / step) * step
@@ -148,23 +145,19 @@ export function weekTotals(draft: PlanDraft, week: number): WeekTotals {
 
 /** Payload for the `save_plan` RPC. */
 export function toSavePayload(draft: PlanDraft) {
-  return draft.days.map((d) => {
-    const supersets = normalizeSupersets(d.rows.map((r) => r.superset))
-    return {
-      id: d.id,
-      name: d.name.trim(),
-      rows: d.rows.map((r, i) => ({
-        id: r.id,
-        exercise_id: r.exerciseId,
-        rest_s: r.restS,
-        notes: r.notes,
-        superset: supersets[i],
-        cells: Object.entries(r.cells)
-          .map(([week, sets]) => ({ week: Number(week), sets: fromSpecSets(sets) }))
-          .filter((c) => c.week >= 1 && c.week <= draft.weeks && c.sets.length),
-      })),
-    }
-  })
+  return draft.days.map((d) => ({
+    id: d.id,
+    name: d.name.trim(),
+    rows: d.rows.map((r) => ({
+      id: r.id,
+      exercise_id: r.exerciseId,
+      rest_s: r.restS,
+      notes: r.notes,
+      cells: Object.entries(r.cells)
+        .map(([week, sets]) => ({ week: Number(week), sets: fromSpecSets(sets) }))
+        .filter((c) => c.week >= 1 && c.week <= draft.weeks && c.sets.length),
+    })),
+  }))
 }
 
 // Plan vs actual ---------------------------------------------------------------------------

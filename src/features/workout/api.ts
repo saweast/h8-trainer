@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient, type UseQueryOptions } from '@tanstack/react-query'
 import { dropsAfter } from '@/lib/dropSets'
-import { linkWithNext, unlinkItem, type SupersetGroup } from '@/lib/supersets'
 import type { ExerciseRecords } from '@/lib/records'
 import type { TablesUpdate } from '@/lib/db.types'
 import { supabase } from '@/lib/supabase'
@@ -27,8 +26,6 @@ export interface WorkoutExercise {
   exerciseId: string
   position: number
   notes: string | null
-  /** Consecutive exercises with the same number are a superset (src/lib/supersets.ts). */
-  superset: number | null
   /** Client feedback: 1 easy · 2 ok · 3 hard. */
   difficulty: number | null
   athleteFeedback: string | null
@@ -126,7 +123,7 @@ export function pendingWrites(queryClient: QueryClient, workoutId: string) {
 }
 
 const WORKOUT_SELECT = `id, athlete_id, title, started_at, finished_at, notes, template_id, program_id, membership_id, created_by, group_id, last_activity_at,
-  workout_exercises (id, exercise_id, position, notes, superset, difficulty, athlete_feedback,
+  workout_exercises (id, exercise_id, position, notes, difficulty, athlete_feedback,
     sets (id, workout_exercise_id, position, weight_kg, reps, is_warmup, is_drop, rpe, completed_at))`
 
 /** The workout doesn't exist (deleted) or isn't visible to me. */
@@ -163,7 +160,6 @@ async function fetchWorkout(id: string): Promise<Workout> {
         exerciseId: we.exercise_id,
         position: we.position,
         notes: we.notes,
-        superset: we.superset,
         difficulty: we.difficulty,
         athleteFeedback: we.athlete_feedback,
         sets: we.sets
@@ -500,20 +496,6 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
-  const patchSupersets = useMutation({
-    scope,
-    retry: retryNetwork,
-    onError,
-    mutationFn: async (changes: { id: string; superset: number | null }[]) => {
-      for (const c of changes) {
-        await expectRows(
-          supabase!.from('workout_exercises').update({ superset: c.superset }).eq('id', c.id).select('id'),
-          'superset',
-        )
-      }
-    },
-  })
-
   const deleteSets = useMutation({
     scope,
     retry: retryNetwork,
@@ -533,7 +515,6 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
       exerciseId,
       position,
       notes: null,
-      superset: null,
       difficulty: null,
       athleteFeedback: null,
       sets: planned.map((p) => ({
@@ -629,29 +610,6 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     insertDrop.mutate({ set, afterSetId })
   }
 
-  /** Changes the supersets around one exercise; only the exercises whose group changed are saved. */
-  const regroup = (workoutExerciseId: string, fn: (groups: SupersetGroup[], index: number) => (number | null)[]) => {
-    const exercises = current()?.exercises ?? []
-    const index = exercises.findIndex((e) => e.id === workoutExerciseId)
-    if (index < 0) return
-    const groups = fn(
-      exercises.map((e) => e.superset),
-      index,
-    )
-    const changes = exercises.flatMap((e, i) => (e.superset !== groups[i] ? [{ id: e.id, superset: groups[i] }] : []))
-    if (!changes.length) return
-    const next = new Map(changes.map((c) => [c.id, c.superset]))
-    updateCached(queryClient, workoutId, (old) => ({
-      ...old,
-      exercises: old.exercises.map((e) => (next.has(e.id) ? { ...e, superset: next.get(e.id)! } : e)),
-    }))
-    patchSupersets.mutate(changes)
-  }
-
-  /** Makes this exercise and the next one a superset (or adds the next one to it). */
-  const linkSuperset = (workoutExerciseId: string) => regroup(workoutExerciseId, linkWithNext)
-  const unlinkSuperset = (workoutExerciseId: string) => regroup(workoutExerciseId, unlinkItem)
-
   /** Removing a set that drops continue removes its drops too: they'd hang on the wrong set. */
   const removeSet = (setId: string) => {
     const sets = current()?.exercises.find((e) => e.sets.some((s) => s.id === setId))?.sets ?? []
@@ -711,17 +669,5 @@ export function useWorkoutActions(workoutId: string, notifyError?: () => void) {
     },
   })
 
-  return {
-    addExercise,
-    removeExercise,
-    addSet,
-    addDrop,
-    updateSet,
-    removeSet,
-    setFeedback,
-    linkSuperset,
-    unlinkSuperset,
-    finish,
-    discard,
-  }
+  return { addExercise, removeExercise, addSet, addDrop, updateSet, removeSet, setFeedback, finish, discard }
 }

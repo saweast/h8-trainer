@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/authContext'
 import { activeWorkoutKey } from '@/features/workout/api'
 import { fromSpecSets, toSpecSets } from '@/lib/setSpec'
-import { normalizeSupersets } from '@/lib/supersets'
 import { supabase } from '@/lib/supabase'
 import type { TemplateItemInput } from '@/lib/templateFromWorkout'
 
@@ -66,7 +65,7 @@ export function useTemplate(id: string | undefined) {
         .from('templates')
         .select(
           `id, name, notes, owner_id,
-           template_exercises (exercise_id, position, target_sets, target_reps_min, target_reps_max, target_weight_kg, rest_s, notes, sets, superset)`,
+           template_exercises (exercise_id, position, target_sets, target_reps_min, target_reps_max, target_weight_kg, rest_s, notes, sets)`,
         )
         .eq('id', id!)
         .single()
@@ -87,7 +86,6 @@ export function useTemplate(id: string | undefined) {
             restS: te.rest_s,
             notes: te.notes,
             sets: te.sets === null ? null : toSpecSets(te.sets),
-            superset: te.superset,
           })),
       }
     },
@@ -121,12 +119,11 @@ export function useSaveTemplate() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: SaveTemplateInput) => {
-      const supersets = normalizeSupersets(input.items.map((i) => i.superset))
       const { data, error } = await supabase!.rpc('save_template', {
         p_id: input.id as string,
         p_name: input.name,
         p_notes: input.notes ?? '',
-        p_items: input.items.map((i, index) => ({
+        p_items: input.items.map((i) => ({
           exercise_id: i.exerciseId,
           target_sets: i.targetSets,
           target_reps_min: i.targetRepsMin,
@@ -135,7 +132,6 @@ export function useSaveTemplate() {
           rest_s: i.restS,
           notes: i.notes,
           sets: i.sets?.length ? fromSpecSets(i.sets) : null,
-          superset: supersets[index],
         })),
       })
       if (error) throw error
